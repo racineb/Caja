@@ -4519,10 +4519,11 @@ function renderReportes(){
 
     <!-- Sold Out -->
     ${(()=>{
+      // Sold Out = en inventario con agora=0 Y almacén=0
       const soldOut=Object.keys(inventarioData).filter(sku=>{
         const d=inventarioData[sku];
         return (d.agora||0)<=0&&(d.almacen||0)<=0;
-      });
+      }).sort();
       if(!soldOut.length)return '';
       const covers=soldOut.filter(s=>IS_COVER.includes(skuPid(s)));
       const accs=soldOut.filter(s=>!IS_COVER.includes(skuPid(s)));
@@ -4535,7 +4536,7 @@ function renderReportes(){
       };
       return `<div class="rep-section">
         <div class="rep-title">🔴 Sold Out — Sin stock en ningún lado (${soldOut.length} SKU${soldOut.length>1?'s':''})</div>
-        ${covers.length?`<div style="font-size:.63rem;font-weight:800;text-transform:uppercase;letter-spacing:.7px;color:#7c3aed;margin:8px 0 4px;">Covers (${covers.length})</div>
+${covers.length?`<div style="font-size:.63rem;font-weight:800;text-transform:uppercase;letter-spacing:.7px;color:#7c3aed;margin:8px 0 4px;">Covers (${covers.length})</div>
           <div>${covers.map(makeChip).join('')}</div>`:''}
         ${accs.length?`<div style="font-size:.63rem;font-weight:800;text-transform:uppercase;letter-spacing:.7px;color:#1d4ed8;margin:10px 0 4px;">Accesorios (${accs.length})</div>
           <div>${accs.map(makeChip).join('')}</div>`:''}
