@@ -1446,6 +1446,9 @@ const COS_ONLY_BLACK=true; // Cosmetic Bag solo disponible en Black
 const ACC_PID_MAP={'ch':'Card Holder','kt':'Key Tag','bt':'Bag Tag','ph':'Passport Holder','cos':'Cosmetic Bag'};
 const CSV_ACC_MAP={'Card Holder':'ch','Key Tag':'kt','Bag Tag':'bt','Passport Holder':'ph','Cosmetic Bag':'cos'};
 function makeCoverSku(model,color){return `cover__${model}__${color}`;}
+// Colores válidos por modelo (Samsung S25 Ultra solo Black por ahora)
+const MODEL_COLORS={'Samsung S25 Ultra':['Black']};
+function coverColorsForModel(model){return MODEL_COLORS[model]||COLORS;}
 function makeAccSku(pid,color){return `${pid}__${color}`;}
 function makeSkuFromItem(item){
   return IS_COVER.includes(item.pid)
@@ -3304,17 +3307,19 @@ function isInvActive(){
 }
 function getZeroStockSkus(){
   if(!isInvActive())return [];
-  // Only flag SKUs that have been explicitly tracked (had almacen set, or agora went below 0 from a positive start)
   return Object.keys(inventarioData).filter(s=>{
+    if(skuExcludedByRules(s))return false;
     const d=inventarioData[s];
-    return (d.almacen||0)>0&&(d.agora||0)<=0; // has backup stock but nothing in Agora
+    return (d.almacen||0)>0&&(d.agora||0)<=0;
   });
 }
 function getLowStockSkus(){
   if(!isInvActive())return [];
   return Object.keys(inventarioData).filter(s=>{
+    if(skuExcludedByRules(s))return false;
     const d=inventarioData[s];
-    return (d.agora||0)>0&&(d.agora||0)<=getMinForSku(s);
+    // Solo contar como bajo si tiene agora > 0 (no cero), está bajo el mínimo Y tiene almacén disponible
+    return (d.agora||0)>0&&(d.agora||0)<=getMinForSku(s)&&(d.almacen||0)>0;
   });
 }
 function needsRestock(sku){
@@ -3326,8 +3331,7 @@ function updateInvBadge(){
   const tb=document.getElementById('tb5');if(!tb)return;
   if(!isInvActive()){tb.textContent='📋 Inventario';return;}
   const z=getZeroStockSkus().length, l=getLowStockSkus().length;
-  const count=z||l;
-  if(count>0){tb.innerHTML=`📋 Inventario <span class="tab-badge">⚠${count}</span>`;}
+  if(z){tb.innerHTML=`📋 Inventario <span class="tab-badge">⚠${z}</span>`;}
   else{tb.textContent='📋 Inventario';}
 }
 
@@ -3342,7 +3346,7 @@ function deductAgoraForOrder(orderItems){
     if(s.agora<=0&&s.almacen<=0)return; // SKU not tracked in inventory, skip
     const newAgora=s.agora-(item.qty||1);
     saveInvRec(sku,{...s,agora:newAgora});
-    if(newAgora<=0&&s.almacen>0){
+    if(newAgora<=0&&s.almacen>0&&!skuExcludedByRules(sku)){
       setTimeout(()=>toast(`⚠ Sin stock en Agora: ${item.name}${item.model?' '+item.model:''} / ${item.color}`),800);
     }
   });
@@ -3478,7 +3482,7 @@ function downloadInvTemplate(){
   const accColors=ACC_COLORS.join(',');
   let csv='COVERS SAFFIANO iPHONE\n';
   csv+=`Covers,${colors}\n`;
-  MODEL_LIST.forEach(m=>{csv+=`${m},${COLORS.map(()=>0).join(',')}\n`;});
+  MODEL_LIST.forEach(m=>{csv+=`${m},${coverColorsForModel(m).map(()=>0).join(',')}\n`;});
   csv+='\nACCESORIOS SAFFIANO\n';
   csv+=`Accesorios,${accColors}\n`;
   ['Card Holder','Key Tag','Bag Tag','Passport Holder'].forEach(p=>{
@@ -4114,7 +4118,7 @@ function renderInventario(){
   let gridHtml='';
   if(_invSubtab==='cover'){
     const rows=MODEL_LIST.map(model=>{
-      const pairs=COLORS.map(color=>({sku:makeCoverSku(model,color),color}));
+      const pairs=coverColorsForModel(model).map(color=>({sku:makeCoverSku(model,color),color}));
       return accRow('cov-'+model.replace(/[\s\/]/g,'_'), model, pairs);
     }).filter(Boolean).join('');
     gridHtml=`<div class="inv-list">${rows||'<p style="color:var(--g500);font-size:.85rem;padding:12px;">Sin datos de inventario</p>'}</div>
@@ -4521,7 +4525,7 @@ function renderReportes(){
     ${(()=>{
       // Sold Out = todo el catálogo donde agora=0 Y almacén=0 (basado en disponibilidad, no compras)
       const _allCatalogSkus=[];
-      MODEL_LIST.forEach(m=>COLORS.forEach(c=>_allCatalogSkus.push(makeCoverSku(m,c))));
+      MODEL_LIST.forEach(m=>coverColorsForModel(m).forEach(c=>_allCatalogSkus.push(makeCoverSku(m,c))));
       Object.keys(ACC_PID_MAP).forEach(pid=>{
         const cols=pid==='cos'?['Black']:ACC_COLORS;
         cols.forEach(c=>_allCatalogSkus.push(makeAccSku(pid,c)));
@@ -4533,19 +4537,47 @@ function renderReportes(){
       if(!soldOut.length)return '';
       const covers=soldOut.filter(s=>IS_COVER.includes(skuPid(s)));
       const accs=soldOut.filter(s=>!IS_COVER.includes(skuPid(s)));
-      const makeChip=s=>{
-        const pid=skuPid(s);
-        const label=IS_COVER.includes(pid)
-          ?`${skuModel(s)} / ${skuColor(s)}`
-          :`${ACC_PID_MAP[pid]||pid} / ${skuColor(s)}`;
-        return `<span style="display:inline-block;background:#fee2e2;color:#dc2626;border-radius:6px;padding:3px 9px;font-size:.72rem;font-weight:700;margin:3px 3px;">${label}</span>`;
+
+      // Group covers by model
+      const coversByModel={};
+      covers.forEach(sku=>{
+        const m=skuModel(sku);
+        if(!coversByModel[m])coversByModel[m]=[];
+        coversByModel[m].push(skuColor(sku));
+      });
+      // Group accs by pid name
+      const accsByName={};
+      accs.forEach(sku=>{
+        const name=ACC_PID_MAP[skuPid(sku)]||skuPid(sku);
+        if(!accsByName[name])accsByName[name]=[];
+        accsByName[name].push(skuColor(sku));
+      });
+
+      const makeColorChip=c=>`<span style="display:inline-block;background:#fee2e2;color:#dc2626;border-radius:5px;padding:2px 8px;font-size:.69rem;font-weight:700;margin:2px 2px;">${c}</span>`;
+
+      let soIdx=0;
+      const makeGroup=(label,colors,accentColor)=>{
+        const id='so-grp-'+(soIdx++);
+        return `<div style="border:1px solid #fecaca;border-radius:8px;margin:4px 0;overflow:hidden;">
+          <div onclick="(function(el){var d=el.nextElementSibling;var open=d.style.display!=='none';d.style.display=open?'none':'block';el.querySelector('.so-arr').textContent=open?'▸':'▾';})(this)" style="display:flex;align-items:center;justify-content:space-between;padding:7px 12px;cursor:pointer;background:#fff5f5;user-select:none;">
+            <span style="font-size:.78rem;font-weight:700;color:${accentColor};">${label}</span>
+            <span style="display:flex;align-items:center;gap:6px;">
+              <span style="font-size:.65rem;font-weight:600;color:#9ca3af;">${colors.length} color${colors.length>1?'es':''}</span>
+              <span class="so-arr" style="font-size:.7rem;color:#9ca3af;">▸</span>
+            </span>
+          </div>
+          <div style="display:none;padding:6px 10px 8px;background:#fff;">
+            ${colors.map(makeColorChip).join('')}
+          </div>
+        </div>`;
       };
+
       return `<div class="rep-section">
         <div class="rep-title">🔴 Sold Out — Sin stock en ningún lado (${soldOut.length} SKU${soldOut.length>1?'s':''})</div>
-${covers.length?`<div style="font-size:.63rem;font-weight:800;text-transform:uppercase;letter-spacing:.7px;color:#7c3aed;margin:8px 0 4px;">Covers (${covers.length})</div>
-          <div>${covers.map(makeChip).join('')}</div>`:''}
-        ${accs.length?`<div style="font-size:.63rem;font-weight:800;text-transform:uppercase;letter-spacing:.7px;color:#1d4ed8;margin:10px 0 4px;">Accesorios (${accs.length})</div>
-          <div>${accs.map(makeChip).join('')}</div>`:''}
+        ${covers.length?`<div style="font-size:.63rem;font-weight:800;text-transform:uppercase;letter-spacing:.7px;color:#7c3aed;margin:10px 0 5px;">Covers (${covers.length})</div>
+          ${Object.keys(coversByModel).sort().map(m=>makeGroup(m,coversByModel[m],'#7c3aed')).join('')}`:''}
+        ${accs.length?`<div style="font-size:.63rem;font-weight:800;text-transform:uppercase;letter-spacing:.7px;color:#1d4ed8;margin:12px 0 5px;">Accesorios (${accs.length})</div>
+          ${Object.keys(accsByName).sort().map(n=>makeGroup(n,accsByName[n],'#1d4ed8')).join('')}`:''}
       </div>`;
     })()}
 
@@ -5245,6 +5277,7 @@ db.ref('inventario').on('value',snap=>{
 
 db.ref('restockRules').on('value',snap=>{
   restockRules=snap.val()||{};
+  updateInvBadge(); // recalcular con reglas ya cargadas
   if(adminMode&&document.getElementById('pnl7')&&document.getElementById('pnl7').style.display!=='none')renderRestockRules();
 });
 db.ref('restocks').on('value',snap=>{
