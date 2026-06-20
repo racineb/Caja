@@ -425,8 +425,9 @@ input.err{border-color:#c00!important;}
 .corte-diff-badge.zero{background:var(--g200);color:var(--g700);}
 /* ── MOBILE NAV BAR ── */
 .mobile-nav{display:none;position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1.5px solid #e5e7eb;z-index:30;padding-bottom:env(safe-area-inset-bottom,0px);}
-.mob-nav-inner{display:flex;align-items:stretch;}
-.mob-nav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 4px 7px;cursor:pointer;color:#9ca3af;font-size:.56rem;font-weight:700;gap:3px;letter-spacing:.4px;text-transform:uppercase;-webkit-tap-highlight-color:transparent;user-select:none;transition:color .15s;}
+.mob-nav-inner{display:flex;align-items:stretch;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;}
+.mob-nav-inner::-webkit-scrollbar{display:none;}
+.mob-nav-item{flex:0 0 auto;min-width:60px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 10px 7px;cursor:pointer;color:#9ca3af;font-size:.56rem;font-weight:700;gap:3px;letter-spacing:.4px;text-transform:uppercase;-webkit-tap-highlight-color:transparent;user-select:none;transition:color .15s;}
 .mob-nav-item .mni{font-size:1.25rem;line-height:1;}
 .mob-nav-item.active{color:#111827;}
 .mob-nav-item.active .mni{filter:none;}
@@ -545,8 +546,36 @@ input.err{border-color:#c00!important;}
   .tnav{flex-wrap:wrap;}
   .tnav .fld{min-width:0;flex:1;}
   .tnav .navbtns{flex-wrap:wrap;gap:5px;}
+  .tnav .navbtns select,.tnav .navbtns input[type=text]{width:auto!important;flex:1 1 120px;min-width:0;}
   .hist-row{grid-template-columns:65px 1fr 62px;gap:4px;}
   .hist-row>*:nth-child(4),.hist-row>*:nth-child(5){display:none;}
+
+  /* Transaction table — card layout */
+  .ttable,.ttable tbody{display:block;width:100%;}
+  .ttable thead{display:none;}
+  .ttable tr{
+    display:grid;
+    grid-template-columns:52px 1fr auto;
+    grid-template-rows:auto auto auto;
+    column-gap:8px;
+    row-gap:2px;
+    padding:10px 12px;
+    border-bottom:1.5px solid var(--g100);
+  }
+  .ttable td{padding:0;border:none;vertical-align:top;}
+  .ttable tr:hover td{background:transparent;}
+  /* Time + shift */
+  .ttable td:nth-child(1){grid-column:1;grid-row:1/4;font-size:.7rem;}
+  /* Client name */
+  .ttable td:nth-child(2){grid-column:2;grid-row:1;font-size:.85rem;}
+  /* Items */
+  .ttable td:nth-child(3){grid-column:2;grid-row:2;font-size:.75rem;color:var(--g500);}
+  /* Total */
+  .ttable td:nth-child(4){grid-column:3;grid-row:1;text-align:right;white-space:nowrap;}
+  /* Payment badge */
+  .ttable td:nth-child(5){grid-column:2;grid-row:3;}
+  /* Admin buttons */
+  .ttable td:nth-child(6){grid-column:3;grid-row:2/4;display:flex;flex-direction:column;gap:4px;align-items:flex-end;justify-content:flex-start;white-space:nowrap;}
 
   /* Settings */
   .settings-layout{flex-direction:column;}
@@ -1005,7 +1034,8 @@ input.err{border-color:#c00!important;}
         <input type="file" accept=".csv,.txt" id="inv-csv-input" style="display:none;" onchange="loadInvCSV(this)"/>
       </label>
       <button class="dbtn" onclick="downloadInvTemplate()" style="font-size:.77rem;">📥 Plantilla</button>
-      <button class="dbtn" onclick="exportInvCSV()" style="font-size:.77rem;">📤 Exportar</button>
+      <button class="dbtn" onclick="exportInvCSV()" style="font-size:.77rem;">📊 Exportar CSV</button>
+      <button class="dbtn" onclick="exportInvPDF()" style="font-size:.77rem;">📄 Exportar PDF</button>
       <button class="dbtn" onclick="showInvHistory()" style="font-size:.77rem;">📜 Historial</button>
       <button class="dbtn dark" onclick="openRestockModal()" style="font-size:.77rem;">🚚 Restock</button>
     </div>
@@ -1742,6 +1772,8 @@ function initApp(){
   if(tb6)tb6.style.display=adminMode?'block':'none';
   const mobtb6=document.getElementById('mob-tb6');
   if(mobtb6)mobtb6.style.display=adminMode?'flex':'none';
+  const mobtb7=document.getElementById('mob-tb7');
+  if(mobtb7)mobtb7.style.display=adminMode?'flex':'none';
   const tb7=document.getElementById('tb7');
   if(tb7)tb7.style.display=adminMode?'block':'none';
   buildProds();updHdr();updateShiftStatus();renderPendingApprovals();
@@ -3807,6 +3839,97 @@ function exportInvCSV(){
   toast('📤 Inventario exportado');
 }
 
+function exportInvPDF(){
+  const date=new Date().toISOString().slice(0,10);
+  const dateLabel=new Date(date+'T12:00:00').toLocaleDateString('es',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+
+  // Gather cover rows (only where agora>0 or almacen>0)
+  const coverRows=[];
+  MODEL_LIST.forEach(m=>{
+    COLORS.forEach(c=>{
+      const sku=makeCoverSku(m,c);
+      const s=inventarioData[sku];
+      const ag=s?.agora||0, al=s?.almacen||0;
+      if(ag>0||al>0) coverRows.push({name:'Cover',model:m,color:c,agora:ag,almacen:al,total:ag+al,min:s?.min||3});
+    });
+  });
+
+  // Gather accessory rows
+  const accRows=[];
+  const accNames={'ch':'Card Holder','kt':'Key Tag','bt':'Bag Tag','ph':'Passport Holder','cos':'Cosmetic Bag'};
+  Object.entries(accNames).forEach(([pid,name])=>{
+    const cols=pid==='cos'?['Black']:ACC_COLORS;
+    cols.forEach(c=>{
+      const sku=makeAccSku(pid,c);
+      const s=inventarioData[sku];
+      const ag=s?.agora||0, al=s?.almacen||0;
+      if(ag>0||al>0) accRows.push({name,color:c,agora:ag,almacen:al,total:ag+al,min:s?.min||3});
+    });
+  });
+
+  const makeRows=(arr,showModel)=>arr.map(r=>`<tr>
+    <td>${r.name}</td>
+    ${showModel?`<td>${r.model}</td>`:''}
+    <td>${r.color}</td>
+    <td style="text-align:center;font-weight:800;color:${r.agora<r.min?'#dc2626':'#111'}">${r.agora}</td>
+    <td style="text-align:center;">${r.almacen}</td>
+    <td style="text-align:center;font-weight:800;">${r.total}</td>
+    <td style="text-align:center;color:#9ca3af;">${r.min}</td>
+  </tr>`).join('');
+
+  const totalAgora=(rows=>rows.reduce((s,r)=>s+r.agora,0));
+  const totalAlmacen=(rows=>rows.reduce((s,r)=>s+r.almacen,0));
+
+  const win=window.open('','_blank','width=900,height=700');
+  win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
+  <title>Inventario Singular — ${date}</title>
+  <style>
+    *{box-sizing:border-box;}
+    body{font-family:'Segoe UI',sans-serif;padding:32px;color:#111;font-size:.88rem;}
+    h2{margin:0 0 4px;font-size:1.3rem;}
+    .sub{color:#666;font-size:.8rem;margin-bottom:8px;}
+    .kpis{display:flex;gap:16px;margin-bottom:24px;flex-wrap:wrap;}
+    .kpi{background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:10px 18px;text-align:center;}
+    .kpi .v{font-size:1.4rem;font-weight:900;}
+    .kpi .l{font-size:.7rem;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;}
+    h3{margin:24px 0 8px;font-size:.85rem;font-weight:900;text-transform:uppercase;letter-spacing:.8px;color:#6b7280;border-bottom:2px solid #111;padding-bottom:6px;}
+    table{width:100%;border-collapse:collapse;font-size:.82rem;margin-bottom:8px;}
+    th{background:#111;color:#fff;padding:8px 10px;text-align:left;font-size:.68rem;text-transform:uppercase;letter-spacing:.6px;}
+    th:not(:first-child):not(:nth-child(2)){text-align:center;}
+    td{padding:7px 10px;border-bottom:1px solid #e5e7eb;vertical-align:middle;}
+    tr:nth-child(even) td{background:#f9fafb;}
+    tr:last-child td{border-bottom:none;}
+    .foot{margin-top:8px;font-size:.75rem;color:#9ca3af;}
+    @media print{button{display:none!important;}body{padding:16px;}h3{margin-top:16px;}}
+  </style></head><body>
+  <h2>📦 Inventario Singular</h2>
+  <div class="sub">${dateLabel} · Solo ítems con stock</div>
+  <button onclick="window.print()" style="margin-bottom:20px;padding:8px 20px;background:#111;color:#fff;border:none;border-radius:6px;font-weight:700;cursor:pointer;">🖨 Imprimir / Guardar PDF</button>
+  <div class="kpis">
+    <div class="kpi"><div class="v">${coverRows.length+accRows.length}</div><div class="l">SKUs con stock</div></div>
+    <div class="kpi"><div class="v">${totalAgora(coverRows)+totalAgora(accRows)}</div><div class="l">Total Agora</div></div>
+    <div class="kpi"><div class="v">${totalAlmacen(coverRows)+totalAlmacen(accRows)}</div><div class="l">Total Almacén</div></div>
+    <div class="kpi" style="border-color:#fca5a5;"><div class="v" style="color:#dc2626;">${[...coverRows,...accRows].filter(r=>r.agora<r.min).length}</div><div class="l">Bajo mínimo</div></div>
+  </div>
+  ${coverRows.length?`
+  <h3>Covers Saffiano iPhone</h3>
+  <table>
+    <thead><tr><th>Producto</th><th>Modelo</th><th>Color</th><th>Agora</th><th>Almacén</th><th>Total</th><th>Mín</th></tr></thead>
+    <tbody>${makeRows(coverRows,true)}</tbody>
+  </table>
+  <div class="foot">Agora: ${totalAgora(coverRows)} · Almacén: ${totalAlmacen(coverRows)} · Total: ${totalAgora(coverRows)+totalAlmacen(coverRows)}</div>`:''}
+  ${accRows.length?`
+  <h3>Accesorios Saffiano</h3>
+  <table>
+    <thead><tr><th>Producto</th><th>Color</th><th>Agora</th><th>Almacén</th><th>Total</th><th>Mín</th></tr></thead>
+    <tbody>${makeRows(accRows,false)}</tbody>
+  </table>
+  <div class="foot">Agora: ${totalAgora(accRows)} · Almacén: ${totalAlmacen(accRows)} · Total: ${totalAgora(accRows)+totalAlmacen(accRows)}</div>`:''}
+  </body></html>`);
+  win.document.close();
+  toast('📄 PDF listo para imprimir');
+}
+
 // ── View toggle ──
 function setInvView(v){
   _invView=v;
@@ -5194,7 +5317,7 @@ function showTab(n){
     document.getElementById(`tb${i}`).classList.toggle('active',i===n);
   });
   // sync mobile nav
-  [0,1,2,5,6].forEach(i=>{
+  [0,1,2,3,4,5,6,7].forEach(i=>{
     const m=document.getElementById(`mob-tb${i}`);
     if(m)m.classList.toggle('active',i===n);
   });
@@ -5740,8 +5863,11 @@ function checkSession(){
     <div class="mob-nav-item active" id="mob-tb0" onclick="showTab(0)"><span class="mni">🛒</span><span>Orden</span></div>
     <div class="mob-nav-item" id="mob-tb1" onclick="showTab(1)"><span class="mni">📋</span><span>Ventas</span></div>
     <div class="mob-nav-item" id="mob-tb2" onclick="showTab(2)"><span class="mni">⏱</span><span>Turno</span></div>
+    <div class="mob-nav-item" id="mob-tb3" onclick="showTab(3)"><span class="mni">🗓</span><span>Horario</span></div>
+    <div class="mob-nav-item" id="mob-tb4" onclick="showTab(4)"><span class="mni">🏭</span><span>Prod.</span></div>
     <div class="mob-nav-item" id="mob-tb5" onclick="showTab(5)"><span class="mni">📦</span><span>Stock</span></div>
     <div class="mob-nav-item" id="mob-tb6" onclick="showTab(6)" style="display:none;"><span class="mni">📈</span><span>Reportes</span></div>
+    <div class="mob-nav-item" id="mob-tb7" onclick="showTab(7)" style="display:none;"><span class="mni">⚙️</span><span>Config.</span></div>
   </div>
 </nav>
 </body>
