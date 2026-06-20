@@ -1441,7 +1441,7 @@ const SPECIAL_TYPES=['Cortesia','Error','Garantia'];
 const ALL_PANELS=['p-card','p-cash','p-txfr','p-split','p-courtesy','p-error','p-warranty'];
 const SHIFT_TYPES=['Apertura','Entre Medio','Cierre'];
 // Inventario SKU helpers
-const ACC_COLORS=COLORS; // todos los 21 colores para accesorios (Cosmetic Bag solo Black)
+const ACC_COLORS=['Black','Dark Blue','Shiraz','Forest','Nude','Cocoa','Golden','Orchid','Caramel','Merlot','Flamingo','Ginger'];
 const COS_ONLY_BLACK=true; // Cosmetic Bag solo disponible en Black
 const ACC_PID_MAP={'ch':'Card Holder','kt':'Key Tag','bt':'Bag Tag','ph':'Passport Holder','cos':'Cosmetic Bag'};
 const CSV_ACC_MAP={'Card Holder':'ch','Key Tag':'kt','Bag Tag':'bt','Passport Holder':'ph','Cosmetic Bag':'cos'};
@@ -3475,14 +3475,14 @@ function _downloadCSV(content,filename){
 
 function downloadInvTemplate(){
   const colors=COLORS.join(',');
-  const accColors=COLORS.join(',');
+  const accColors=ACC_COLORS.join(',');
   let csv='COVERS SAFFIANO iPHONE\n';
   csv+=`Covers,${colors}\n`;
   MODEL_LIST.forEach(m=>{csv+=`${m},${COLORS.map(()=>0).join(',')}\n`;});
   csv+='\nACCESORIOS SAFFIANO\n';
   csv+=`Accesorios,${accColors}\n`;
   ['Card Holder','Key Tag','Bag Tag','Passport Holder'].forEach(p=>{
-    csv+=`${p},${COLORS.map(()=>0).join(',')}\n`;
+    csv+=`${p},${ACC_COLORS.map(()=>0).join(',')}\n`;
   });
   csv+=`Cosmetic Bag,0\n`;
   _downloadCSV(csv,'inventario_plantilla.csv');
@@ -3509,11 +3509,11 @@ function exportInvCSV(){
   }
 
   function accSection(label,field){
-    let block=`${label},${colors.join(',')},TOTAL\n`;
-    const colTots=colors.map(()=>0);
+    let block=`${label},${ACC_COLORS.join(',')},TOTAL\n`;
+    const colTots=ACC_COLORS.map(()=>0);
     ['Card Holder','Key Tag','Bag Tag','Passport Holder'].forEach(name=>{
       const pid=CSV_ACC_MAP[name];
-      const vals=colors.map(c=>{
+      const vals=ACC_COLORS.map(c=>{
         const s=inventarioData[makeAccSku(pid,c)];
         return s?.[field]||0;
       });
@@ -3522,7 +3522,7 @@ function exportInvCSV(){
     });
     const cosBk=inventarioData[makeAccSku('cos','Black')]?.[field]||0;
     colTots[0]+=cosBk;
-    block+=`Cosmetic Bag,${cosBk}${colors.slice(1).map(()=>',').join('')},${cosBk}\n`;
+    block+=`Cosmetic Bag,${cosBk}${ACC_COLORS.slice(1).map(()=>',').join('')},${cosBk}\n`;
     block+=`TOTAL,${colTots.join(',')},${sum(colTots)}\n`;
     return block;
   }
@@ -4519,10 +4519,16 @@ function renderReportes(){
 
     <!-- Sold Out -->
     ${(()=>{
-      // Sold Out = en inventario con agora=0 Y almacén=0
-      const soldOut=Object.keys(inventarioData).filter(sku=>{
-        const d=inventarioData[sku];
-        return (d.agora||0)<=0&&(d.almacen||0)<=0;
+      // Sold Out = todo el catálogo donde agora=0 Y almacén=0 (basado en disponibilidad, no compras)
+      const _allCatalogSkus=[];
+      MODEL_LIST.forEach(m=>COLORS.forEach(c=>_allCatalogSkus.push(makeCoverSku(m,c))));
+      Object.keys(ACC_PID_MAP).forEach(pid=>{
+        const cols=pid==='cos'?['Black']:ACC_COLORS;
+        cols.forEach(c=>_allCatalogSkus.push(makeAccSku(pid,c)));
+      });
+      const soldOut=_allCatalogSkus.filter(sku=>{
+        const s=getStock(sku);
+        return s.agora<=0&&s.almacen<=0;
       }).sort();
       if(!soldOut.length)return '';
       const covers=soldOut.filter(s=>IS_COVER.includes(skuPid(s)));
