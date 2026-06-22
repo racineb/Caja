@@ -393,6 +393,47 @@ input.err{border-color:#c00!important;}
 .emp-btn:hover{border-color:#111827;background:#f9fafb;}
 .emp-role-tag{display:block;font-size:.62rem;font-weight:600;color:#9ca3af;margin-top:3px;text-transform:uppercase;letter-spacing:.4px;}
 .emp-role-tag.adm{color:#111827;}
+.emp-role-tag.mens{background:#0e7490;color:#fff;}
+
+/* ── Mensajero view ── */
+.msg-view{min-height:100vh;background:#f3f4f6;padding-bottom:32px;}
+.msg-header{background:#111827;color:#fff;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10;}
+.msg-title{font-size:1rem;font-weight:800;display:flex;align-items:center;gap:8px;}
+.msg-badge-count{background:#ef4444;color:#fff;font-size:.72rem;padding:2px 7px;border-radius:20px;font-weight:800;}
+.msg-card{background:#fff;border-radius:14px;margin:12px 16px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.07);border:1.5px solid #e5e7eb;}
+.msg-card-head{padding:13px 15px;background:#f9fafb;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.msg-client-name{font-weight:900;font-size:1rem;}
+.msg-card-body{padding:13px 15px;}
+.msg-info-row{display:flex;align-items:flex-start;gap:8px;margin-bottom:8px;font-size:.88rem;}
+.msg-info-icon{width:20px;flex-shrink:0;color:#6b7280;margin-top:1px;}
+.msg-wa-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:#25d366;color:#fff;border:none;border-radius:8px;font-weight:800;font-size:.85rem;cursor:pointer;text-decoration:none;-webkit-tap-highlight-color:transparent;}
+.msg-item{font-size:.83rem;padding:4px 0;border-bottom:1px solid #f3f4f6;}
+.msg-item:last-child{border-bottom:none;}
+.msg-item-note{font-size:.76rem;color:#6d28d9;font-style:italic;margin-top:2px;}
+.msg-actions{display:flex;gap:8px;margin-top:12px;}
+.msg-deliver-btn{flex:1;padding:12px;background:#111827;color:#fff;border:none;border-radius:8px;font-weight:800;font-size:.88rem;cursor:pointer;}
+.msg-photo-btn{flex:1;padding:12px;background:#f0f9ff;color:#0369a1;border:1.5px solid #bae6fd;border-radius:8px;font-weight:800;font-size:.88rem;cursor:pointer;}
+.msg-delivered-card{opacity:.55;pointer-events:none;}
+.msg-delivered-badge{background:#dcfce7;color:#16a34a;font-size:.72rem;font-weight:800;padding:3px 10px;border-radius:20px;}
+.msg-empty{text-align:center;padding:70px 24px;color:#9ca3af;}
+.msg-empty-icon{font-size:3rem;margin-bottom:12px;}
+.msg-section-title{font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:#9ca3af;padding:16px 16px 4px;}
+.viaje-card{background:#fff;border-radius:10px;border:1.5px solid #e5e7eb;padding:12px 14px;margin-bottom:8px;}
+.viaje-status-pend{background:#fef9c3;color:#854d0e;font-size:.7rem;font-weight:800;padding:2px 8px;border-radius:10px;}
+.viaje-status-apro{background:#dcfce7;color:#166534;font-size:.7rem;font-weight:800;padding:2px 8px;border-radius:10px;}
+.viaje-status-rech{background:#fee2e2;color:#991b1b;font-size:.7rem;font-weight:800;padding:2px 8px;border-radius:10px;}
+.viaje-status-paid{background:#f3f4f6;color:#6b7280;font-size:.7rem;font-weight:800;padding:2px 8px;border-radius:10px;}
+.viaje-status-agrup{background:#e0e7ff;color:#3730a3;font-size:.7rem;font-weight:800;padding:2px 8px;border-radius:10px;}
+.viaje-adm-row{display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid #f3f4f6;}
+.viaje-adm-row:last-child{border-bottom:none;}
+.viaje-tipo-btn{display:flex;align-items:center;gap:12px;width:100%;padding:13px 15px;border:1.5px solid #e5e7eb;border-radius:10px;background:#fff;text-align:left;cursor:pointer;transition:border-color .15s,background .15s;}
+.viaje-tipo-btn:hover{border-color:#9ca3af;background:#f9fafb;}
+.viaje-tipo-badge{font-size:.7rem;font-weight:800;padding:2px 8px;border-radius:10px;display:inline-block;}
+.viaje-tipo-dn{background:#dbeafe;color:#1e40af;}
+.viaje-tipo-trans{background:#fef3c7;color:#92400e;}
+.viaje-tipo-bmc{background:#f3e8ff;color:#6b21a8;}
+.bmcargo-check-row{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border:1.5px solid #e5e7eb;border-radius:8px;background:#fff;cursor:pointer;transition:border-color .15s,background .15s;}
+.bmcargo-check-row.selected{border-color:#6d28d9;background:#faf5ff;}
 .login-back{background:none;border:none;color:#9ca3af;font-size:.82rem;cursor:pointer;padding:0;margin-bottom:18px;display:flex;align-items:center;gap:5px;}
 .login-back:hover{color:#111827;}
 .login-selected-name{font-size:1.4rem;font-weight:900;color:#111827;margin-bottom:22px;}
@@ -634,7 +675,7 @@ input.err{border-color:#c00!important;}
             style="letter-spacing:6px;font-size:1.1rem;text-align:center;"
             onkeydown="if(event.key==='Enter')submitLogin()"/>
         </div>
-        <div class="field" style="margin-bottom:12px;">
+        <div class="field" style="margin-bottom:12px;" id="login-shift-field">
           <label class="lbl">Turno</label>
           <select id="login-shift">
             <option>Apertura</option>
@@ -684,6 +725,7 @@ input.err{border-color:#c00!important;}
     <div class="nav-sep"></div>
     <div class="nav-section-lbl">Operaciones</div>
     <div class="nav-item" id="tb2" onclick="showTab(2)"><span class="nav-icon">⏱</span><span>Turnos</span></div>
+    <div class="nav-item" id="tb8" onclick="showTab(8)" style="display:none;"><span class="nav-icon">🛵</span><span>Ruta</span></div>
     <div class="nav-item" id="tb3" onclick="showTab(3)"><span class="nav-icon">🗓</span><span>Horario</span></div>
     <div class="nav-item" id="tb4" onclick="showTab(4)"><span class="nav-icon">📦</span><span>Producción</span></div>
 
@@ -1099,6 +1141,17 @@ input.err{border-color:#c00!important;}
     </div>
   </div>
   <div id="prod-content"></div>
+</div>
+
+<!-- ═══ RUTA TAB (admin) ═══ -->
+<div id="pnl8" style="display:none;">
+  <div style="margin-bottom:18px;">
+    <div style="font-weight:800;font-size:1rem;">🛵 Ruta de Entregas</div>
+    <div style="font-size:.75rem;color:var(--g500);margin-top:2px;">Aprobación, monitoreo y estado de entregas</div>
+  </div>
+  <div id="ruta-panel-content"></div>
+  <!-- Viajes section inside Ruta tab -->
+  <div id="viajes-ruta-section" style="margin-top:18px;"></div>
 </div>
 
 <div id="pnl7" style="display:none;">
@@ -1701,6 +1754,7 @@ function getMinForSku(sku){
   return 3; // default for accessories
 }
 let restocksData={};
+let viajes=[];
 const DEFAULT_USERS=[
   {name:'Alexia',   pin:'1000',role:'admin'},
   {name:'Sofia',    pin:'1001',role:'admin'},
@@ -1712,6 +1766,7 @@ const DEFAULT_USERS=[
   {name:'Daisy',    pin:'2002',role:'vendedora'},
   {name:'Carmen',   pin:'2003',role:'vendedora'},
   {name:'Prueba',   pin:'9999',role:'vendedora'},
+  {name:'Jose Luis',pin:'3001',role:'mensajero'},
 ];
 
 /* ═══════════════════════════════════════
@@ -1729,6 +1784,8 @@ let deducciones = [];
 let users       = [];
 let curShift    = 'Apertura';
 let adminMode   = false;
+let mensajeroMode = false;
+let _pendingDeliveryId = null;
 let inventarioData = {}; // {pid: {almacen:N, agora:N, min:N}}
 let currentUser = null;
 let loginTarget = null;
@@ -1750,7 +1807,7 @@ function buildEmpGrid(){
   const BCOLS=['#6366f1','#ec4899','#f59e0b','#10b981','#3b82f6','#ef4444','#8b5cf6','#06b6d4','#f97316','#84cc16'];
   document.getElementById('emp-grid').innerHTML=users.map(u=>
     `<button class="emp-btn" onclick="selectEmp('${u.name}')">
-       ${u.name}<span class="emp-role-tag${u.role==='admin'?' adm':''}">${u.role==='admin'?'Admin':'Vendedora'}</span>
+       ${u.name}<span class="emp-role-tag${u.role==='admin'?' adm':u.role==='mensajero'?' mens':''}">${u.role==='admin'?'Admin':u.role==='mensajero'?'Mensajero':'Vendedora'}</span>
      </button>`).join('');
   // Mobile floating product photo bubbles (decorative)
   const mb=document.getElementById('mob-bubbles');
@@ -1778,6 +1835,9 @@ function selectEmp(name){
   document.getElementById('login-err').textContent='';
   document.getElementById('ls1').style.display='none';
   document.getElementById('ls2').style.display='block';
+  // Mensajero doesn't need shift selection
+  const shiftField=document.getElementById('login-shift-field');
+  if(shiftField) shiftField.style.display=loginTarget&&loginTarget.role==='mensajero'?'none':'';
   setTimeout(()=>document.getElementById('login-pin').focus(),100);
 }
 function backToStep1(){
@@ -1787,7 +1847,8 @@ function backToStep1(){
 }
 function submitLogin(){
   const pin=document.getElementById('login-pin').value;
-  const shift=document.getElementById('login-shift').value;
+  const isMensajero=loginTarget&&loginTarget.role==='mensajero';
+  const shift=isMensajero?'Mensajero':document.getElementById('login-shift').value;
   const er=document.getElementById('login-err');
   if(!loginTarget)return;
   if(pin!==loginTarget.pin){
@@ -1805,8 +1866,10 @@ function submitLogin(){
 }
 function logout(){
   if(!confirm('¿Cerrar sesión?'))return;
-  currentUser=null;adminMode=false;curShift='Apertura';
+  currentUser=null;adminMode=false;mensajeroMode=false;curShift='Apertura';
   sessionStorage.removeItem('cv5_session');
+  document.getElementById('mensajero-view').style.display='none';
+  document.querySelector('.app-shell').style.display='';
   document.getElementById('login-overlay').style.display='flex';
   document.getElementById('admin-bar').style.display='none';
   backToStep1();
@@ -1814,6 +1877,16 @@ function logout(){
   buildEmpGrid();
 }
 function initApp(){
+  if(currentUser&&currentUser.role==='mensajero'){
+    // Hide entire app shell, show only mensajero view
+    document.querySelector('.app-shell').style.display='none';
+    document.getElementById('mensajero-view').style.display='block';
+    document.getElementById('msg-user-name').textContent=currentUser.name;
+    mensajeroMode=true;
+    renderMensajeroView();
+    return;
+  }
+  document.querySelector('.app-shell').style.display='';
   document.getElementById('hdr-date').textContent=new Date().toLocaleDateString('es',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
   document.getElementById('hdr-user').textContent=currentUser.name;
   document.getElementById('hdr-shift-tag').textContent=currentUser.shift;
@@ -1826,10 +1899,14 @@ function initApp(){
   if(invBtns)invBtns.style.display=adminMode?'flex':'none';
   const tb6=document.getElementById('tb6');
   if(tb6)tb6.style.display=adminMode?'block':'none';
+  const tb8=document.getElementById('tb8');
+  if(tb8)tb8.style.display=adminMode?'block':'none';
   const mobtb6=document.getElementById('mob-tb6');
   if(mobtb6)mobtb6.style.display=adminMode?'flex':'none';
   const mobtb7=document.getElementById('mob-tb7');
   if(mobtb7)mobtb7.style.display=adminMode?'flex':'none';
+  const mobtb8=document.getElementById('mob-tb8');
+  if(mobtb8)mobtb8.style.display=adminMode?'flex':'none';
   const tb7=document.getElementById('tb7');
   if(tb7)tb7.style.display=adminMode?'block':'none';
   buildProds();updHdr();updateShiftStatus();renderPendingApprovals();
@@ -2161,9 +2238,12 @@ function updateCierreDiff(expected){
 }
 
 function confirmCierre(){
-  const rec=getDayRec();if(!rec)return;
+  const rec=getDayRec();
+  if(!rec){toast('No hay caja abierta para cerrar');return;}
   const val=parseFloat(document.getElementById('close-cash').value);
   if(isNaN(val)||val<0){toast('Ingresa el efectivo contado en caja');return;}
+  const deducErr=validateDeducRows('cierre');
+  if(deducErr){toast(`⚠ ${deducErr}`);return;}
   const newDeduc=collectDeduc('cierre',todayStr());
   const newDeducTotal=newDeduc.reduce((s,d)=>s+d.monto,0);
   const cp=getLastCheckpoint();
@@ -2436,6 +2516,8 @@ function renderShifts(){
   try{
   const btnDeduc=document.getElementById('btn-add-deduc');
   if(btnDeduc)btnDeduc.style.display=adminMode?'':'none';
+  // Ruta and Viajes are now in the dedicated Ruta tab (tab 8)
+
   const today=todayStr();
   const rdEl=document.getElementById('report-date');
   const reportDate=(adminMode&&rdEl&&rdEl.value)?rdEl.value:today;
@@ -2665,6 +2747,607 @@ function calcCashForDay(dateStr){
   if(!rec)return{cashIn:0,changeOut:0,netCash:0,cardTotal:0,txfrTotal:0,salesTotal:0,count:0};
   return calcCashForPeriod(dateStr,rec.openedAt,Date.now());
 }
+/* ═══════════════════════════════════════
+   MENSAJERO MODE
+═══════════════════════════════════════ */
+function renderMensajeroView(){
+  if(!mensajeroMode)return;
+  const container=document.getElementById('msg-orders');
+  const pending=orders.filter(o=>o.prodStatus==='ruta_mensajero');
+  const delivered=orders.filter(o=>o.prodStatus==='entregada'&&o.deliveredBy===currentUser.name&&localDateStr(o.id)===todayStr());
+
+  const badge=document.getElementById('msg-pending-count');
+  if(badge){badge.textContent=pending.length;badge.style.display=pending.length?'inline':'none';}
+
+  if(!pending.length&&!delivered.length){
+    container.innerHTML=`<div class="msg-empty"><div class="msg-empty-icon">🛵</div><div style="font-weight:800;font-size:1rem;color:#374151;margin-bottom:4px;">Sin entregas pendientes</div><div style="font-size:.85rem;">Las órdenes en ruta aparecerán aquí.</div></div>`+buildViajesMensajeroHtml();
+    return;
+  }
+
+  const fmtPhone=p=>(p||'').replace(/\D/g,'');
+
+  const makeCard=(o,isDone)=>{
+    const items=o.items.map(i=>`<div class="msg-item">
+      <strong>${i.qty}×</strong> ${i.name}${i.model?' · '+i.model:''} / ${i.color}
+      ${i.notes?`<div class="msg-item-note">📝 ${i.notes}</div>`:''}
+    </div>`).join('');
+    const phone=fmtPhone(o.phone);
+    const waLink=phone?`<a class="msg-wa-btn" href="https://wa.me/${phone}" target="_blank">💬 WhatsApp</a>`:'';
+    const deliveredAt=o.deliveredAt?new Date(o.deliveredAt).toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'}):'';
+    const photoThumb=o.deliveryPhoto?`<div style="margin-top:8px;"><img src="${o.deliveryPhoto}" style="max-width:100%;border-radius:8px;max-height:160px;object-fit:cover;" onclick="viewPhoto(this.src)"/></div>`:'';
+    return `<div class="msg-card${isDone?' msg-delivered-card':''}">
+      <div class="msg-card-head">
+        <div>
+          <div class="msg-client-name">${o.name}</div>
+          ${isDone?`<span class="msg-delivered-badge">✓ Entregada ${deliveredAt}</span>`:`<span style="font-size:.72rem;background:#fce7f3;color:#9d174d;padding:2px 8px;border-radius:10px;font-weight:700;">🛵 En ruta</span>`}
+        </div>
+        ${waLink}
+      </div>
+      <div class="msg-card-body">
+        ${o.address?`<div class="msg-info-row"><span class="msg-info-icon">📍</span><span>${o.address}</span></div>`:''}
+        <div style="margin:8px 0;border-top:1px solid #f3f4f6;padding-top:8px;">${items}</div>
+        ${isDone?photoThumb:`<div class="msg-actions">
+          <button class="msg-photo-btn" onclick="openDeliveryCapture(${o.id})">📷 Foto + Entregar</button>
+          <button class="msg-deliver-btn" onclick="markDelivered(${o.id},null)">✓ Entregar</button>
+        </div>`}
+      </div>
+    </div>`;
+  };
+
+  let html='';
+  if(pending.length){
+    html+=`<div class="msg-section-title">Pendientes — ${pending.length} entrega(s)</div>`;
+    html+=pending.map(o=>makeCard(o,false)).join('');
+  }
+  if(delivered.length){
+    html+=`<div class="msg-section-title" style="margin-top:8px;">Entregadas hoy — ${delivered.length}</div>`;
+    html+=delivered.map(o=>makeCard(o,true)).join('');
+  }
+  html+=buildViajesMensajeroHtml();
+  container.innerHTML=html;
+}
+
+function openDeliveryCapture(orderId){
+  _pendingDeliveryId=orderId;
+  const input=document.getElementById('msg-photo-input');
+  if(input){input.value='';input.click();}
+}
+
+function handleDeliveryPhoto(input){
+  if(!input.files||!input.files[0]){return;}
+  const file=input.files[0];
+  const reader=new FileReader();
+  reader.onload=e=>{
+    const img=new Image();
+    img.onload=()=>{
+      const MAX=900;
+      let w=img.width,h=img.height;
+      if(w>MAX){h=Math.round(h*MAX/w);w=MAX;}
+      if(h>MAX){w=Math.round(w*MAX/h);h=MAX;}
+      const canvas=document.createElement('canvas');
+      canvas.width=w;canvas.height=h;
+      canvas.getContext('2d').drawImage(img,0,0,w,h);
+      const b64=canvas.toDataURL('image/jpeg',0.55);
+      markDelivered(_pendingDeliveryId,b64);
+    };
+    img.src=e.target.result;
+  };
+  reader.readAsDataURL(file);
+  input.value='';
+}
+
+/* ─── VIAJE TIPO MODAL LOGIC ─── */
+let _viajeTipo='dn';
+let _viajeFacturaB64=null;
+
+function openViajeModal(){
+  _viajeTipo='dn';
+  _viajeFacturaB64=null;
+  document.getElementById('viaje-step1').style.display='';
+  document.getElementById('viaje-step2').style.display='none';
+  openMod('viaje-modal');
+}
+function selectViajeTipo(tipo){
+  _viajeTipo=tipo;
+  _viajeFacturaB64=null;
+  const labels={
+    dn:'🏙️ Delivery DN — $250',
+    transportista:'🚚 Transportista',
+    bmcargo:'📦 BMCargo — $250 por grupo'
+  };
+  document.getElementById('viaje-tipo-label').innerHTML=labels[tipo]||tipo;
+  const form=document.getElementById('viaje-step2-form');
+  if(tipo==='dn'){
+    form.innerHTML=`
+      <div class="field">
+        <label class="lbl">¿Para qué es el viaje?</label>
+        <textarea id="viaje-desc" rows="3" placeholder="Ej: Llevar paquete a cliente en Naco..." style="width:100%;resize:vertical;font-size:.88rem;padding:9px 11px;border:1.5px solid var(--g200);border-radius:7px;font-family:inherit;"></textarea>
+      </div>
+      <div style="background:#dbeafe;border-radius:8px;padding:9px 12px;font-size:.82rem;color:#1e40af;margin-top:8px;">💰 Monto: <strong>$250 RD</strong></div>`;
+  }else if(tipo==='transportista'){
+    form.innerHTML=`
+      <div class="field">
+        <label class="lbl">Descripción del envío</label>
+        <textarea id="viaje-desc" rows="2" placeholder="Ej: Paquete a Santiago, cliente Juan..." style="width:100%;resize:vertical;font-size:.88rem;padding:9px 11px;border:1.5px solid var(--g200);border-radius:7px;font-family:inherit;"></textarea>
+      </div>
+      <div class="field" style="margin-top:10px;">
+        <label class="lbl">Monto pagado al transportista ($)</label>
+        <input type="number" id="viaje-extra" placeholder="Ej: 800" min="0" style="width:100%;padding:9px 11px;border:1.5px solid var(--g200);border-radius:7px;font-size:.9rem;" oninput="updateTransportistaTotal()">
+      </div>
+      <div id="trans-total-preview" style="background:#fef3c7;border-radius:8px;padding:9px 12px;font-size:.82rem;color:#92400e;margin-top:8px;">💰 Total: <strong>$250</strong> (comisión) + monto transportista</div>
+      <div class="field" style="margin-top:10px;">
+        <label class="lbl">📷 Foto de la factura <span style="color:#dc2626;">*</span></label>
+        <button onclick="document.getElementById('viaje-factura-input').click()" style="width:100%;padding:10px;border:1.5px dashed #d1d5db;border-radius:8px;background:#f9fafb;color:#374151;cursor:pointer;font-size:.85rem;">
+          <span id="factura-btn-label">📷 Tomar o subir foto de factura</span>
+        </button>
+        <div id="factura-preview" style="margin-top:8px;display:none;">
+          <img id="factura-thumb" style="width:100%;max-height:160px;object-fit:contain;border-radius:8px;border:1px solid #e5e7eb;">
+        </div>
+      </div>`;
+  }else if(tipo==='bmcargo'){
+    form.innerHTML=`
+      <div class="field">
+        <label class="lbl">Descripción del paquete</label>
+        <textarea id="viaje-desc" rows="2" placeholder="Ej: 2 carteras para cliente en La Romana..." style="width:100%;resize:vertical;font-size:.88rem;padding:9px 11px;border:1.5px solid var(--g200);border-radius:7px;font-family:inherit;"></textarea>
+      </div>
+      <div style="background:#f3e8ff;border-radius:8px;padding:9px 12px;font-size:.82rem;color:#6b21a8;margin-top:8px;">📦 Se cobra <strong>$250 por grupo de envíos</strong>. Admin selecciona cuáles van juntos.</div>`;
+  }
+  document.getElementById('viaje-step1').style.display='none';
+  document.getElementById('viaje-step2').style.display='';
+}
+function backViajeTipo(){
+  document.getElementById('viaje-step1').style.display='';
+  document.getElementById('viaje-step2').style.display='none';
+  _viajeFacturaB64=null;
+}
+function updateTransportistaTotal(){
+  const extra=parseFloat(document.getElementById('viaje-extra').value)||0;
+  const el=document.getElementById('trans-total-preview');
+  if(el)el.innerHTML=`💰 Total: <strong>$${(250+extra).toLocaleString()}</strong> ($250 comisión + $${extra.toLocaleString()} transportista)`;
+}
+function handleViajeFactura(input){
+  if(!input.files||!input.files[0])return;
+  const file=input.files[0];
+  const reader=new FileReader();
+  reader.onload=function(e){
+    const img=new Image();
+    img.onload=function(){
+      const canvas=document.createElement('canvas');
+      const MAX=900;
+      let w=img.width,h=img.height;
+      if(w>MAX){h=Math.round(h*MAX/w);w=MAX;}
+      if(h>MAX){w=Math.round(w*MAX/h);h=MAX;}
+      canvas.width=w;canvas.height=h;
+      canvas.getContext('2d').drawImage(img,0,0,w,h);
+      _viajeFacturaB64=canvas.toDataURL('image/jpeg',0.55);
+      // Update UI
+      const lbl=document.getElementById('factura-btn-label');
+      if(lbl)lbl.textContent='✓ Factura cargada (toca para cambiar)';
+      const prev=document.getElementById('factura-preview');
+      const thumb=document.getElementById('factura-thumb');
+      if(prev&&thumb){thumb.src=_viajeFacturaB64;prev.style.display='';}
+    };
+    img.src=e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function submitViaje(){
+  const descEl=document.getElementById('viaje-desc');
+  const desc=(descEl?descEl.value:'').trim();
+  if(!desc){toast('Describe el motivo del viaje');return;}
+  const tipo=_viajeTipo||'dn';
+  let montoExtra=0;
+  if(tipo==='transportista'){
+    montoExtra=parseFloat((document.getElementById('viaje-extra')||{}).value)||0;
+    if(!_viajeFacturaB64){toast('Debes adjuntar la foto de la factura');return;}
+  }
+  const rec={
+    id:Date.now(),
+    mensajero:currentUser.name,
+    tipo:tipo,
+    descripcion:desc,
+    monto:250,
+    status:'pendiente',
+    createdAt:Date.now(),
+    approvalTarget:'Alexia'
+  };
+  if(tipo==='transportista'){
+    rec.montoExtra=montoExtra;
+    rec.montoTotal=250+montoExtra;
+    if(_viajeFacturaB64)rec.facturaPhoto=_viajeFacturaB64;
+  }
+  db.ref('viajes/'+rec.id).set(rec);
+  _viajeFacturaB64=null;
+  closeMod('viaje-modal');
+  const labels={dn:'Delivery DN',transportista:'Transportista',bmcargo:'BMCargo'};
+  toast(`✓ Viaje ${labels[tipo]||tipo} enviado a Alexia`);
+}
+
+function approveViaje(id){
+  db.ref('viajes/'+id+'/status').set('aprobado');
+  db.ref('viajes/'+id+'/approvedBy').set(currentUser?currentUser.name:'');
+  db.ref('viajes/'+id+'/approvedAt').set(Date.now());
+  toast('✓ Viaje aprobado');
+}
+function rejectViaje(id){
+  const nota=prompt('Motivo del rechazo (opcional):');
+  if(nota===null)return;
+  db.ref('viajes/'+id+'/status').set('rechazado');
+  db.ref('viajes/'+id+'/rejectedBy').set(currentUser?currentUser.name:'');
+  db.ref('viajes/'+id+'/rejectedAt').set(Date.now());
+  if(nota.trim())db.ref('viajes/'+id+'/rechazadoNota').set(nota.trim());
+  toast('Viaje rechazado');
+}
+
+function calcViajesTotal(aprobados){
+  // DN + Transportista: sum individual amounts; BMCargo: $250 per unique grupoId
+  let total=0;
+  const bmcGroups=new Set();
+  aprobados.forEach(v=>{
+    if(v.tipo==='bmcargo'){
+      if(v.grupoId&&!bmcGroups.has(v.grupoId)){bmcGroups.add(v.grupoId);total+=250;}
+      else if(!v.grupoId)total+=250; // ungrouped (edge case)
+    }else{
+      total+=(v.montoTotal||v.monto||250);
+    }
+  });
+  return total;
+}
+
+function pagarViajes(){
+  const aprobados=viajes.filter(v=>v.status==='aprobado');
+  if(!aprobados.length){toast('No hay viajes aprobados pendientes de pago');return;}
+  const total=calcViajesTotal(aprobados);
+  // Breakdown summary
+  const dnAp=aprobados.filter(v=>!v.tipo||v.tipo==='dn');
+  const transAp=aprobados.filter(v=>v.tipo==='transportista');
+  const bmcAp=aprobados.filter(v=>v.tipo==='bmcargo');
+  const bmcGrupos=new Set(bmcAp.map(v=>v.grupoId).filter(Boolean));
+  const pendBmc=bmcAp.filter(v=>!v.grupoId);
+  if(pendBmc.length){
+    toast(`Hay ${pendBmc.length} BMCargo sin agrupar. Agrúpalos primero.`);return;
+  }
+  let summary=`Pagar viajes aprobados:\n`;
+  if(dnAp.length)summary+=`• ${dnAp.length} DN: $${dnAp.reduce((s,v)=>s+(v.montoTotal||v.monto||250),0).toLocaleString()}\n`;
+  if(transAp.length)summary+=`• ${transAp.length} Transportista: $${transAp.reduce((s,v)=>s+(v.montoTotal||v.monto||250),0).toLocaleString()}\n`;
+  if(bmcGrupos.size)summary+=`• ${bmcGrupos.size} grupo(s) BMCargo: $${bmcGrupos.size*250}\n`;
+  summary+=`\nTotal: $${total.toLocaleString()} RD\n¿Confirmar?`;
+  if(!confirm(summary))return;
+  const now=Date.now();
+  aprobados.forEach(v=>{
+    db.ref('viajes/'+v.id+'/status').set('pagado');
+    db.ref('viajes/'+v.id+'/paidAt').set(now);
+    db.ref('viajes/'+v.id+'/paidBy').set(currentUser?currentUser.name:'');
+  });
+  toast(`✓ $${total.toLocaleString()} marcados como pagados`);
+}
+
+function openBmcargoModal(){
+  const pendBmc=viajes.filter(v=>v.tipo==='bmcargo'&&v.status==='pendiente');
+  if(!pendBmc.length){toast('No hay paquetes BMCargo pendientes');return;}
+  const list=document.getElementById('bmcargo-list');
+  list.innerHTML=pendBmc.map(v=>{
+    const ts=new Date(v.id).toLocaleDateString('es',{weekday:'short',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+    return `<div class="bmcargo-check-row" id="bmc-row-${v.id}" onclick="toggleBmcRow(${v.id},this)">
+      <input type="checkbox" id="bmc-chk-${v.id}" style="margin-top:2px;accent-color:#6d28d9;" onchange="this.closest('.bmcargo-check-row').classList.toggle('selected',this.checked)">
+      <div style="flex:1;">
+        <div style="font-weight:700;font-size:.88rem;">${v.mensajero}</div>
+        <div style="font-size:.82rem;color:#374151;margin-top:1px;">${v.descripcion}</div>
+        <div style="font-size:.7rem;color:#9ca3af;margin-top:2px;">${ts}</div>
+      </div>
+    </div>`;
+  }).join('');
+  openMod('bmcargo-modal');
+}
+function toggleBmcRow(id,row){
+  const chk=document.getElementById('bmc-chk-'+id);
+  if(!chk)return;
+  chk.checked=!chk.checked;
+  row.classList.toggle('selected',chk.checked);
+}
+function confirmarGrupoBmcargo(){
+  const checked=[...document.querySelectorAll('[id^="bmc-chk-"]:checked')].map(c=>parseInt(c.id.replace('bmc-chk-','')));
+  if(checked.length<1){toast('Selecciona al menos un paquete');return;}
+  const grupoId='grp_'+Date.now();
+  const now=Date.now();
+  checked.forEach(id=>{
+    db.ref('viajes/'+id+'/grupoId').set(grupoId);
+    db.ref('viajes/'+id+'/status').set('aprobado');
+    db.ref('viajes/'+id+'/approvedBy').set(currentUser?currentUser.name:'Admin');
+    db.ref('viajes/'+id+'/approvedAt').set(now);
+    db.ref('viajes/'+id+'/grupoCreadoAt').set(now);
+  });
+  closeMod('bmcargo-modal');
+  toast(`✓ ${checked.length} paquete(s) agrupados — $250 en total`);
+}
+
+function tipoBadge(tipo){
+  if(!tipo||tipo==='dn')return`<span class="viaje-tipo-badge viaje-tipo-dn">🏙️ DN</span>`;
+  if(tipo==='transportista')return`<span class="viaje-tipo-badge viaje-tipo-trans">🚚 Transportista</span>`;
+  if(tipo==='bmcargo')return`<span class="viaje-tipo-badge viaje-tipo-bmc">📦 BMCargo</span>`;
+  return`<span class="viaje-tipo-badge" style="background:#f3f4f6;color:#374151;">${tipo}</span>`;
+}
+
+function buildViajesMensajeroHtml(){
+  const myViajes=viajes.filter(v=>v.mensajero===(currentUser?currentUser.name:''));
+  const aprobados=myViajes.filter(v=>v.status==='aprobado');
+  const totalPend=calcViajesTotal(aprobados);
+
+  const statusBadge=s=>({
+    pendiente:`<span class="viaje-status-pend">⏳ Pendiente</span>`,
+    aprobado:`<span class="viaje-status-apro">✓ Aprobado</span>`,
+    rechazado:`<span class="viaje-status-rech">✕ Rechazado</span>`,
+    pagado:`<span class="viaje-status-paid">💰 Pagado</span>`,
+    agrupado:`<span class="viaje-status-agrup">📦 En grupo</span>`
+  }[s]||s);
+
+  const viajeCards=myViajes.slice().reverse().map(v=>{
+    const ts=new Date(v.id).toLocaleDateString('es',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+    const displayMonto=v.tipo==='transportista'&&v.montoTotal?v.montoTotal:v.monto||250;
+    const extraLine=v.tipo==='transportista'&&v.montoExtra?`<div style="font-size:.72rem;color:#92400e;margin-top:1px;">$250 comisión + $${v.montoExtra.toLocaleString()} transportista</div>`:'';
+    const grupoLine=v.tipo==='bmcargo'&&v.grupoId?`<div style="font-size:.7rem;color:#3730a3;margin-top:1px;">📦 Agrupado · $250 por grupo</div>`:'';
+    return `<div class="viaje-card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;gap:6px;">
+        <div style="display:flex;align-items:center;gap:6px;">${tipoBadge(v.tipo)}${statusBadge(v.status)}</div>
+        <span style="font-weight:800;font-size:.88rem;white-space:nowrap;">$${displayMonto.toLocaleString()}</span>
+      </div>
+      <div style="font-size:.82rem;color:#374151;margin-bottom:2px;">${v.descripcion}</div>
+      ${extraLine}${grupoLine}
+      <div style="font-size:.7rem;color:#9ca3af;margin-top:3px;">${ts}${v.rechazadoNota?` · <em>${v.rechazadoNota}</em>`:''}</div>
+    </div>`;
+  }).join('');
+
+  return `<div style="margin:0 0 16px;">
+    <div class="msg-section-title" style="padding-top:20px;">Mis Viajes 🛵</div>
+    <div style="padding:0 16px;">
+      ${totalPend>0?`<div style="background:#f0fdf4;border:1.5px solid #86efac;border-radius:10px;padding:10px 14px;margin-bottom:10px;font-size:.88rem;"><strong style="color:#166534;">$${totalPend.toLocaleString()}</strong> <span style="color:#166534;">por cobrar este lunes</span></div>`:''}
+      <button onclick="openViajeModal()" style="width:100%;padding:12px;background:#0e7490;color:#fff;border:none;border-radius:8px;font-weight:800;font-size:.9rem;cursor:pointer;margin-bottom:12px;">+ Registrar Viaje ($250)</button>
+      ${viajeCards||`<div style="text-align:center;color:#9ca3af;font-size:.85rem;padding:12px 0;">Sin viajes registrados</div>`}
+    </div>
+  </div>`;
+}
+
+/* ─── RUTA ADMIN SECTION ─── */
+function sendToRuta(id){
+  if(!confirm('¿Enviar esta orden al mensajero?'))return;
+  db.ref('orders/'+id+'/prodStatus').set('ruta_mensajero');
+  db.ref('orders/'+id+'/sentToRutaAt').set(Date.now());
+  db.ref('orders/'+id+'/sentToRutaBy').set(currentUser?currentUser.name:'');
+  toast('✓ Orden enviada a ruta de mensajero');
+}
+function recallFromRuta(id){
+  if(!confirm('¿Regresar esta orden a Listo?'))return;
+  db.ref('orders/'+id+'/prodStatus').set('listo');
+  toast('Orden regresada a Listo');
+}
+
+function renderRutaAdmin(){
+  const el=document.getElementById('ruta-panel-content')||document.getElementById('ruta-admin-section');
+  if(!el)return;
+
+  const today=todayStr();
+  // Orders with delivery info: web/whatsapp canal OR has address
+  const isDelivery=o=>o.canal==='web'||o.canal==='whatsapp'||!!(o.address&&o.address.trim());
+
+  const listos=orders.filter(o=>o.prodStatus==='listo'&&isDelivery(o)).sort((a,b)=>a.id-b.id);
+  const enRuta=orders.filter(o=>o.prodStatus==='ruta_mensajero').sort((a,b)=>a.id-b.id);
+  const entregadas=orders.filter(o=>o.prodStatus==='entregada'&&localDateStr(o.id)===today).sort((a,b)=>b.deliveredAt-a.deliveredAt);
+
+  const fmtPhone=p=>(p||'').replace(/\D/g,'');
+  const canalTag=canal=>{
+    if(canal==='web')return`<span style="font-size:.68rem;background:#dbeafe;color:#1e40af;padding:1px 6px;border-radius:8px;font-weight:800;">WEB</span>`;
+    if(canal==='whatsapp')return`<span style="font-size:.68rem;background:#dcfce7;color:#166534;padding:1px 6px;border-radius:8px;font-weight:800;">WA</span>`;
+    return`<span style="font-size:.68rem;background:#f3f4f6;color:#374151;padding:1px 6px;border-radius:8px;font-weight:800;">TIENDA</span>`;
+  };
+
+  const listosHtml=listos.length?listos.map(o=>{
+    const phone=fmtPhone(o.phone);
+    const itemSum=o.items.map(i=>`${i.qty}× ${i.name||i.sku}`).join(', ');
+    return `<div class="viaje-adm-row" style="flex-wrap:wrap;gap:6px;">
+      <div style="flex:1;min-width:200px;">
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:3px;">
+          <strong>${o.name||'Sin nombre'}</strong>${canalTag(o.canal)}
+        </div>
+        <div style="font-size:.78rem;color:#374151;">${itemSum}</div>
+        ${o.address?`<div style="font-size:.72rem;color:#6b7280;margin-top:1px;">📍 ${o.address}</div>`:''}
+      </div>
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+        ${phone?`<a href="https://wa.me/${phone}" target="_blank" style="font-size:.78rem;padding:5px 10px;background:#dcfce7;color:#166534;border-radius:6px;text-decoration:none;font-weight:700;border:1px solid #86efac;">💬 WA</a>`:''}
+        <button class="dbtn dark" style="font-size:.78rem;padding:6px 12px;white-space:nowrap;" onclick="sendToRuta(${o.id})">🛵 Enviar a Ruta</button>
+      </div>
+    </div>`;
+  }).join(''):`<div style="text-align:center;color:#9ca3af;padding:10px;font-size:.84rem;">Sin órdenes listas para enviar</div>`;
+
+  const enRutaHtml=enRuta.length?enRuta.map(o=>{
+    const phone=fmtPhone(o.phone);
+    const itemSum=o.items.map(i=>`${i.qty}× ${i.name||i.sku}`).join(', ');
+    const sentAt=o.sentToRutaAt?new Date(o.sentToRutaAt).toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'}):'';
+    return `<div class="viaje-adm-row" style="flex-wrap:wrap;gap:6px;">
+      <div style="flex:1;min-width:200px;">
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:3px;">
+          <strong>${o.name||'Sin nombre'}</strong>${canalTag(o.canal)}
+          <span style="font-size:.68rem;background:#fce7f3;color:#9d174d;padding:1px 6px;border-radius:8px;font-weight:800;">🛵 EN RUTA</span>
+        </div>
+        <div style="font-size:.78rem;color:#374151;">${itemSum}</div>
+        ${o.address?`<div style="font-size:.72rem;color:#6b7280;margin-top:1px;">📍 ${o.address}</div>`:''}
+        ${sentAt?`<div style="font-size:.7rem;color:#9ca3af;margin-top:1px;">Enviado ${sentAt}${o.sentToRutaBy?' · '+o.sentToRutaBy:''}</div>`:''}
+      </div>
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+        ${phone?`<a href="https://wa.me/${phone}" target="_blank" style="font-size:.78rem;padding:5px 10px;background:#dcfce7;color:#166534;border-radius:6px;text-decoration:none;font-weight:700;border:1px solid #86efac;">💬 WA</a>`:''}
+        <button class="dbtn" style="font-size:.75rem;padding:5px 10px;" onclick="recallFromRuta(${o.id})" title="Regresar a Listo">↩</button>
+      </div>
+    </div>`;
+  }).join(''):`<div style="text-align:center;color:#9ca3af;padding:10px;font-size:.84rem;">Sin órdenes en ruta actualmente</div>`;
+
+  const entregadasHtml=entregadas.length?entregadas.map(o=>{
+    const delivTime=o.deliveredAt?new Date(o.deliveredAt).toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'}):'';
+    const itemSum=o.items.map(i=>`${i.qty}× ${i.name||i.sku}`).join(', ');
+    const photoThumb=o.deliveryPhoto?`<img src="${o.deliveryPhoto}" onclick="showPhotoOverlay(this.src)" title="Ver foto entrega" style="height:36px;width:36px;object-fit:cover;border-radius:4px;border:1px solid #e5e7eb;cursor:pointer;" onerror="this.style.display='none'">`:'';
+    return `<div class="viaje-adm-row" style="opacity:.8;flex-wrap:wrap;gap:6px;">
+      <div style="flex:1;min-width:180px;">
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:3px;">
+          <strong>${o.name||'Sin nombre'}</strong><span style="font-size:.68rem;background:#dcfce7;color:#166534;padding:1px 6px;border-radius:8px;font-weight:800;">✓ ENTREGADA ${delivTime}</span>
+        </div>
+        <div style="font-size:.78rem;color:#374151;">${itemSum}</div>
+        <div style="font-size:.7rem;color:#9ca3af;margin-top:1px;">Por ${o.deliveredBy||'—'}</div>
+      </div>
+      ${photoThumb?`<div style="margin-left:8px;">${photoThumb}</div>`:''}
+    </div>`;
+  }).join(''):'';
+
+  el.innerHTML=`
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+      <div>
+        <div style="font-weight:800;font-size:.95rem;">🛵 Ruta de Entregas</div>
+        <div style="font-size:.74rem;color:var(--g500);margin-top:2px;">${enRuta.length} en ruta · ${listos.length} lista(s) para enviar</div>
+      </div>
+    </div>
+    ${listos.length?`<div style="font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:#854d0e;margin-bottom:4px;">⏳ Listas — Aprobar envío</div>
+    <div style="border:1.5px solid #fde047;border-radius:8px;padding:0 12px;margin-bottom:14px;background:#fefce8;">${listosHtml}</div>`:`<div style="border:1.5px solid var(--g200);border-radius:8px;padding:0 12px;margin-bottom:14px;">${listosHtml}</div>`}
+    <div style="font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:#9d174d;margin-bottom:4px;">🛵 En Ruta</div>
+    <div style="border:1.5px solid #fce7f3;border-radius:8px;padding:0 12px;margin-bottom:14px;background:#fff7f9;">${enRutaHtml}</div>
+    ${entregadas.length?`<div style="font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:#166534;margin-bottom:4px;">✓ Entregadas Hoy — ${entregadas.length}</div>
+    <div style="border:1.5px solid #bbf7d0;border-radius:8px;padding:0 12px;">${entregadasHtml}</div>`:''}
+  `;
+}
+
+function renderViajesAdmin(){
+  const el=document.getElementById('viajes-ruta-section')||document.getElementById('viajes-admin-section');
+  if(!el)return;
+
+  const pending=viajes.filter(v=>v.status==='pendiente');
+  const aprobados=viajes.filter(v=>v.status==='aprobado');
+  const totalApro=calcViajesTotal(aprobados);
+  const pendBmc=pending.filter(v=>v.tipo==='bmcargo');
+  const pendNonBmc=pending.filter(v=>!v.tipo||v.tipo!=='bmcargo');
+
+  const statusBadge=s=>({
+    pendiente:`<span class="viaje-status-pend">⏳ Sin aprobar</span>`,
+    aprobado:`<span class="viaje-status-apro">✓ Aprobado</span>`,
+    rechazado:`<span class="viaje-status-rech">✕ Rechazado</span>`,
+    pagado:`<span class="viaje-status-paid">💰 Pagado</span>`
+  }[s]||s);
+
+  // ── Non-BMCargo pending/approved rows ──
+  const active=[...pendNonBmc,...aprobados.filter(v=>!v.tipo||v.tipo!=='bmcargo')].sort((a,b)=>b.id-a.id);
+
+  // ── BMCargo rows (pending + approved) ──
+  const bmcActive=[...pendBmc,...aprobados.filter(v=>v.tipo==='bmcargo')].sort((a,b)=>b.id-a.id);
+
+  // ── Recent paid ──
+  const recentPaid=viajes.filter(v=>v.status==='pagado').sort((a,b)=>b.paidAt-a.paidAt).slice(0,12);
+
+  function rowHtml(v,showActions){
+    const ts=new Date(v.id).toLocaleDateString('es',{weekday:'short',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+    const displayMonto=v.tipo==='transportista'&&v.montoTotal?v.montoTotal:v.monto||250;
+    const extraLine=v.tipo==='transportista'&&v.montoExtra?`<div style="font-size:.71rem;color:#92400e;">$250 comisión + $${v.montoExtra.toLocaleString()} transportista</div>`:'';
+    const facturaThumb=v.facturaPhoto?`<img src="${v.facturaPhoto}" onclick="showPhotoOverlay(this.src)" title="Ver factura" style="height:36px;width:36px;object-fit:cover;border-radius:4px;border:1px solid #e5e7eb;cursor:pointer;">`:'';
+    return `<div class="viaje-adm-row" id="vadm-${v.id}">
+      <div style="flex:1;">
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:3px;">
+          <strong>${v.mensajero}</strong>${tipoBadge(v.tipo)}${statusBadge(v.status)}
+          <span style="font-weight:900;margin-left:auto;white-space:nowrap;">$${displayMonto.toLocaleString()}</span>
+        </div>
+        <div style="font-size:.82rem;color:#374151;">${v.descripcion}</div>
+        ${extraLine}
+        <div style="font-size:.7rem;color:#9ca3af;margin-top:2px;">${ts}</div>
+      </div>
+      ${facturaThumb?`<div style="margin-left:8px;">${facturaThumb}</div>`:''}
+      ${showActions&&v.status==='pendiente'?`<div style="display:flex;flex-direction:column;gap:5px;margin-left:10px;">
+        <button class="dbtn dark" style="font-size:.75rem;padding:5px 10px;white-space:nowrap;" onclick="approveViaje(${v.id})">✓ Aprobar</button>
+        <button class="dbtn" style="font-size:.75rem;padding:5px 10px;" onclick="rejectViaje(${v.id})">✕</button>
+      </div>`:''}
+    </div>`;
+  }
+
+  const activeRows=active.length?active.map(v=>rowHtml(v,true)).join(''):
+    `<div style="text-align:center;color:#9ca3af;padding:12px;font-size:.84rem;">No hay viajes DN/Transportista pendientes</div>`;
+
+  const bmcRows=bmcActive.length?bmcActive.map(v=>{
+    const ts=new Date(v.id).toLocaleDateString('es',{weekday:'short',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+    const grupoTag=v.grupoId?`<span class="viaje-tipo-badge" style="background:#e0e7ff;color:#3730a3;">Grupo: ${v.grupoId.slice(-6)}</span>`:'';
+    return `<div class="viaje-adm-row">
+      <div style="flex:1;">
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:3px;">
+          <strong>${v.mensajero}</strong>${statusBadge(v.status)}${grupoTag}
+        </div>
+        <div style="font-size:.82rem;color:#374151;">${v.descripcion}</div>
+        <div style="font-size:.7rem;color:#9ca3af;margin-top:2px;">${ts}</div>
+      </div>
+      ${v.status==='pendiente'?`<button class="dbtn" style="font-size:.75rem;padding:5px 10px;margin-left:8px;white-space:nowrap;" onclick="rejectViaje(${v.id})">✕</button>`:''}
+    </div>`;
+  }).join(''):
+    `<div style="text-align:center;color:#9ca3af;padding:12px;font-size:.84rem;">No hay paquetes BMCargo pendientes</div>`;
+
+  const paidRows=recentPaid.length?recentPaid.map(v=>{
+    const paidDate=v.paidAt?new Date(v.paidAt).toLocaleDateString('es',{day:'numeric',month:'short'}):'';
+    return `<div class="viaje-adm-row" style="opacity:.65;">
+      <div style="flex:1;">
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+          <span>${v.mensajero}</span>${tipoBadge(v.tipo)}${statusBadge(v.status)}
+          <span style="font-weight:700;margin-left:auto;">$${(v.montoTotal||v.monto||250).toLocaleString()}</span>
+        </div>
+        <div style="font-size:.78rem;color:#6b7280;">${v.descripcion}</div>
+        <div style="font-size:.7rem;color:#9ca3af;">Pagado ${paidDate} · por ${v.paidBy||'—'}</div>
+      </div>
+    </div>`;
+  }).join(''):'';
+
+  el.innerHTML=`
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+      <div>
+        <div style="font-weight:800;font-size:.95rem;">🛵 Viajes del Mensajero</div>
+        <div style="font-size:.74rem;color:var(--g500);margin-top:2px;">Pago cada lunes</div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+        ${pendBmc.length?`<button class="dbtn" onclick="openBmcargoModal()" style="font-size:.8rem;">📦 Agrupar BMCargo (${pendBmc.length})</button>`:''}
+        ${aprobados.length?`<span style="font-size:.82rem;color:#166534;font-weight:800;">$${totalApro.toLocaleString()} por pagar</span><button class="dbtn dark" onclick="pagarViajes()" style="font-size:.8rem;">💰 Pagar todo</button>`:''}
+      </div>
+    </div>
+    ${(pending.filter(v=>!v.tipo||v.tipo!=='bmcargo')).length?`<div style="background:#fef9c3;border:1.5px solid #fde047;border-radius:8px;padding:8px 12px;margin-bottom:10px;font-size:.82rem;color:#713f12;font-weight:700;">⏳ ${pendNonBmc.length} viaje(s) DN/Transportista esperando aprobación</div>`:''}
+    ${pendBmc.length?`<div style="background:#f3e8ff;border:1.5px solid #d8b4fe;border-radius:8px;padding:8px 12px;margin-bottom:10px;font-size:.82rem;color:#6b21a8;font-weight:700;">📦 ${pendBmc.length} paquete(s) BMCargo sin agrupar — usa "Agrupar BMCargo"</div>`:''}
+    <div style="font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--g400);margin-bottom:6px;">DN · Transportista</div>
+    <div style="border:1.5px solid var(--g200);border-radius:8px;padding:0 12px;margin-bottom:14px;">${activeRows}</div>
+    <div style="font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--g400);margin-bottom:6px;">BMCargo</div>
+    <div style="border:1.5px solid var(--g200);border-radius:8px;padding:0 12px;margin-bottom:14px;">${bmcRows}</div>
+    ${paidRows?`<div style="font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--g400);margin-bottom:6px;">Últimos pagados</div><div style="border:1.5px solid var(--g200);border-radius:8px;padding:0 12px;">${paidRows}</div>`:''}
+  `;
+}
+
+function showPhotoOverlay(src){
+  if(!src)return;
+  const ov=document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9999;display:flex;align-items:center;justify-content:center;cursor:pointer;';
+  ov.onclick=()=>ov.remove();
+  const img=document.createElement('img');
+  img.src=src;
+  img.style.cssText='max-width:92vw;max-height:88vh;border-radius:10px;box-shadow:0 10px 40px rgba(0,0,0,.5);';
+  const close=document.createElement('button');
+  close.textContent='✕';
+  close.style.cssText='position:absolute;top:16px;right:16px;background:#fff;border:none;border-radius:50%;width:34px;height:34px;font-size:1.1rem;cursor:pointer;font-weight:800;';
+  close.onclick=e=>{e.stopPropagation();ov.remove();};
+  ov.appendChild(img);ov.appendChild(close);
+  document.body.appendChild(ov);
+}
+function showFactura(viajeId){
+  const v=viajes.find(x=>x.id==viajeId);
+  if(v&&v.facturaPhoto)showPhotoOverlay(v.facturaPhoto);
+}
+
+function markDelivered(id,photo){
+  if(!id)return;
+  const updates={
+    prodStatus:'entregada',
+    deliveredAt:Date.now(),
+    deliveredBy:currentUser?currentUser.name:''
+  };
+  if(photo)updates.deliveryPhoto=photo;
+  Object.entries(updates).forEach(([k,v])=>db.ref('orders/'+id+'/'+k).set(v));
+  _pendingDeliveryId=null;
+  toast('✓ Orden marcada como entregada');
+}
+
 function openCorte(){
   if(!currentUser)return;
   const rec=getDayRec();
@@ -2852,12 +3535,34 @@ function collectDeduc(prefix,date){
     const monto=parseFloat(row.querySelector('.deduc-monto').value);
     const razon=row.querySelector('.deduc-razon').value.trim();
     if(!isNaN(monto)&&monto>0&&razon){
-      const rec={id:Date.now()+Math.random(),date,monto,razon,by:currentUser?currentUser.name:'',ts:Date.now()};
+      const rec={id:Date.now()+'_'+Math.floor(Math.random()*99999),date,monto,razon,by:currentUser?currentUser.name:'',ts:Date.now()};
       saveDeduccionRec(rec);
       saved.push(rec);
     }
   });
   return saved;
+}
+function validateDeducRows(prefix){
+  // Returns error message if any row is partially filled, null if all ok
+  const rows=document.querySelectorAll(`#${prefix}-deduc-rows > div`);
+  for(const row of rows){
+    const montoEl=row.querySelector('.deduc-monto');
+    const razonEl=row.querySelector('.deduc-razon');
+    const monto=parseFloat(montoEl.value);
+    const razon=razonEl.value.trim();
+    const hasMonto=!isNaN(monto)&&monto>0;
+    const hasRazon=razon.length>0;
+    if(hasMonto&&!hasRazon){
+      razonEl.style.borderColor='#dc2626';razonEl.focus();
+      return 'Falta el motivo de la deducción — complétalo o elimina la fila';
+    }
+    if(hasRazon&&!hasMonto){
+      montoEl.style.borderColor='#dc2626';montoEl.focus();
+      return 'Falta el monto de la deducción — complétalo o elimina la fila';
+    }
+    montoEl.style.borderColor='';razonEl.style.borderColor='';
+  }
+  return null;
 }
 
 function updCorteDiff(){
@@ -2879,6 +3584,8 @@ function updCorteDiff(){
 function confirmCorte(){
   const val=parseFloat(document.getElementById('corte-cash').value);
   if(isNaN(val)||val<0){toast('Ingresa el efectivo contado');return;}
+  const deducErr=validateDeducRows('corte');
+  if(deducErr){toast(`⚠ ${deducErr}`);return;}
   const newDeduc=collectDeduc('corte',todayStr());
   const newDeducTotal=newDeduc.reduce((s,d)=>s+d.monto,0);
   const cp=getLastCheckpoint();
@@ -2940,6 +3647,7 @@ function addItem(pid){
   const p=PRODS.find(x=>x.id===pid);
   cart.push({uid:++uid,pid,name:p.name,price:p.price,qty:1,color:COLORS[0],model:'',
     isCustomPrice:!!p.custom,
+    notes:'',
     custom:{iniciales:'',emoji:'',tamano:SIZES[0],colorIni:INI_COLORS[0]}});
   renderCart();
 }
@@ -2956,7 +3664,7 @@ function removeItem(u){cart=cart.filter(i=>i.uid!==u);renderCart();}
 function chQty(u,d){const i=cart.find(x=>x.uid===u);if(i){i.qty=Math.max(1,i.qty+d);renderCart();}}
 function chF(u,f,v){
   const i=cart.find(x=>x.uid===u);if(!i)return;
-  if(f==='color')i.color=v; else if(f==='model')i.model=v; else i.custom[f]=v;
+  if(f==='color')i.color=v; else if(f==='model')i.model=v; else if(f==='notes')i.notes=v; else i.custom[f]=v;
   if(f==='emoji'){
     const sur=getEmojiSurcharge(i);
     const n=countGraphemes(i.custom.emoji||'');
@@ -3024,6 +3732,11 @@ function renderCart(){
       body=`<div class="field"><label class="lbl">Color</label>
         <select onchange="chF(${i.uid},'color',this.value)">${selOpts(COLORS,i.color)}</select></div>`;
     }
+    const isOnlineCanal=currentCanal==='web'||currentCanal==='whatsapp';
+    const notesBlock=isOnlineCanal?`<div class="field" style="margin-top:10px;">
+      <label class="lbl">📝 Nota para producción</label>
+      <textarea rows="2" placeholder="Ej: grabado especial, empaque regalo, instrucción adicional…" style="width:100%;resize:vertical;font-size:.85rem;padding:8px 10px;border:1.5px solid var(--g200);border-radius:6px;font-family:inherit;" oninput="chF(${i.uid},'notes',this.value)">${i.notes||''}</textarea>
+    </div>`:'';
     return `<div class="ci" data-uid="${i.uid}">
       <div class="ci-head">
         <span class="ci-name">${i.name}</span>
@@ -3035,7 +3748,7 @@ function renderCart(){
         <span class="ci-sub">$${sub.toLocaleString()}</span>
         <button class="xbtn" onclick="removeItem(${i.uid})">✕</button>
       </div>
-      <div class="ci-body">${body}</div>
+      <div class="ci-body">${body}${notesBlock}</div>
     </div>`;
   }).join('');
   document.getElementById('cart-items').innerHTML=html;
@@ -3187,7 +3900,7 @@ function submitOrder(){
     source:currentCanal||'tienda',
     address:address||null,
     prodStatus:_needsRestock?'pendiente_restock':'pendiente',
-    items:cart.map(i=>({name:i.name,pid:i.pid,color:i.color,model:i.model||'',qty:i.qty,price:i.price,custom:{...i.custom}})),
+    items:cart.map(i=>({name:i.name,pid:i.pid,color:i.color,model:i.model||'',qty:i.qty,price:i.price,custom:{...i.custom},...(i.notes?{notes:i.notes}:{})})),
     subtotal:sub,discount:disc>0?{type:discState.type,value:discState.value,amount:disc}:null,
     total:tot,pay,comprobante};
   if(_needsApproval){
@@ -3331,7 +4044,7 @@ function openAddSchedule(){
   document.getElementById('sch-notes').value='';
   // Populate employee dropdown
   const sel=document.getElementById('sch-emp');
-  sel.innerHTML=users.filter(u=>u.role!=='admin').map(u=>`<option value="${u.name}">${u.name}</option>`).join('');
+  sel.innerHTML=users.filter(u=>u.role!=='admin'&&u.role!=='mensajero').map(u=>`<option value="${u.name}">${u.name}</option>`).join('');
   openMod('add-schedule-modal');
 }
 function saveSchedule(){
@@ -4710,7 +5423,7 @@ function renderProd(){
     const itemsHtml=o.items.map(i=>{
       const cust=fmtCustom(i);
       const model=i.model?` · ${i.model}`:'';
-      return`<div style="font-size:.78rem;padding:2px 0;"><strong>${i.qty}×</strong> ${i.name}${model} · ${i.color}${cust?`<div style="font-size:.7rem;color:var(--g500);">${cust}</div>`:''}</div>`;
+      return`<div style="font-size:.78rem;padding:2px 0;"><strong>${i.qty}×</strong> ${i.name}${model} · ${i.color}${cust?`<div style="font-size:.7rem;color:var(--g500);">${cust}</div>`:''}${i.notes?`<div style="font-size:.7rem;color:#6d28d9;font-style:italic;margin-top:2px;">📝 ${i.notes}</div>`:''}</div>`;
     }).join('');
     let advBtn='';
     if(status==='pendiente_restock')
@@ -5425,7 +6138,7 @@ function addManualRestockItem(){
 /* ═══════════════════════════════════════
    TABS
 ═══════════════════════════════════════ */
-const TAB_TITLES=['Nueva Orden','Transacciones','Turnos','Horario','Producción','Inventario','Reportes','Configuración'];
+const TAB_TITLES=['Nueva Orden','Transacciones','Turnos','Horario','Producción','Inventario','Reportes','Configuración','Ruta'];
 function showTab(n){
   if(n===0&&currentUser){
     const key=`cv5_entry_${todayStr()}_${currentUser.name}`;
@@ -5435,12 +6148,12 @@ function showTab(n){
       return;
     }
   }
-  [0,1,2,3,4,5,6,7].forEach(i=>{
-    document.getElementById(`pnl${i}`).style.display=i===n?'block':'none';
-    document.getElementById(`tb${i}`).classList.toggle('active',i===n);
+  [0,1,2,3,4,5,6,7,8].forEach(i=>{
+    const p=document.getElementById(`pnl${i}`);if(p)p.style.display=i===n?'block':'none';
+    const t=document.getElementById(`tb${i}`);if(t)t.classList.toggle('active',i===n);
   });
   // sync mobile nav
-  [0,1,2,3,4,5,6,7].forEach(i=>{
+  [0,1,2,3,4,5,6,7,8].forEach(i=>{
     const m=document.getElementById(`mob-tb${i}`);
     if(m)m.classList.toggle('active',i===n);
   });
@@ -5476,6 +6189,10 @@ function showTab(n){
     if(el)el.textContent=rncDB?`✓ Base cargada — ${rncDB.size.toLocaleString()} registros`:'Base no cargada.';
     updateRuleValueUI();
     renderRestockRules();
+  }
+  if(n===8){
+    try{renderRutaAdmin();}catch(e){const c=document.getElementById('ruta-panel-content');if(c)c.innerHTML='<span style="color:red;font-size:.8rem;">'+e.message+'</span>';}
+    try{renderViajesAdmin();}catch(e){const c=document.getElementById('viajes-ruta-section');if(c)c.innerHTML='<span style="color:red;font-size:.8rem;">'+e.message+'</span>';}
   }
 }
 
@@ -5626,7 +6343,7 @@ function renderT(){
     const items=o.items.map(i=>{
       const cust=fmtCustom(i);
       const mStr=i.model?` · <em>${i.model}</em>`:(IS_COVER.includes(i.pid||'')&&o.model?` · <em>${o.model}</em>`:'');
-      return `<div>${i.qty}× <strong>${i.name}</strong>${mStr} · ${i.color}${cust?`<div class="it-custom">${cust}</div>`:''}</div>`;
+      return `<div>${i.qty}× <strong>${i.name}</strong>${mStr} · ${i.color}${cust?`<div class="it-custom">${cust}</div>`:''}${i.notes?`<div class="it-custom" style="color:#6d28d9;font-style:italic;">📝 ${i.notes}</div>`:''}</div>`;
     }).join('');
     const pt=o.pay.type;
     const bc=pt==='Tarjeta'?'bo':pt==='Efectivo'?'bk':pt==='Transferencia'?'bg':SPECIAL_TYPES.includes(pt)?'bsp':'bd';
@@ -5828,7 +6545,7 @@ const db=firebase.database();
 const auth=firebase.auth();
 
 // Track which collections have loaded for the first time
-const _fbInit={orders:false,shifts:false,cortes:false,users:false,deducciones:false,verificaciones:false,breaks:false,schedules:false};
+const _fbInit={orders:false,shifts:false,cortes:false,users:false,deducciones:false,verificaciones:false,breaks:false,schedules:false,viajes:false};
 function _fbCheckReady(){
   if(Object.values(_fbInit).every(v=>v)){
     clearTimeout(_fbTimeout);
@@ -5853,6 +6570,7 @@ db.ref('orders').on('value',snap=>{
   orders=Object.values(snap.val()||{}).sort((a,b)=>a.id-b.id);
   if(!_fbInit.orders){_fbInit.orders=true;_fbCheckReady();}
   else if(currentUser){
+    if(mensajeroMode){renderMensajeroView();return;}
     updHdr();
     renderPendingApprovals();
     if(document.getElementById('tb1').classList.contains('active'))renderT();
@@ -5899,6 +6617,16 @@ db.ref('breaks').on('value',snap=>{
   else if(currentUser){updateShiftStatus();if(document.getElementById('tb2').classList.contains('active'))renderShifts();if(document.getElementById('tb3').classList.contains('active'))renderHorario();}
 },err=>_fbShowError('breaks: '+err.message));
 
+db.ref('viajes').on('value',snap=>{
+  viajes=Object.values(snap.val()||{}).sort((a,b)=>a.id-b.id);
+  if(!_fbInit.viajes){_fbInit.viajes=true;_fbCheckReady();}
+  else if(currentUser){
+    if(mensajeroMode){renderMensajeroView();}
+    else if(adminMode&&document.getElementById('tb8')&&document.getElementById('tb8').classList.contains('active')){try{renderViajesAdmin();}catch(e){}}
+    else if(adminMode&&document.getElementById('tb2').classList.contains('active'))renderShifts();
+  }
+},err=>console.warn('viajes: '+err.message));
+
 db.ref('config').on('value',snap=>{
   const cfg=snap.val()||{};
   workerUrl=cfg.workerUrl||'';
@@ -5922,10 +6650,14 @@ db.ref('restocks').on('value',snap=>{
   updateRestockBadge();
 },err=>console.warn('restocks: '+err.message));
 
+// Names that are no longer valid and should be removed from Firebase
+const _REMOVED_USERS=['Mensajero'];
 db.ref('users').on('value',snap=>{
   const data=snap.val();
   if(data){
-    users=Object.values(data);
+    // Remove obsolete user entries
+    _REMOVED_USERS.forEach(name=>{if(data[name])db.ref('users/'+name).remove();});
+    users=Object.values(data).filter(u=>!_REMOVED_USERS.includes(u.name));
     DEFAULT_USERS.forEach(du=>{
       if(!users.find(x=>x.name===du.name)){db.ref('users/'+du.name).set(du);}
     });
@@ -5981,6 +6713,91 @@ function checkSession(){
 </script>
 
 <!-- ══ MOBILE BOTTOM NAV ══ -->
+<!-- ── VIAJE MODAL ── -->
+<div class="moverlay" id="viaje-modal">
+  <div class="modal" style="max-width:390px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <h3>🛵 Registrar Viaje</h3>
+      <button class="xbtn" onclick="closeMod('viaje-modal')" style="font-size:1.1rem;">✕</button>
+    </div>
+
+    <!-- Paso 1: Tipo -->
+    <div id="viaje-step1">
+      <p class="msub" style="margin-bottom:14px;">¿Qué tipo de envío es? · Pago cada lunes</p>
+      <div style="display:flex;flex-direction:column;gap:9px;">
+        <button class="viaje-tipo-btn" onclick="selectViajeTipo('dn')">
+          <div style="font-size:1.1rem;">🏙️</div>
+          <div style="flex:1;">
+            <div style="font-weight:800;font-size:.9rem;">Delivery DN</div>
+            <div style="font-size:.75rem;color:#6b7280;">Entrega en el Distrito Nacional · <strong>$250</strong></div>
+          </div>
+          <span style="color:#9ca3af;font-size:1rem;">›</span>
+        </button>
+        <button class="viaje-tipo-btn" onclick="selectViajeTipo('transportista')">
+          <div style="font-size:1.1rem;">🚚</div>
+          <div style="flex:1;">
+            <div style="font-weight:800;font-size:.9rem;">Transportista</div>
+            <div style="font-size:.75rem;color:#6b7280;">$250 + monto real · Requiere foto de factura</div>
+          </div>
+          <span style="color:#9ca3af;font-size:1rem;">›</span>
+        </button>
+        <button class="viaje-tipo-btn" onclick="selectViajeTipo('bmcargo')">
+          <div style="font-size:1.1rem;">📦</div>
+          <div style="flex:1;">
+            <div style="font-weight:800;font-size:.9rem;">BMCargo</div>
+            <div style="font-size:.75rem;color:#6b7280;">$250 por grupo · Admin aprueba cuáles se pagan juntos</div>
+          </div>
+          <span style="color:#9ca3af;font-size:1rem;">›</span>
+        </button>
+      </div>
+      <div style="margin-top:16px;"><button class="obtn" style="width:100%;" onclick="closeMod('viaje-modal')">Cancelar</button></div>
+    </div>
+
+    <!-- Paso 2: Formulario -->
+    <div id="viaje-step2" style="display:none;">
+      <button onclick="backViajeTipo()" style="background:none;border:none;color:var(--g500);font-size:.82rem;cursor:pointer;padding:0;margin-bottom:12px;">← Cambiar tipo</button>
+      <div id="viaje-tipo-label" style="font-weight:800;font-size:.92rem;margin-bottom:12px;"></div>
+      <div id="viaje-step2-form"></div>
+      <input type="file" accept="image/*" capture="environment" id="viaje-factura-input" style="display:none;" onchange="handleViajeFactura(this)">
+      <div class="mfooter" style="gap:8px;margin-top:16px;">
+        <button class="obtn" onclick="closeMod('viaje-modal')">Cancelar</button>
+        <button class="submit" style="flex:1;margin:0;" onclick="submitViaje()">Enviar solicitud</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── BMCARGO GROUPING MODAL (admin) ── -->
+<div class="moverlay" id="bmcargo-modal">
+  <div class="modal wide" style="max-width:460px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+      <div><h3>📦 Agrupar BMCargo</h3><p class="msub" style="margin:0;">Selecciona los paquetes del mismo envío. Se cobra <strong>$250 por grupo</strong>.</p></div>
+      <button class="xbtn" onclick="closeMod('bmcargo-modal')" style="font-size:1.1rem;">✕</button>
+    </div>
+    <div id="bmcargo-list" style="max-height:340px;overflow-y:auto;margin:14px 0;display:flex;flex-direction:column;gap:8px;"></div>
+    <div class="mfooter" style="gap:8px;">
+      <button class="obtn" onclick="closeMod('bmcargo-modal')">Cancelar</button>
+      <button class="submit" style="flex:1;margin:0;" onclick="confirmarGrupoBmcargo()">📦 Agrupar — $250 total</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MENSAJERO VIEW ══ -->
+<div id="mensajero-view" style="display:none;position:fixed;inset:0;z-index:15;overflow-y:auto;">
+  <div class="msg-view">
+    <div class="msg-header">
+      <div class="msg-title">🛵 Mis Entregas <span class="msg-badge-count" id="msg-pending-count" style="display:none;"></span></div>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <span id="msg-user-name" style="font-size:.8rem;opacity:.7;"></span>
+        <button onclick="logout()" style="padding:6px 14px;background:transparent;border:1.5px solid rgba(255,255,255,.35);color:#fff;border-radius:7px;font-size:.78rem;cursor:pointer;font-weight:700;">Salir</button>
+      </div>
+    </div>
+    <div id="msg-orders"></div>
+  </div>
+  <!-- Hidden camera input -->
+  <input type="file" accept="image/*" capture="environment" id="msg-photo-input" style="display:none;" onchange="handleDeliveryPhoto(this)">
+</div>
+
 <nav class="mobile-nav" id="mobile-nav">
   <div class="mob-nav-inner">
     <div class="mob-nav-item active" id="mob-tb0" onclick="showTab(0)"><span class="mni">🛒</span><span>Orden</span></div>
@@ -5991,6 +6808,7 @@ function checkSession(){
     <div class="mob-nav-item" id="mob-tb5" onclick="showTab(5)"><span class="mni">📦</span><span>Stock</span></div>
     <div class="mob-nav-item" id="mob-tb6" onclick="showTab(6)" style="display:none;"><span class="mni">📈</span><span>Reportes</span></div>
     <div class="mob-nav-item" id="mob-tb7" onclick="showTab(7)" style="display:none;"><span class="mni">⚙️</span><span>Config.</span></div>
+    <div class="mob-nav-item" id="mob-tb8" onclick="showTab(8)" style="display:none;"><span class="mni">🛵</span><span>Ruta</span></div>
   </div>
 </nav>
 </body>
