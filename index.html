@@ -3109,6 +3109,21 @@ function buildViajesMensajeroHtml(){
 }
 
 /* ─── RUTA ADMIN SECTION ─── */
+function revertOrderStatus(id){
+  const o=orders.find(x=>x.id===id);
+  if(!o){toast('Orden no encontrada');return;}
+  const options=['pendiente','en_proceso','listo'];
+  const current=o.prodStatus||'pendiente';
+  const label=prompt(`Revertir "${o.name}" de "${current}" a:\n0 - pendiente\n1 - en_proceso\n2 - listo\n\nEscribe el número:`);
+  if(label===null)return;
+  const target=options[parseInt(label)];
+  if(!target){toast('Opción inválida');return;}
+  const updates={prodStatus:target,prodUpdatedAt:Date.now(),prodUpdatedBy:currentUser?currentUser.name:'',deliveredAt:null,deliveredBy:null,deliveryPhoto:null,sentToRutaAt:null};
+  Object.entries(updates).forEach(([k,v])=>v===null?db.ref('orders/'+id+'/'+k).remove():db.ref('orders/'+id+'/'+k).set(v));
+  toast(`✓ Orden regresada a "${target}"`);
+  setTimeout(()=>showTab(8),400);
+}
+
 function sendToRuta(id){
   if(!confirm('¿Enviar esta orden al mensajero?'))return;
   db.ref('orders/'+id+'/prodStatus').set('ruta_mensajero');
@@ -3184,7 +3199,7 @@ function renderRutaAdmin(){
     const delivTime=o.deliveredAt?new Date(o.deliveredAt).toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'}):'';
     const itemSum=o.items.map(i=>`${i.qty}× ${i.name||i.sku}`).join(', ');
     const photoThumb=o.deliveryPhoto?`<img src="${o.deliveryPhoto}" onclick="showPhotoOverlay(this.src)" title="Ver foto entrega" style="height:36px;width:36px;object-fit:cover;border-radius:4px;border:1px solid #e5e7eb;cursor:pointer;" onerror="this.style.display='none'">`:'';
-    return `<div class="viaje-adm-row" style="opacity:.8;flex-wrap:wrap;gap:6px;">
+    return `<div class="viaje-adm-row" style="flex-wrap:wrap;gap:6px;">
       <div style="flex:1;min-width:180px;">
         <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:3px;">
           <strong>${o.name||'Sin nombre'}</strong><span style="font-size:.68rem;background:#dcfce7;color:#166534;padding:1px 6px;border-radius:8px;font-weight:800;">✓ ENTREGADA ${delivTime}</span>
@@ -3192,7 +3207,10 @@ function renderRutaAdmin(){
         <div style="font-size:.78rem;color:#374151;">${itemSum}</div>
         <div style="font-size:.7rem;color:#9ca3af;margin-top:1px;">Por ${o.deliveredBy||'—'}</div>
       </div>
-      ${photoThumb?`<div style="margin-left:8px;">${photoThumb}</div>`:''}
+      <div style="display:flex;gap:6px;align-items:center;">
+        ${photoThumb?`<div>${photoThumb}</div>`:''}
+        <button class="dbtn" style="font-size:.72rem;padding:4px 9px;white-space:nowrap;" onclick="revertOrderStatus(${o.id})" title="Regresar a En proceso">↩ Revertir</button>
+      </div>
     </div>`;
   }).join(''):'';
 
@@ -5389,6 +5407,10 @@ function renderInventario(){
 function updateProdStatus(orderId,newStatus){
   const o=orders.find(x=>x.id===orderId);
   if(!o)return;
+  // Permission check
+  const role=currentUser?currentUser.role:'';
+  if(newStatus==='ruta_mensajero'&&role!=='admin'){toast('Solo admin puede enviar a ruta');return;}
+  if(newStatus==='entregada'&&role!=='admin'&&role!=='mensajero'){toast('Solo admin o mensajero puede marcar como entregada');return;}
   saveOrderRec({...o,prodStatus:newStatus,prodUpdatedAt:Date.now(),prodUpdatedBy:currentUser?currentUser.name:''});
   const labels={en_proceso:'▶ En proceso',listo:'✓ Listo',ruta_mensajero:'🛵 En ruta',entregada:'✅ Entregada'};
   toast(labels[newStatus]||newStatus);
@@ -5433,9 +5455,9 @@ function renderProd(){
     else if(status==='en_proceso')
       advBtn=`<button class="prod-adv-btn to-done" onclick="updateProdStatus(${o.id},'listo')">✓ Marcar listo</button>`;
     else if(status==='listo'&&delivery)
-      advBtn=`<button class="prod-adv-btn" style="background:#fce7f3;color:#9d174d;border-color:#f9a8d4;" onclick="updateProdStatus(${o.id},'ruta_mensajero')">🛵 En ruta</button>`;
+      advBtn=adminMode?`<button class="prod-adv-btn" style="background:#fce7f3;color:#9d174d;border-color:#f9a8d4;" onclick="updateProdStatus(${o.id},'ruta_mensajero')">🛵 Enviar a ruta</button>`:`<div style="font-size:.72rem;color:#9ca3af;padding:6px 0;">⏳ Esperando envío a ruta</div>`;
     else if(status==='ruta_mensajero')
-      advBtn=`<button class="prod-adv-btn to-done" onclick="updateProdStatus(${o.id},'entregada')">✅ Entregada</button>`;
+      advBtn=adminMode?`<button class="prod-adv-btn to-done" onclick="updateProdStatus(${o.id},'entregada')">✅ Entregada</button>`:`<div style="font-size:.72rem;color:#9d174d;padding:6px 0;">🛵 En ruta — pendiente de entrega</div>`;
     const addrHtml=o.address?`<div style="font-size:.72rem;color:var(--g500);margin-top:4px;">📍 ${o.address}</div>`:'';
     const updHtml=o.prodUpdatedBy&&status!=='pendiente'?`<div style="font-size:.68rem;color:var(--g500);margin-top:3px;">por ${o.prodUpdatedBy}</div>`:'';
     return`<div class="prod-card ${status==='pendiente_restock'?'pend':status==='ruta_mensajero'?'proc':status==='entregada'?'done':status}">
