@@ -2845,6 +2845,31 @@ function openViajeModal(){
   _viajeFacturaB64=null;
   document.getElementById('viaje-step1').style.display='';
   document.getElementById('viaje-step2').style.display='none';
+  // Admin: show/hide mensajero selector
+  let adminBlock=document.getElementById('viaje-admin-mensajero');
+  if(!adminBlock){
+    adminBlock=document.createElement('div');
+    adminBlock.id='viaje-admin-mensajero';
+    adminBlock.style.cssText='margin-bottom:12px;';
+    document.getElementById('viaje-step1').insertAdjacentElement('afterbegin',adminBlock);
+  }
+  if(adminMode){
+    const mensajeros=users.filter(u=>u.role==='mensajero');
+    adminBlock.innerHTML=`<div class="field" style="margin-bottom:12px;">
+      <label class="lbl">👤 Mensajero</label>
+      <select id="viaje-admin-who" style="width:100%;padding:9px 11px;border:1.5px solid var(--g200);border-radius:7px;font-size:.9rem;">
+        ${mensajeros.map(u=>`<option value="${u.name}">${u.name}</option>`).join('')}
+        <option value="__manual__">✏️ Escribir nombre...</option>
+      </select>
+      <input type="text" id="viaje-admin-who-manual" placeholder="Nombre del mensajero" style="display:none;width:100%;margin-top:6px;padding:9px 11px;border:1.5px solid var(--g200);border-radius:7px;font-size:.9rem;">
+    </div>`;
+    document.getElementById('viaje-admin-who').addEventListener('change',function(){
+      const manual=document.getElementById('viaje-admin-who-manual');
+      manual.style.display=this.value==='__manual__'?'':'none';
+    });
+  } else {
+    adminBlock.innerHTML='';
+  }
   openMod('viaje-modal');
 }
 function selectViajeTipo(tipo){
@@ -2942,16 +2967,36 @@ function submitViaje(){
     montoExtra=parseFloat((document.getElementById('viaje-extra')||{}).value)||0;
     if(!_viajeFacturaB64){toast('Debes adjuntar la foto de la factura');return;}
   }
+  // Determine mensajero name
+  let mensajeroName=currentUser.name;
+  if(adminMode){
+    const whoSel=document.getElementById('viaje-admin-who');
+    if(whoSel){
+      if(whoSel.value==='__manual__'){
+        const manualEl=document.getElementById('viaje-admin-who-manual');
+        mensajeroName=(manualEl?manualEl.value.trim():'')||currentUser.name;
+      } else {
+        mensajeroName=whoSel.value||currentUser.name;
+      }
+    }
+    if(!mensajeroName){toast('Selecciona el mensajero');return;}
+  }
+  const now=Date.now();
   const rec={
-    id:Date.now(),
-    mensajero:currentUser.name,
+    id:now,
+    mensajero:mensajeroName,
     tipo:tipo,
     descripcion:desc,
     monto:250,
-    status:'pendiente',
-    createdAt:Date.now(),
+    status:adminMode?'aprobado':'pendiente',
+    createdAt:now,
     approvalTarget:'Alexia'
   };
+  if(adminMode){
+    rec.approvedBy=currentUser.name;
+    rec.approvedAt=now;
+    rec.adminCreated=true;
+  }
   if(tipo==='transportista'){
     rec.montoExtra=montoExtra;
     rec.montoTotal=250+montoExtra;
@@ -2961,7 +3006,7 @@ function submitViaje(){
   _viajeFacturaB64=null;
   closeMod('viaje-modal');
   const labels={dn:'Delivery DN',transportista:'Transportista',bmcargo:'BMCargo'};
-  toast(`✓ Viaje ${labels[tipo]||tipo} enviado a Alexia`);
+  toast(adminMode?`✓ Viaje ${labels[tipo]||tipo} registrado para ${mensajeroName}`:`✓ Viaje ${labels[tipo]||tipo} enviado a Alexia`);
 }
 
 function approveViaje(id){
@@ -3319,6 +3364,7 @@ function renderViajesAdmin(){
         <div style="font-size:.74rem;color:var(--g500);margin-top:2px;">Pago cada lunes</div>
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+        <button class="dbtn" onclick="openViajeModal()" style="font-size:.8rem;">+ Viaje Manual</button>
         ${pendBmc.length?`<button class="dbtn" onclick="openBmcargoModal()" style="font-size:.8rem;">📦 Agrupar BMCargo (${pendBmc.length})</button>`:''}
         ${aprobados.length?`<span style="font-size:.82rem;color:#166534;font-weight:800;">$${totalApro.toLocaleString()} por pagar</span><button class="dbtn dark" onclick="pagarViajes()" style="font-size:.8rem;">💰 Pagar todo</button>`:''}
       </div>
