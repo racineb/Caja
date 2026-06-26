@@ -1960,7 +1960,8 @@ function saveDeduccionRec(d){ db.ref('deducciones/'+d.id).set(d); }
 function delDeduccionRec(id){ db.ref('deducciones/'+id).remove(); }
 function editDeduccionRec(id){
   if(!adminMode)return;
-  const d=deducciones.find(x=>x.id===id);if(!d)return;
+  // eslint-disable-next-line eqeqeq
+  const d=deducciones.find(x=>x.id==id);if(!d)return;
   const newRazon=prompt('Motivo de la deducción:',d.razon);
   if(newRazon===null)return;
   const newMonto=prompt('Monto (RD$):',d.monto);
@@ -2131,6 +2132,7 @@ function calcCashForShift(shiftName, dateStr){
   dateStr=dateStr||todayStr();
   const shiftOrders=orders.filter(o=>{
     if(!o.pay)return false;
+    if(o.source==='web'||o.source==='whatsapp')return false;
     return localDateStr(o.id)===dateStr&&(o.shift||'Mañana')===shiftName&&!SPECIAL_TYPES.includes(o.pay.type);
   });
   let cashIn=0,changeOut=0,cardTotal=0,txfrTotal=0,salesTotal=0;
@@ -2239,26 +2241,32 @@ function updateCierreDiff(expected){
 }
 
 function confirmCierre(){
-  const rec=getDayRec();
-  if(!rec){toast('No hay caja abierta para cerrar');return;}
-  const val=parseFloat(document.getElementById('close-cash').value);
-  if(isNaN(val)||val<0){toast('Ingresa el efectivo contado en caja');return;}
-  const deducErr=validateDeducRows('cierre');
-  if(deducErr){toast(`⚠ ${deducErr}`);return;}
-  const newDeduc=collectDeduc('cierre',todayStr());
-  const newDeducTotal=newDeduc.reduce((s,d)=>s+d.monto,0);
-  const cp=getLastCheckpoint();
-  const calc=calcCashForPeriod(todayStr(),cp.timestamp,Date.now());
-  // Subtract pending deductions (not yet in Firebase local cache)
-  const expected=cp.cash+calc.netCash-newDeducTotal;
-  rec.closedAt=Date.now();
-  rec.closeCash=val;
-  rec.closeDiff=val-expected;
-  rec.closedBy=currentUser?currentUser.name:'';
-  rec.notes=document.getElementById('close-notes').value.trim();
-  saveShiftRec(rec);
-  closeMod('cierre-modal');
-  toast(`Cierre registrado · ${rec.closeDiff>=0?'Sobrante':'Faltante'} $${Math.abs(rec.closeDiff).toLocaleString('es',{minimumFractionDigits:2})}`);
+  try{
+    const rec=getDayRec();
+    if(!rec){toast('No hay caja abierta para cerrar');return;}
+    const val=parseFloat(document.getElementById('close-cash').value);
+    if(isNaN(val)||val<0){toast('Ingresa el efectivo contado en caja');return;}
+    const deducErr=validateDeducRows('cierre');
+    if(deducErr){toast(`⚠ ${deducErr}`);return;}
+    const newDeduc=collectDeduc('cierre',todayStr());
+    const newDeducTotal=newDeduc.reduce((s,d)=>s+d.monto,0);
+    const cp=getLastCheckpoint();
+    if(!cp){toast('⚠ No hay apertura de caja para hoy');return;}
+    const calc=calcCashForPeriod(todayStr(),cp.timestamp,Date.now());
+    // Subtract pending deductions (not yet in Firebase local cache)
+    const expected=cp.cash+calc.netCash-newDeducTotal;
+    rec.closedAt=Date.now();
+    rec.closeCash=val;
+    rec.closeDiff=val-expected;
+    rec.closedBy=currentUser?currentUser.name:'';
+    rec.notes=document.getElementById('close-notes').value.trim();
+    saveShiftRec(rec);
+    closeMod('cierre-modal');
+    toast(`Cierre registrado · ${rec.closeDiff>=0?'Sobrante':'Faltante'} $${Math.abs(rec.closeDiff).toLocaleString('es',{minimumFractionDigits:2})}`);
+  }catch(e){
+    console.error('confirmCierre error:',e);
+    toast('⚠ Error al guardar cierre: '+e.message);
+  }
 }
 
 // ── CLOCK & REPORT HELPERS ──
@@ -2443,7 +2451,7 @@ function renderAdminReport(dateStr){
     ${byShift?`<div style="background:var(--g50);border-radius:6px;padding:10px;margin-bottom:10px;"><div style="font-size:.63rem;font-weight:800;color:var(--g500);text-transform:uppercase;letter-spacing:.6px;margin-bottom:5px;">Por vendedora</div>${byShift}</div>`:''}
     ${clockRows?`<div style="background:var(--g50);border-radius:6px;padding:10px;margin-bottom:10px;"><div style="font-size:.63rem;font-weight:800;color:var(--g500);text-transform:uppercase;letter-spacing:.6px;margin-bottom:5px;">⏱ Horas por empleada</div>${clockRows}</div>`:''}
     ${special.length?`<div style="background:var(--g50);border-radius:6px;padding:10px;margin-bottom:10px;"><div style="font-size:.63rem;font-weight:800;color:var(--g500);text-transform:uppercase;letter-spacing:.6px;margin-bottom:5px;">Sin cobro</div><div style="font-size:.82rem;">${special.filter(o=>o.pay.type==='Cortesia').length} cortesías · ${special.filter(o=>o.pay.type==='Error').length} errores · ${special.filter(o=>o.pay.type==='Garantia').length} garantías</div></div>`:''}
-    ${totalDeduc>0?`<div style="background:#fffbea;border-radius:6px;padding:10px;margin-bottom:10px;"><div style="font-size:.63rem;font-weight:800;color:#92710a;text-transform:uppercase;letter-spacing:.6px;margin-bottom:5px;">Deducciones −$${totalDeduc.toLocaleString()}</div>${dayDeduc.map(d=>`<div style="font-size:.8rem;display:flex;align-items:center;gap:4px;padding:2px 0;"><span style="flex:1;">${d.razon}</span><span style="color:#c00;font-weight:700;">−$${d.monto.toLocaleString()}</span><button onclick="editDeduccionRec(${d.id})" style="background:none;border:none;color:#555;cursor:pointer;font-size:.75rem;padding:0 2px;" title="Editar">✏</button><button onclick="delDeduccionRec(${d.id})" style="background:none;border:none;color:#c00;cursor:pointer;font-size:.75rem;padding:0 2px;" title="Eliminar">✕</button></div>`).join('')}</div>`:''}
+    ${totalDeduc>0?`<div style="background:#fffbea;border-radius:6px;padding:10px;margin-bottom:10px;"><div style="font-size:.63rem;font-weight:800;color:#92710a;text-transform:uppercase;letter-spacing:.6px;margin-bottom:5px;">Deducciones −$${totalDeduc.toLocaleString()}</div>${dayDeduc.map(d=>`<div style="font-size:.8rem;display:flex;align-items:center;gap:4px;padding:2px 0;"><span style="flex:1;">${d.razon}</span><span style="color:#c00;font-weight:700;">−$${d.monto.toLocaleString()}</span><button onclick="editDeduccionRec('${d.id}')" style="background:none;border:none;color:#555;cursor:pointer;font-size:.75rem;padding:0 2px;" title="Editar">✏</button><button onclick="delDeduccionRec('${d.id}')" style="background:none;border:none;color:#c00;cursor:pointer;font-size:.75rem;padding:0 2px;" title="Eliminar">✕</button></div>`).join('')}</div>`:''}
     ${buildProductSummary(dayOrders,false).replace('margin-bottom:12px','margin-bottom:10px')}
     ${cuadreHtml}
   </div>`;
@@ -2540,7 +2548,7 @@ function renderShifts(){
       diffCell=`<div class="sc-cell"><div class="sc-lbl">Estado</div><div class="sc-val" style="color:#16a34a;">En curso</div></div>`;
     } else {
       const closeTime=new Date(dayRec.closedAt).toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'});
-      // Recalculate dynamically so deducciones are always included correctly
+      // Always recalculate dynamically so deducciones are always included correctly
       const _histCalc=calcCashForDay(date);
       const d=dayRec.closeCash!=null ? dayRec.closeCash-(dayRec.openCash+_histCalc.netCash) : (dayRec.closeDiff||0);
       const dClass=Math.abs(d)<1?'zero':d>0?'good':'bad';
@@ -2577,7 +2585,7 @@ function renderShifts(){
           <div style="display:flex;align-items:center;gap:3px;font-size:.75rem;padding:1px 0;">
             <span style="flex:1;color:var(--g700);">${d.razon}</span>
             <span style="font-weight:700;color:#c00;">−$${d.monto.toLocaleString()}</span>
-            ${adminMode?`<button onclick="editDeduccionRec(${d.id})" style="background:none;border:none;color:#999;cursor:pointer;font-size:.7rem;padding:0 1px;">✏</button><button onclick="delDeduccionRec(${d.id})" style="background:none;border:none;color:#c00;cursor:pointer;font-size:.7rem;padding:0 1px;">✕</button>`:''}
+            ${adminMode?`<button onclick="editDeduccionRec('${d.id}')" style="background:none;border:none;color:#999;cursor:pointer;font-size:.7rem;padding:0 1px;">✏</button><button onclick="delDeduccionRec('${d.id}')" style="background:none;border:none;color:#c00;cursor:pointer;font-size:.7rem;padding:0 1px;">✕</button>`:''}
           </div>`).join('')}
       </div>`:'';
     const dayOrders=orders.filter(o=>localDateStr(o.id)===date);
@@ -2719,6 +2727,7 @@ function getLastCheckpoint(dateStr){
 function calcCashForPeriod(dateStr,fromTs,toTs){
   const periodOrders=orders.filter(o=>{
     if(!o.pay)return false;
+    if(o.source==='web'||o.source==='whatsapp')return false;
     return o.id>=fromTs&&o.id<=toTs&&
            localDateStr(o.id)===(dateStr||todayStr())&&
            !SPECIAL_TYPES.includes(o.pay.type);
@@ -2738,8 +2747,11 @@ function calcCashForPeriod(dateStr,fromTs,toTs){
       });
     }
   });
-  // Subtract deducciones in this period
-  const periodDeduc=deducciones.filter(d=>d.id>=fromTs&&d.id<=toTs&&d.date===(dateStr||todayStr()));
+  // Subtract deducciones in this period (use d.ts — d.id may be a string)
+  const periodDeduc=deducciones.filter(d=>{
+    const dts=d.ts||(typeof d.id==='number'?d.id:parseInt(String(d.id)));
+    return dts>=fromTs&&dts<=toTs&&d.date===(dateStr||todayStr());
+  });
   const totalDeduc=periodDeduc.reduce((s,d)=>s+d.monto,0);
   return{cashIn,changeOut,netCash:cashIn-changeOut-totalDeduc,cardTotal,txfrTotal,salesTotal,count:periodOrders.length,deducciones:totalDeduc};
 }
@@ -3651,7 +3663,7 @@ function collectDeduc(prefix,date){
     const monto=parseFloat(row.querySelector('.deduc-monto').value);
     const razon=row.querySelector('.deduc-razon').value.trim();
     if(!isNaN(monto)&&monto>0&&razon){
-      const rec={id:Date.now()+'_'+Math.floor(Math.random()*99999),date,monto,razon,by:currentUser?currentUser.name:'',ts:Date.now()};
+      const rec={id:Date.now()*1000+Math.floor(Math.random()*1000),date,monto,razon,by:currentUser?currentUser.name:'',ts:Date.now()};
       saveDeduccionRec(rec);
       saved.push(rec);
     }
