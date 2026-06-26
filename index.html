@@ -1701,7 +1701,7 @@ const PRODS=[
   {id:'bt',   name:'Bag Tag',         price:1900, model:false, custom:false},
   {id:'kt',   name:'Key Tag',         price:1300, model:false, custom:false},
   {id:'cos',  name:'Cosmetic',        price:4500, model:false, custom:false},
-  {id:'custom',name:'Personalizado',  price:0,    model:false, custom:true},
+  {id:'custom',name:'Otro',           price:0,    model:false, custom:true},
 ];
 const HAS_INI   =['cover','ch','ph','bt','kt'];
 const IS_COVER  =['cover'];
@@ -3220,6 +3220,68 @@ function revertOrderStatus(id){
   setTimeout(()=>showTab(8),400);
 }
 
+function splitRestockOrder(orderId){
+  if(!adminMode)return;
+  const o=orders.find(x=>x.id===orderId);
+  if(!o){toast('Orden no encontrada');return;}
+  const avail=o.items.filter(i=>i.pid!=='custom'&&(getStock(makeSkuFromItem(i)).agora||0)>0);
+  const restock=o.items.filter(i=>i.pid==='custom'||(getStock(makeSkuFromItem(i)).agora||0)<=0);
+  if(!avail.length||!restock.length){toast('No hay mezcla de stock para dividir');return;}
+  if(!confirm(`¿Dividir esta orden?\n• ${avail.length} producto${avail.length>1?'s':''} pasan a Producción\n• ${restock.length} producto${restock.length>1?'s':''} se quedan en Restock`))return;
+  const origSub=o.subtotal||(o.items.reduce((s,i)=>s+i.price*i.qty,0));
+  const origDisc=o.discount?o.discount.amount:0;
+  const sub1=avail.reduce((s,i)=>s+i.price*i.qty,0);
+  const sub2=restock.reduce((s,i)=>s+i.price*i.qty,0);
+  const disc1=origSub>0?Math.round(origDisc*sub1/origSub):0;
+  const disc2=origDisc-disc1;
+  const tot1=Math.max(0,sub1-disc1);
+  const tot2=Math.max(0,sub2-disc2);
+  const now=Date.now();
+  // Update original order → becomes the restock-only order
+  const restockOrder={...o,items:restock,subtotal:sub2,
+    discount:disc2>0?{...(o.discount||{}),amount:disc2}:null,
+    total:tot2,pay:{type:(o.pay||{}).type||'Efectivo'},
+    prodStatus:'pendiente_restock',splitInto:now};
+  // New order for available items → goes straight to pendiente
+  const availOrder={...o,id:now,items:avail,subtotal:sub1,
+    discount:disc1>0?{...(o.discount||{}),amount:disc1}:null,
+    total:tot1,pay:o.pay,
+    prodStatus:'pendiente',
+    prodUpdatedAt:Date.now(),prodUpdatedBy:currentUser?currentUser.name:'',
+    splitFrom:orderId};
+  saveOrderRec(restockOrder);
+  saveOrderRec(availOrder);
+  deductAgoraForOrder(availOrder.items);
+  const availNames=avail.map(i=>`${i.name}${i.model?' '+i.model:''}`).join(', ');
+  toast(`✓ Orden dividida · En producción: ${availNames}`);
+  setTimeout(renderProd,500);
+}
+function mergeOrders(idA,idB){
+  if(!adminMode)return;
+  const oA=orders.find(x=>x.id==idA);
+  const oB=orders.find(x=>x.id==idB);
+  if(!oA||!oB){toast('Orden no encontrada');return;}
+  if(!confirm(`¿Unir las dos partes de la orden de ${oA.name} en una sola para entregar?`))return;
+  // Keeper = the order with full payment data (has received/rows/reference)
+  const hasFullPay=o=>o.pay&&(o.pay.received!=null||o.pay.rows||o.pay.reference);
+  const keeper=hasFullPay(oA)?oA:hasFullPay(oB)?oB:oA;
+  const other=keeper.id==oA.id?oB:oA;
+  const allItems=[...keeper.items,...other.items];
+  const newSub=(keeper.subtotal||0)+(other.subtotal||0);
+  const discK=keeper.discount?keeper.discount.amount:0;
+  const discO=other.discount?other.discount.amount:0;
+  const totalDisc=discK+discO;
+  const merged={...keeper,
+    items:allItems,subtotal:newSub,
+    discount:totalDisc>0?{...(keeper.discount||other.discount||{}),amount:totalDisc}:null,
+    total:keeper.total+other.total,
+    splitFrom:null,splitInto:null,
+    mergedAt:Date.now(),mergedBy:currentUser?currentUser.name:''};
+  saveOrderRec(merged);
+  delOrderRec(other.id);
+  toast(`✓ Órdenes unidas · ${allItems.length} artículo${allItems.length>1?'s':''} · Lista para envío`);
+  setTimeout(renderProd,500);
+}
 function sendToRuta(id){
   if(!confirm('¿Enviar esta orden al mensajero?'))return;
   db.ref('orders/'+id+'/prodStatus').set('ruta_mensajero');
@@ -3858,9 +3920,6 @@ function renderCart(){
         <input type="number" min="0" step="1" placeholder="0"
           value="${i.price||''}" style="font-size:1rem;max-width:160px;"
           oninput="chCustomPrice(${i.uid},this.value)"/>
-        <div style="font-size:.73rem;color:var(--g500);margin-top:4px;">
-          Sugerencia: registrar deducción de $${Math.round((i.price||0)/2).toLocaleString()} en el corte si se tomó de caja.
-        </div>
       </div>`;
     } else {
       body=`<div class="field"><label class="lbl">Color</label>
@@ -3967,20 +4026,24 @@ function submitOrder(){
     if(IS_COVER.includes(item.pid)&&!item.model)return toast('Selecciona el modelo para cada Cover');
   }
   // Check agora stock
-  let _needsApproval=false,_needsRestock=false;
+  let _needsApproval=false,_needsRestock=false,_restockItems=null,_availItems=null;
   if(isInvActive()){
-    const sinStock=cart.filter(item=>(getStock(makeSkuFromItem(item)).agora||0)<=0);
+    const sinStock=cart.filter(item=>!item.isCustomPrice&&(getStock(makeSkuFromItem(item)).agora||0)<=0);
     if(sinStock.length){
       const noAlmacen=sinStock.filter(item=>(getStock(makeSkuFromItem(item)).almacen||0)<=0);
       if(noAlmacen.length){
         const labels=noAlmacen.map(i=>`• ${i.name}${i.model?' '+i.model:''} / ${i.color}`).join('\n');
         return toast(`⛔ Sin stock (Agora + Almacén):\n${labels}`);
       }
-      if(!adminMode){
-        _needsApproval=true;
+      const conStock=cart.filter(item=>item.isCustomPrice||(getStock(makeSkuFromItem(item)).agora||0)>0);
+      if(conStock.length>0){
+        // Mixed: some items available, some only in almacén — split the order
+        _availItems=conStock;
+        _restockItems=sinStock;
       } else {
-        _needsRestock=true;
-        toast(`⚠ Stock solo en Almacén: ${sinStock.map(i=>`${i.name}${i.model?' '+i.model:''} / ${i.color}`).join(', ')}`);
+        // All items need restock
+        if(!adminMode){_needsApproval=true;}
+        else{_needsRestock=true;toast(`⚠ Stock solo en Almacén: ${sinStock.map(i=>`${i.name}${i.model?' '+i.model:''} / ${i.color}`).join(', ')}`);}
       }
     }
   }
@@ -4029,12 +4092,45 @@ function submitOrder(){
   }
 
   const address=(document.getElementById('f-address')?.value||'').trim();
+  const _itemToRec=i=>({name:i.name,pid:i.pid,color:i.color,model:i.model||'',qty:i.qty,price:i.price,custom:{...i.custom},...(i.notes?{notes:i.notes}:{})});
+  const sourceLabel={web:'🌐 Web',whatsapp:'💬 WhatsApp',tienda:'🏪 Tienda'}[currentCanal]||'';
+
+  // Split order: some items available in Agora, some only in Almacén
+  if(_availItems&&_restockItems){
+    const sub1=_availItems.reduce((s,i)=>s+i.price*i.qty,0);
+    const sub2=_restockItems.reduce((s,i)=>s+i.price*i.qty,0);
+    const disc1=sub>0?Math.round(disc*sub1/sub):0;
+    const disc2=disc-disc1;
+    const tot1=Math.max(0,sub1-disc1);
+    const tot2=Math.max(0,sub2-disc2);
+    const now=Date.now();
+    const baseFields={name,phone,shift:curShift,registeredBy:currentUser?currentUser.name:'',source:currentCanal||'tienda',address:address||null,comprobante};
+    // Order 1: available items — carries the full payment for cash accounting
+    const order1={...baseFields,id:now,prodStatus:'pendiente',
+      items:_availItems.map(_itemToRec),subtotal:sub1,
+      discount:disc1>0?{type:discState.type,value:discState.value,amount:disc1}:null,
+      total:tot1,pay,splitInto:now+1};
+    // Order 2: restock items — pay type only (cash flow recorded on order1)
+    const order2={...baseFields,id:now+1,prodStatus:'pendiente_restock',
+      items:_restockItems.map(_itemToRec),subtotal:sub2,
+      discount:disc2>0?{type:discState.type,value:discState.value,amount:disc2}:null,
+      total:tot2,pay:{type:pay.type},splitFrom:now,
+      ...(!adminMode?{needsApproval:true}:{})};
+    saveOrderRec(order1);
+    deductAgoraForOrder(order1.items);
+    saveOrderRec(order2);
+    const restockNames=_restockItems.map(i=>`${i.name}${i.model?' '+i.model:''}`).join(', ');
+    toast(`${sourceLabel} Orden dividida ✓ · ${_availItems.length} producto${_availItems.length>1?'s':''} en producción · Restock: ${restockNames}`);
+    resetForm();
+    return;
+  }
+
   const orderRec={id:Date.now(),name,phone,shift:curShift,
     registeredBy:currentUser?currentUser.name:'',
     source:currentCanal||'tienda',
     address:address||null,
     prodStatus:_needsRestock?'pendiente_restock':'pendiente',
-    items:cart.map(i=>({name:i.name,pid:i.pid,color:i.color,model:i.model||'',qty:i.qty,price:i.price,custom:{...i.custom},...(i.notes?{notes:i.notes}:{})})),
+    items:cart.map(_itemToRec),
     subtotal:sub,discount:disc>0?{type:discState.type,value:discState.value,amount:disc}:null,
     total:tot,pay,comprobante};
   if(_needsApproval){
@@ -4046,7 +4142,6 @@ function submitOrder(){
   }
   saveOrderRec(orderRec);
   deductAgoraForOrder(orderRec.items);
-  const sourceLabel={web:'🌐 Web',whatsapp:'💬 WhatsApp',tienda:'🏪 Tienda'}[currentCanal]||'';
   toast(`${sourceLabel} Orden registrada ✓ — enviada a Producción`);resetForm();
 }
 
@@ -4543,6 +4638,7 @@ function deductAgoraForOrder(orderItems){
     const sku=makeSkuFromItem(item);
     const s=getStock(sku);
     if(s.agora<=0&&s.almacen<=0)return; // SKU not tracked in inventory, skip
+    if(s.agora<=0)return; // Item sourced from Almacén — deduction happens at restock transfer, not at order time
     const newAgora=s.agora-(item.qty||1);
     saveInvRec(sku,{...s,agora:newAgora});
     if(newAgora<=0&&s.almacen>0&&!skuExcludedByRules(sku)){
@@ -5564,24 +5660,44 @@ function renderProd(){
       return`<div style="font-size:.78rem;padding:2px 0;"><strong>${i.qty}×</strong> ${i.name}${model} · ${i.color}${cust?`<div style="font-size:.7rem;color:var(--g500);">${cust}</div>`:''}${i.notes?`<div style="font-size:.7rem;color:#6d28d9;font-style:italic;margin-top:2px;">📝 ${i.notes}</div>`:''}</div>`;
     }).join('');
     let advBtn='';
-    if(status==='pendiente_restock')
-      advBtn=`<div style="font-size:.72rem;color:#c2410c;padding:6px 0;display:flex;align-items:center;gap:5px;"><span>⏳ Esperando restock desde Almacén</span></div>`;
+    if(status==='pendiente_restock'){
+      const _nowAvail=isInvActive()?o.items.filter(i=>i.pid!=='custom'&&(getStock(makeSkuFromItem(i)).agora||0)>0):[];
+      const _nowRestock=isInvActive()?o.items.filter(i=>i.pid!=='custom'&&(getStock(makeSkuFromItem(i)).agora||0)<=0):o.items;
+      if(adminMode&&_nowAvail.length>0&&_nowRestock.length>0){
+        advBtn=`<div style="display:flex;flex-direction:column;gap:5px;margin-top:4px;">
+          <div style="font-size:.72rem;color:#c2410c;">⏳ Parcial — ${_nowAvail.length} art. disponible${_nowAvail.length>1?'s':''}, ${_nowRestock.length} en restock</div>
+          <button class="prod-adv-btn to-proc" style="font-size:.74rem;" onclick="splitRestockOrder(${o.id})">✂ Dividir orden</button>
+        </div>`;
+      } else {
+        advBtn=`<div style="font-size:.72rem;color:#c2410c;padding:6px 0;display:flex;align-items:center;gap:5px;"><span>⏳ Esperando restock desde Almacén</span></div>`;
+      }
+    }
     else if(status==='pendiente')
       advBtn=`<button class="prod-adv-btn to-proc" onclick="updateProdStatus(${o.id},'en_proceso')">▶ En proceso</button>`;
     else if(status==='en_proceso')
       advBtn=`<button class="prod-adv-btn to-done" onclick="updateProdStatus(${o.id},'listo')">✓ Marcar listo</button>`;
-    else if(status==='listo'&&delivery)
-      advBtn=adminMode?`<button class="prod-adv-btn" style="background:#fce7f3;color:#9d174d;border-color:#f9a8d4;" onclick="updateProdStatus(${o.id},'ruta_mensajero')">🛵 Enviar a ruta</button>`:`<div style="font-size:.72rem;color:#9ca3af;padding:6px 0;">⏳ Esperando envío a ruta</div>`;
+    else if(status==='listo'){
+      const _linkedId=o.splitFrom||o.splitInto;
+      const _linked=_linkedId?orders.find(x=>x.id==_linkedId):null;
+      const _canMerge=adminMode&&_linked&&_linked.prodStatus==='listo';
+      let _btns='';
+      if(_canMerge)
+        _btns+=`<button class="prod-adv-btn" style="background:#f0f9ff;color:#0369a1;border:1.5px solid #bae6fd;font-size:.76rem;width:100%;margin-bottom:5px;" onclick="mergeOrders(${o.id},${_linked.id})">🔗 Unir órdenes para entregar</button>`;
+      if(delivery)
+        _btns+=adminMode?`<button class="prod-adv-btn" style="background:#fce7f3;color:#9d174d;border-color:#f9a8d4;" onclick="updateProdStatus(${o.id},'ruta_mensajero')">🛵 Enviar a ruta</button>`:`<div style="font-size:.72rem;color:#9ca3af;padding:6px 0;">⏳ Esperando envío a ruta</div>`;
+      if(_btns)advBtn=_btns;
+    }
     else if(status==='ruta_mensajero')
       advBtn=adminMode?`<button class="prod-adv-btn to-done" onclick="updateProdStatus(${o.id},'entregada')">✅ Entregada</button>`:`<div style="font-size:.72rem;color:#9d174d;padding:6px 0;">🛵 En ruta — pendiente de entrega</div>`;
     const addrHtml=o.address?`<div style="font-size:.72rem;color:var(--g500);margin-top:4px;">📍 ${o.address}</div>`:'';
     const updHtml=o.prodUpdatedBy&&status!=='pendiente'?`<div style="font-size:.68rem;color:var(--g500);margin-top:3px;">por ${o.prodUpdatedBy}</div>`:'';
+    const splitBadge=(o.splitFrom||o.splitInto)?`<span style="font-size:.65rem;background:#f0f9ff;color:#0369a1;border:1px solid #bae6fd;border-radius:8px;padding:1px 6px;margin-left:4px;">🔗 Dividida</span>`:'';
     return`<div class="prod-card ${status==='pendiente_restock'?'pend':status==='ruta_mensajero'?'proc':status==='entregada'?'done':status}">
       <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
         <span class="prod-source ${src}">${srcIcon[src]||''} ${srcLabel[src]||src}</span>
         <span style="font-size:.72rem;color:var(--g500);margin-left:auto;">${time}</span>
       </div>
-      <div style="font-weight:800;font-size:.86rem;">${o.name}${o.phone?`<span style="font-weight:400;font-size:.75rem;color:var(--g500);"> · ${o.phone}</span>`:''}</div>
+      <div style="font-weight:800;font-size:.86rem;">${o.name}${o.phone?`<span style="font-weight:400;font-size:.75rem;color:var(--g500);"> · ${o.phone}</span>`:''}${splitBadge}</div>
       <div style="margin-top:5px;">${itemsHtml}</div>
       ${addrHtml}${updHtml}
       ${advBtn}
