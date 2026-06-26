@@ -5048,7 +5048,6 @@ function openRestockModal(){
   _restockItems=Object.keys(inventarioData)
     .filter(sku=>needsRestock(sku)&&(inventarioData[sku].almacen||0)>0&&!skuExcludedByRules(sku))
     .sort((a,b)=>{
-      // Sort by pid then model then color
       const pa=skuPid(a),pb=skuPid(b);
       if(pa!==pb)return pa.localeCompare(pb);
       return skuModel(a).localeCompare(skuModel(b))||skuColor(a).localeCompare(skuColor(b));
@@ -5059,6 +5058,17 @@ function openRestockModal(){
       const needed=Math.max(0,min-s.agora);
       return {sku,s,req:Math.min(needed,s.almacen||0)};
     });
+  // Also include items from pendiente_restock orders not already in the list
+  orders.filter(o=>o.prodStatus==='pendiente_restock').forEach(o=>{
+    o.items.forEach(item=>{
+      if(item.pid==='custom')return;
+      const sku=makeSkuFromItem(item);
+      if(_restockItems.find(r=>r.sku===sku))return; // already included
+      const s=getStock(sku);
+      if((s.almacen||0)<=0)return; // nothing to transfer
+      _restockItems.push({sku,s,req:Math.min(item.qty||1,s.almacen||0),fromOrder:o.name});
+    });
+  });
   renderRestockRows();
   openMod('inv-restock-modal');
 }
@@ -5078,10 +5088,11 @@ function renderRestockRows(){
       :`<strong>${ACC_PID_MAP[pid]||pid}</strong> / ${skuColor(item.sku)}`;
     const agoraCls=item.s.agora<=0?'color:#dc2626':'color:#d97706';
     const min=getMinForSku(item.sku);
+    const orderBadge=item.fromOrder?`<span style="font-size:.63rem;background:#fef9c3;color:#92400e;border:1px solid #fde68a;border-radius:6px;padding:1px 5px;margin-left:3px;">📦 ${item.fromOrder}</span>`:'';
     return `<div class="rs-row">
       <button onclick="removeRestockItem(${idx})"
         style="width:22px;height:22px;border-radius:50%;border:none;background:#fee2e2;color:#dc2626;font-size:.8rem;font-weight:900;cursor:pointer;flex-shrink:0;line-height:1;">✕</button>
-      <div style="flex:1;font-size:.78rem;">${label}</div>
+      <div style="flex:1;font-size:.78rem;">${label}${orderBadge}</div>
       <div style="font-size:.7rem;${agoraCls};font-weight:800;min-width:46px;">Agora:${item.s.agora}</div>
       <div style="font-size:.7rem;color:#1d4ed8;font-weight:700;min-width:52px;">Almacén:${item.s.almacen||0}</div>
       <div style="font-size:.7rem;color:var(--g500);min-width:36px;">Mín:${min}</div>
