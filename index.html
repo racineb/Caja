@@ -2774,7 +2774,7 @@ function renderMensajeroView(){
   if(badge){badge.textContent=pending.length;badge.style.display=pending.length?'inline':'none';}
 
   if(!pending.length&&!delivered.length){
-    container.innerHTML=`<div class="msg-empty"><div class="msg-empty-icon">🛵</div><div style="font-weight:800;font-size:1rem;color:#374151;margin-bottom:4px;">Sin entregas pendientes</div><div style="font-size:.85rem;">Las órdenes en ruta aparecerán aquí.</div></div>`+buildViajesMensajeroHtml();
+    container.innerHTML=`<div class="msg-empty"><div class="msg-empty-icon">🛵</div><div style="font-weight:800;font-size:1rem;color:#374151;margin-bottom:4px;">Sin entregas pendientes</div><div style="font-size:.85rem;">Las órdenes en ruta aparecerán aquí.</div></div>`+buildViajesMensajeroHtml()+buildDeliveryHistoryHtml();
     return;
   }
 
@@ -2821,6 +2821,7 @@ function renderMensajeroView(){
     html+=delivered.map(o=>makeCard(o,true)).join('');
   }
   html+=buildViajesMensajeroHtml();
+  html+=buildDeliveryHistoryHtml();
   container.innerHTML=html;
 }
 
@@ -3201,6 +3202,68 @@ function buildViajesMensajeroHtml(){
       <button onclick="openViajeModal()" style="width:100%;padding:12px;background:#0e7490;color:#fff;border:none;border-radius:8px;font-weight:800;font-size:.9rem;cursor:pointer;margin-bottom:12px;">+ Registrar Viaje ($250)</button>
       ${viajeCards||`<div style="text-align:center;color:#9ca3af;font-size:.85rem;padding:12px 0;">Sin viajes registrados</div>`}
     </div>
+  </div>`;
+}
+
+/* ─── MENSAJERO DELIVERY HISTORY ─── */
+function buildDeliveryHistoryHtml(){
+  if(!currentUser)return'';
+  // All past deliveries by this mensajero (excluding today — already shown above)
+  const today=todayStr();
+  const allDelivered=orders.filter(o=>
+    o.prodStatus==='entregada'&&
+    o.deliveredBy===currentUser.name&&
+    localDateStr(o.id)!==today
+  ).sort((a,b)=>(b.deliveredAt||b.id)-(a.deliveredAt||a.id));
+
+  if(!allDelivered.length){
+    return`<div style="padding:16px 16px 0;">
+      <div class="msg-section-title" style="padding:0 0 8px;">Historial de entregas 📋</div>
+      <div style="text-align:center;color:#9ca3af;font-size:.84rem;padding:12px 0;border:1.5px solid #e5e7eb;border-radius:8px;">Sin entregas anteriores registradas</div>
+    </div>`;
+  }
+
+  // Group by date
+  const byDate={};
+  allDelivered.forEach(o=>{
+    const d=localDateStr(o.id);
+    if(!byDate[d])byDate[d]=[];
+    byDate[d].push(o);
+  });
+
+  const dateLabel=d=>{
+    const [y,m,day]=d.split('-').map(Number);
+    const dt=new Date(y,m-1,day);
+    return dt.toLocaleDateString('es',{weekday:'short',day:'numeric',month:'short'});
+  };
+
+  const rows=Object.keys(byDate).sort((a,b)=>b.localeCompare(a)).map(date=>{
+    const dayOrders=byDate[date];
+    const cards=dayOrders.map(o=>{
+      const t=o.deliveredAt?new Date(o.deliveredAt).toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'}):'';
+      const itemSum=o.items.map(i=>`${i.qty}× ${i.name||i.sku}${i.model?' · '+i.model:''}`).join(', ');
+      const photo=o.deliveryPhoto?`<img src="${o.deliveryPhoto}" onclick="showPhotoOverlay(this.src)" style="height:34px;width:34px;object-fit:cover;border-radius:4px;border:1px solid #e5e7eb;cursor:pointer;margin-left:6px;" onerror="this.style.display='none'">`:'';
+      return`<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #f3f4f6;">
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:.84rem;font-weight:700;color:#111;">${o.name||'Sin nombre'}</div>
+          <div style="font-size:.74rem;color:#6b7280;margin-top:1px;">${itemSum}</div>
+          ${o.address?`<div style="font-size:.72rem;color:#9ca3af;">📍 ${o.address}</div>`:''}
+        </div>
+        <div style="display:flex;align-items:center;flex-shrink:0;">
+          ${t?`<span style="font-size:.72rem;color:#166534;font-weight:700;">${t}</span>`:''}
+          ${photo}
+        </div>
+      </div>`;
+    }).join('');
+    return`<div style="margin-bottom:14px;">
+      <div style="font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:#374151;margin-bottom:4px;">${dateLabel(date)} — ${dayOrders.length} entrega(s)</div>
+      <div style="border:1.5px solid #e5e7eb;border-radius:8px;padding:0 12px;">${cards}</div>
+    </div>`;
+  }).join('');
+
+  return`<div style="padding:16px 16px 0;">
+    <div class="msg-section-title" style="padding:0 0 10px;">Historial de entregas 📋</div>
+    ${rows}
   </div>`;
 }
 
@@ -5381,11 +5444,11 @@ function confirmDelivery(){
   _confirmRestockItems.forEach(item=>{
     if(item.qty<=0)return;
     const s=getStock(item.sku);
-    saveInvRec(item.sku,{...s,agora:s.agora+item.qty});
+    saveInvRec(item.sku,{...s,agora:s.agora+item.qty,almacen:Math.max(0,(s.almacen||0)-item.qty)});
     added+=item.qty;
   });
   db.ref(`restocks/${_confirmRestockId}`).update({
-    status:'confirmed',confirmedAt:Date.now(),confirmedBy:currentUser?currentUser.name:'Admin'
+    status:'confirmed',confirmedAt:Date.now(),confirmedBy:currentUser?currentUser.name:'Admin',almacenDeducted:true
   });
 
   // Build map of sku → new agora after this restock
@@ -5411,6 +5474,28 @@ function confirmDelivery(){
   closeMod('confirm-delivery-modal');
   _deliveryHasProblem=false;
   toast(`✓ ${added} unidades agregadas a Agora${advanced?` · ${advanced} orden(es) liberadas a Producción`:''}`);
+  setTimeout(renderInventario,800);
+}
+
+// ── Repair almacén from confirmed restocks that never decremented it ──
+function repairAlmacenFromRestocks(){
+  if(!adminMode)return;
+  const unrepaired=Object.entries(restocksData).filter(([,v])=>v.status==='confirmed'&&!v.almacenDeducted);
+  if(!unrepaired.length){toast('✓ No hay restocks pendientes de reparar');return;}
+  if(!confirm(`Reparar almacén: se restarán las cantidades de ${unrepaired.length} restock(s) confirmado(s) que nunca descontaron almacén. ¿Continuar?`))return;
+  let fixed=0;
+  unrepaired.forEach(([key,rec])=>{
+    const items=rec.items||[];
+    items.forEach(item=>{
+      if(!item.sku||!(item.qty>0))return;
+      const s=getStock(item.sku);
+      const newAlmacen=Math.max(0,(s.almacen||0)-item.qty);
+      saveInvRec(item.sku,{...s,almacen:newAlmacen});
+    });
+    db.ref(`restocks/${key}/almacenDeducted`).set(true);
+    fixed++;
+  });
+  toast(`✓ ${fixed} restock(s) reparados — almacén actualizado`);
   setTimeout(renderInventario,800);
 }
 
@@ -5445,11 +5530,13 @@ function renderInventario(){
     const repLink=adminMode
       ?`<button onclick="showTab(6);setRepRange('month');" style="margin-left:auto;padding:7px 13px;border:1.5px solid var(--g300);border-radius:6px;font-size:.75rem;font-weight:700;cursor:pointer;background:var(--white);white-space:nowrap;">📊 Ver reporte →</button>`
       :'';
+    const unrepaired=adminMode?Object.values(restocksData||{}).filter(v=>v.status==='confirmed'&&!v.almacenDeducted):[];
+    const repairBtn=unrepaired.length?`<button onclick="repairAlmacenFromRestocks()" style="padding:7px 13px;border:1.5px solid #f97316;border-radius:6px;font-size:.75rem;font-weight:700;cursor:pointer;background:#fff7ed;color:#9a3412;white-space:nowrap;">🔧 Reparar almacén (${unrepaired.length})</button>`:'';
     totBar.innerHTML=`<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;width:100%;">
       ${chip('🏪','Agora',totalAgora,'#f0fdf4','#15803d')}
       ${chip('🏭','Almacén',totalAlmacen,'#eff6ff','#1d4ed8')}
       ${chip('📦','Total',totalAgora+totalAlmacen,'var(--g100)','var(--g700)')}
-      ${repLink}
+      ${repairBtn}${repLink}
     </div>`;
   }
 
