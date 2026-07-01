@@ -973,7 +973,28 @@ input.err{border-color:#c00!important;}
       </div></div>
 
       <div id="p-error" style="display:none;"><div class="pay-panel">
-        <div class="zero-notice">⚠ Esta orden se registrará en $0. Los artículos se contarán como reposición.</div>
+        <div class="zero-notice" style="margin-bottom:12px;">⚠ Esta orden se registrará en $0. Los artículos se contarán como reposición.</div>
+        <div class="field">
+          <label class="lbl">Motivo del error <span style="color:#dc2626;">*</span></label>
+          <select id="error-reason">
+            <option value="">— Seleccionar motivo —</option>
+            <option value="Estampado Doblado">Estampado Doblado</option>
+            <option value="Inicial Incorrecta">Inicial Incorrecta</option>
+            <option value="Emoji Incorrecto">Emoji Incorrecto</option>
+            <option value="Color Incorrecto">Color Incorrecto</option>
+            <option value="Tamaño Incorrecto">Tamaño Incorrecto</option>
+            <option value="Defecto de Fábrica">Defecto de Fábrica</option>
+          </select>
+        </div>
+        <div class="field" style="margin-top:10px;">
+          <label class="lbl">📷 Foto del error <span style="color:#dc2626;">*</span></label>
+          <button onclick="document.getElementById('error-file').click()" style="width:100%;padding:10px;border:1.5px dashed #fca5a5;border-radius:8px;background:#fff1f2;color:#9f1239;cursor:pointer;font-size:.85rem;font-weight:700;">📷 Tomar o subir foto</button>
+          <input type="file" id="error-file" accept="image/*" capture="environment" style="display:none;" onchange="handlePhoto('error-file','error-prev')"/>
+          <div id="error-prev" style="margin-top:8px;display:none;">
+            <img style="width:100%;max-height:160px;object-fit:contain;border-radius:8px;border:1px solid #fecaca;">
+            <button onclick="clearPhoto('error-file','error-prev')" style="margin-top:4px;font-size:.72rem;color:#dc2626;background:none;border:none;cursor:pointer;font-weight:700;">✕ Quitar foto</button>
+          </div>
+        </div>
       </div></div>
 
       <div id="p-warranty" style="display:none;"><div class="pay-panel">
@@ -1799,6 +1820,8 @@ let _breakTimer = null;
 let workerUrl   = '';
 let rncDB       = null; // Map loaded from rnc.txt
 let rncDBLoading= false;
+let _rncFrom    = null; // independent date filter for comprobantes section
+let _rncTo      = null;
 
 /* ═══════════════════════════════════════
    LOGIN
@@ -4136,7 +4159,10 @@ function submitOrder(){
     if(!auth)return toast('Selecciona quién autorizó la cortesía');
     pay={type:'Cortesia',authorizedBy:auth};
   } else if(pMode==='Error'){
-    pay={type:'Error'};
+    const errReason=document.getElementById('error-reason').value;
+    if(!errReason)return toast('Selecciona el motivo del error');
+    if(!photoStore['error-file'])return toast('Adjunta una foto del error');
+    pay={type:'Error',reason:errReason,photo:photoStore['error-file']};
   } else if(pMode==='Garantia'){
     const reason=document.getElementById('warranty-reason').value.trim();
     if(!reason)return toast('Especifica la razón de la garantía');
@@ -4596,7 +4622,7 @@ function openConfigModal(){
 }
 
 function resetForm(){
-  ['fn','fp','card-ref','txfr-ref','rcv','warranty-reason','f-rnc','f-contrib-nombre','f-contrib-email'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['fn','fp','card-ref','txfr-ref','rcv','warranty-reason','error-reason','f-rnc','f-contrib-nombre','f-contrib-email'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   const needsComp=document.getElementById('needs-comprobante');if(needsComp)needsComp.checked=false;
   const compSec=document.getElementById('comprobante-section');if(compSec)compSec.style.display='none';
   const rncStatus=document.getElementById('rnc-status');if(rncStatus){rncStatus.textContent='';rncStatus.style.color='';}
@@ -4605,6 +4631,8 @@ function resetForm(){
   document.getElementById('txfr-file').value='';
   document.getElementById('txfr-prev').style.display='none';
   document.getElementById('txfr-prev').querySelector('img').src='';
+  const _errFile=document.getElementById('error-file');if(_errFile)_errFile.value='';
+  const _errPrev=document.getElementById('error-prev');if(_errPrev){_errPrev.style.display='none';const _ei=_errPrev.querySelector('img');if(_ei)_ei.src='';}
   document.getElementById('chv').textContent='$0.00';
   document.getElementById('disc-on').checked=false;
   document.getElementById('disc-fields').style.display='none';
@@ -6131,7 +6159,11 @@ function renderReportes(){
     <tr><td colspan="7" style="padding:0 8px 6px;"><div id="${detailId}" style="display:none;background:var(--g50);border-radius:6px;padding:8px 12px;">${detailHtml}</div></td></tr>`;
   }).join('');
 
-  // ── 7. TABLA DE TRANSACCIONES ──────────────────────────
+  // ── 7. COMPROBANTES FISCALES / RNC ─ (rendered independently below) ──
+  // Seed RNC date filter with current report range on first render
+  if(!_rncFrom||!_rncTo){_rncFrom=fromStr;_rncTo=toStr;}
+
+  // ── 8. TABLA DE TRANSACCIONES ──────────────────────────
   const txnRows=saleOrd.slice().reverse().map(o=>{
     const dt=new Date(o.id);
     const dateStr=`${dt.getDate()}/${dt.getMonth()+1} ${String(dt.getHours()).padStart(2,'0')}:${String(dt.getMinutes()).padStart(2,'0')}`;
@@ -6290,6 +6322,9 @@ function renderReportes(){
       </table></div>`:'<div style="color:var(--g500);font-size:.8rem;">Sin restocks en este período</div>'}
     </div>
 
+    <!-- Comprobantes Fiscales — rendered by renderRncSection() -->
+    <div id="rnc-section-wrap"></div>
+
     <!-- Tabla de Transacciones -->
     <div class="rep-section">
       <div class="rep-title">📋 Tabla de Transacciones (${saleOrd.length})</div>
@@ -6303,6 +6338,93 @@ function renderReportes(){
       </table></div>`:'<div style="color:var(--g500);font-size:.8rem;">Sin transacciones en este período</div>'}
     </div>
   `;
+  renderRncSection();
+}
+
+function setRncRange(range){
+  const today=new Date();
+  const pad=n=>String(n).padStart(2,'0');
+  const fmt=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+  if(range==='today'){_rncFrom=_rncTo=fmt(today);}
+  else if(range==='week'){const m=new Date(today);m.setDate(today.getDate()-today.getDay()+1);_rncFrom=fmt(m);_rncTo=fmt(today);}
+  else if(range==='month'){_rncFrom=fmt(new Date(today.getFullYear(),today.getMonth(),1));_rncTo=fmt(today);}
+  else if(range==='lastmonth'){_rncFrom=fmt(new Date(today.getFullYear(),today.getMonth()-1,1));_rncTo=fmt(new Date(today.getFullYear(),today.getMonth(),0));}
+  else if(range==='all'){_rncFrom=null;_rncTo=null;}
+  const fi=document.getElementById('rnc-from');const ti=document.getElementById('rnc-to');
+  if(fi)fi.value=_rncFrom||'';if(ti)ti.value=_rncTo||'';
+  renderRncSection();
+}
+
+function renderRncSection(){
+  const wrap=document.getElementById('rnc-section-wrap');
+  if(!wrap)return;
+  const fromMs=_rncFrom?new Date(_rncFrom+'T00:00:00').getTime():0;
+  const toMs=_rncTo?new Date(_rncTo+'T23:59:59').getTime():Infinity;
+  const rncOrds=orders.filter(o=>o.comprobante&&o.comprobante.rnc&&o.id>=fromMs&&o.id<=toMs).slice().reverse();
+  const rncTotal=rncOrds.reduce((a,o)=>a+(o.total||0),0);
+  const rncRows=rncOrds.map(o=>{
+    const dt=new Date(o.id);
+    const dateStr=`${dt.getDate()}/${dt.getMonth()+1} ${String(dt.getHours()).padStart(2,'0')}:${String(dt.getMinutes()).padStart(2,'0')}`;
+    const c=o.comprobante;
+    const items=(o.items||[]).map(i=>`${i.name}${i.model?' '+i.model:''} ×${i.qty}`).join(', ');
+    const tipoBadge=c.tipo==='B01'
+      ?`<span style="font-size:.7rem;background:#dbeafe;color:#1e40af;padding:1px 6px;border-radius:4px;font-weight:700;">B01 Crédito Fiscal</span>`
+      :`<span style="font-size:.7rem;background:#f0fdf4;color:#166534;padding:1px 6px;border-radius:4px;font-weight:700;">${c.tipo||'—'} Consumidor</span>`;
+    return `<tr>
+      <td style="white-space:nowrap;font-size:.78rem;">${dateStr}</td>
+      <td style="font-weight:700;">${c.rnc||'—'}</td>
+      <td style="max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c.nombre||'—'}</td>
+      <td>${tipoBadge}</td>
+      <td style="font-size:.74rem;color:var(--g500);">${c.email||'—'}</td>
+      <td style="font-size:.74rem;white-space:nowrap;">${o.phone||'—'}</td>
+      <td style="max-width:160px;font-size:.74rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${items}</td>
+      <td class="num">$${(o.total||0).toLocaleString()}</td>
+    </tr>`;
+  }).join('');
+
+  const activeStyle='background:#111;color:#fff;border-color:#111;';
+  const btnStyle='padding:5px 10px;border:1.5px solid var(--g300);border-radius:6px;font-size:.74rem;font-weight:700;cursor:pointer;background:var(--white);';
+  const isActive=(r)=>{
+    const today=new Date();const pad=n=>String(n).padStart(2,'0');const fmt=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+    if(r==='all')return!_rncFrom&&!_rncTo;
+    if(r==='today')return _rncFrom===fmt(today)&&_rncTo===fmt(today);
+    if(r==='month'){const f=fmt(new Date(today.getFullYear(),today.getMonth(),1));return _rncFrom===f&&_rncTo===fmt(today);}
+    if(r==='lastmonth'){const f=fmt(new Date(today.getFullYear(),today.getMonth()-1,1));const t=fmt(new Date(today.getFullYear(),today.getMonth(),0));return _rncFrom===f&&_rncTo===t;}
+    return false;
+  };
+  const qbtn=(r,label)=>`<button style="${btnStyle}${isActive(r)?activeStyle:''}" onclick="setRncRange('${r}')">${label}</button>`;
+
+  wrap.innerHTML=`<div class="rep-section">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:12px;">
+      <div class="rep-title" style="margin:0;">📄 Comprobantes Fiscales / RNC (${rncOrds.length})</div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center;">
+        ${qbtn('today','Hoy')}
+        ${qbtn('month','Este Mes')}
+        ${qbtn('lastmonth','Mes Anterior')}
+        ${qbtn('all','Todos')}
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap;">
+      <span style="font-size:.72rem;font-weight:700;color:var(--g500);">RANGO:</span>
+      <input type="date" id="rnc-from" value="${_rncFrom||''}" onchange="_rncFrom=this.value;renderRncSection();" style="font-size:.82rem;width:auto;"/>
+      <span style="color:var(--g500);">→</span>
+      <input type="date" id="rnc-to" value="${_rncTo||''}" onchange="_rncTo=this.value;renderRncSection();" style="font-size:.82rem;width:auto;"/>
+    </div>
+    ${rncOrds.length?`
+    <div style="display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap;">
+      <div class="rep-kpi accent"><div class="rv">$${rncTotal.toLocaleString()}</div><div class="rl">Total con comprobante</div></div>
+      <div class="rep-kpi"><div class="rv">${rncOrds.length}</div><div class="rl">Órdenes</div></div>
+      <div class="rep-kpi blue"><div class="rv">${rncOrds.filter(o=>o.comprobante.tipo==='B01').length}</div><div class="rl">B01 Crédito Fiscal</div></div>
+    </div>
+    <div style="overflow-x:auto;"><table class="rep-tbl">
+      <thead><tr><th>Fecha/Hora</th><th>RNC / Cédula</th><th>Nombre</th><th>Tipo NCF</th><th>Email</th><th>Teléfono</th><th>Productos</th><th style="text-align:right;">Total</th></tr></thead>
+      <tbody>${rncRows}</tbody>
+      <tfoot><tr style="background:var(--g50);">
+        <td colspan="7" style="font-weight:800;font-size:.78rem;">TOTAL</td>
+        <td class="num" style="font-weight:900;">$${rncTotal.toLocaleString()}</td>
+      </tr></tfoot>
+    </table></div>`:'<div style="color:var(--g500);font-size:.8rem;">Sin órdenes con comprobante fiscal en este período</div>'}
+  </div>`;
 }
 
 
