@@ -6457,14 +6457,14 @@ function renderProd(){
   const wrap=document.getElementById('prod-content');
   if(!wrap)return;
 
-  const ACTIVE_STATUSES=['pendiente_restock','pendiente','en_proceso','listo','ruta_mensajero'];
-  const ROLLOVER_FROM='2026-07-01'; // rollover applies only to orders from this date onward
+  const ROLLOVER_STATUSES=['pendiente_restock','pendiente','en_proceso','ruta_mensajero'];
+  const ROLLOVER_FROM='2026-07-01';
   let dayOrders=orders.filter(o=>{
     if(o.needsApproval)return false;
     const oDate=localDateStr(o.id);
-    // Rollover: active orders on/after ROLLOVER_FROM persist until marked complete
-    if(ACTIVE_STATUSES.includes(o.prodStatus||'pendiente')&&oDate>=ROLLOVER_FROM)return true;
-    // Everything else only shows on its own date
+    // Rollover: only orders still in progress (not listo) persist across days
+    if(ROLLOVER_STATUSES.includes(o.prodStatus||'pendiente')&&oDate>=ROLLOVER_FROM)return true;
+    // Everything else (listo, entregada, or pre-rollover) only shows on its own date
     return oDate===dateVal;
   });
   if(srcFilter)dayOrders=dayOrders.filter(o=>(o.source||'tienda')===srcFilter);
