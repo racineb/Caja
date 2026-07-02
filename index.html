@@ -2715,14 +2715,14 @@ function confirmCierre(){
     saveShiftRec(rec);
     // Calcular stats del día completo
     const todayOrd=orders.filter(o=>localDateStr(o.id)===todayStr()&&o.pay);
-    const artVendidos=todayOrd.filter(o=>!SPECIAL_TYPES.includes(o.pay.type)).reduce((s,o)=>s+(o.items||[]).reduce((si,i)=>si+(i.qty||1),0),0);
+    const artVendidos=todayOrd.filter(o=>!SPECIAL_TYPES.includes(o.pay.type)).reduce((s,o)=>s+(o.items||[]).filter(i=>i.pid!=='custom').reduce((si,i)=>si+(i.qty||1),0),0);
     const cantErrores=todayOrd.filter(o=>o.pay.type==='Error').length;
     const cantCortesias=todayOrd.filter(o=>o.pay.type==='Cortesia').length;
     const cantWebWA=todayOrd.filter(o=>o.source==='web'||o.source==='whatsapp').length;
     const estMap={};
     todayOrd.filter(o=>!SPECIAL_TYPES.includes(o.pay.type)&&o.registeredBy).forEach(o=>{
       const emp=o.registeredBy;
-      estMap[emp]=(estMap[emp]||0)+(o.items||[]).reduce((si,i)=>si+(i.qty||1),0);
+      estMap[emp]=(estMap[emp]||0)+(o.items||[]).filter(i=>i.pid!=='custom').reduce((si,i)=>si+(i.qty||1),0);
     });
     const estList=Object.entries(estMap).map(([n,c])=>`${n}: ${c} artículos`);
     const dayCalc=calcCashForDay(todayStr());
@@ -4657,11 +4657,10 @@ function renderCart(){
       body=`<div class="field"><label class="lbl">Color</label>
         <select onchange="chF(${i.uid},'color',this.value)">${selOpts(COLORS,i.color)}</select></div>`;
     }
-    const isOnlineCanal=currentCanal==='web'||currentCanal==='whatsapp';
-    const notesBlock=isOnlineCanal?`<div class="field" style="margin-top:10px;">
-      <label class="lbl">📝 Nota para producción</label>
+    const notesBlock=`<div class="field" style="margin-top:10px;">
+      <label class="lbl">📝 Notas de producción <span style="font-size:.7rem;color:var(--g400);">(opcional)</span></label>
       <textarea rows="2" placeholder="Ej: grabado especial, empaque regalo, instrucción adicional…" style="width:100%;resize:vertical;font-size:.85rem;padding:8px 10px;border:1.5px solid var(--g200);border-radius:6px;font-family:inherit;" oninput="chF(${i.uid},'notes',this.value)">${i.notes||''}</textarea>
-    </div>`:'';
+    </div>`;
     return `<div class="ci" data-uid="${i.uid}">
       <div class="ci-head">
         <span class="ci-name">${i.name}</span>
