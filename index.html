@@ -788,6 +788,7 @@ input.err{border-color:#c00!important;}
     <button class="ss-action" id="ss-corte-btn" onclick="openCorte()" style="display:none;">⏹ Hacer Corte</button>
     <button class="ss-action" id="ss-ponchar-btn" onclick="openPoncharEntrada()" style="display:none;background:#f0fdf4;color:#16a34a;border-color:#bbf7d0;">▶ Ponchar Entrada</button>
     <button class="ss-action" id="ss-break-btn" onclick="startBreak()" style="display:none;">☕ Break</button>
+    <button class="ss-action" id="ss-del-turno-btn" onclick="adminDeleteTodayShift()" style="display:none;background:#fff0f0;color:#c00;border-color:#fca5a5;" title="Eliminar turno de hoy">🗑 Eliminar turno</button>
     <button class="ss-action primary" id="ss-btn" onclick="ssAction()">—</button>
   </div>
 
@@ -1311,25 +1312,75 @@ input.err{border-color:#c00!important;}
 
 <!-- ── VERIFICACIÓN DE ENTRADA MODAL ── -->
 <div class="moverlay" id="verif-entrada-modal" style="z-index:199;">
-  <div class="modal">
-    <div style="font-size:1.8rem;margin-bottom:8px;">✅</div>
+  <div class="modal wide" style="max-height:92vh;overflow-y:auto;">
+    <div style="font-size:1.8rem;margin-bottom:4px;">✅</div>
     <div class="mtitle" id="ve-title">Verificación de entrada</div>
     <div class="msub" id="ve-sub"></div>
-    <div style="margin:14px 0 6px;font-size:.82rem;color:var(--g600);">
-      Cuenta el efectivo que hay en caja ahora y confirma el monto antes de comenzar.
-    </div>
-    <div class="field" style="margin-bottom:10px;">
+
+    <!-- CONTEO DE CAJA -->
+    <div style="font-size:.65rem;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:#166534;margin:14px 0 6px;">💰 Conteo de Caja</div>
+    <div class="field" style="margin-bottom:6px;">
       <label class="lbl">Efectivo contado en caja ($)</label>
       <input type="number" id="ve-cash" min="0" step="1" placeholder="0"
         style="font-size:1.05rem;" onkeydown="if(event.key==='Enter')confirmEntrada()"/>
     </div>
     <div id="ve-diff" style="font-size:.82rem;padding:8px 10px;border-radius:6px;background:var(--g100);display:none;margin-bottom:10px;"></div>
-    <div class="field">
-      <label class="lbl">Notas (opcional)</label>
-      <textarea id="ve-notes" placeholder="Observaciones…" style="height:60px;"></textarea>
+
+    <!-- HORA DE LLEGADA -->
+    <div style="font-size:.65rem;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:#166534;margin-bottom:6px;">🕐 Llegada</div>
+    <div class="field" style="margin-bottom:14px;">
+      <label class="lbl">Hora de llegada</label>
+      <input type="time" id="ve-arrival" style="font-size:1rem;"/>
     </div>
+
+    <!-- REGISTROS DE ENTRADA -->
+    <div style="font-size:.65rem;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:#166534;margin-bottom:8px;">☑ Registros de Entrada</div>
+    <div style="background:#f0fdf4;border:1.5px solid #bbf7d0;border-radius:8px;padding:12px 14px;margin-bottom:14px;display:flex;flex-direction:column;gap:10px;">
+      <label style="display:flex;align-items:center;gap:10px;font-size:.88rem;font-weight:600;cursor:pointer;">
+        <input type="checkbox" id="ve-huella" style="width:18px;height:18px;accent-color:#16a34a;"/>
+        Sistema de huella — Completado
+      </label>
+      <label style="display:flex;align-items:center;gap:10px;font-size:.88rem;font-weight:600;cursor:pointer;">
+        <input type="checkbox" id="ve-web" style="width:18px;height:18px;accent-color:#16a34a;"/>
+        singularagora.com — Apertura de caja: Completado
+      </label>
+    </div>
+
+    <!-- ESTADO -->
+    <div style="font-size:.65rem;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:#166534;margin-bottom:8px;">◇ Estado</div>
+    <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:14px;">
+      <div>
+        <label class="lbl">Display</label>
+        <select id="ve-display" onchange="document.getElementById('ve-display-note').style.display=this.value==='Novedad'?'block':'none'" style="width:100%;">
+          <option value="En orden">En orden</option>
+          <option value="Novedad">Novedad</option>
+        </select>
+        <input type="text" id="ve-display-note" placeholder="Describe la novedad…" style="display:none;margin-top:6px;"/>
+      </div>
+      <div>
+        <label class="lbl">Equipos</label>
+        <select id="ve-equipos" onchange="document.getElementById('ve-equipos-note').style.display=this.value==='Novedad'?'block':'none'" style="width:100%;">
+          <option value="Operativos">Operativos</option>
+          <option value="Novedad">Novedad</option>
+        </select>
+        <input type="text" id="ve-equipos-note" placeholder="Describe la novedad…" style="display:none;margin-top:6px;"/>
+      </div>
+      <div>
+        <label class="lbl">Verifone</label>
+        <select id="ve-verifone" onchange="document.getElementById('ve-verifone-note').style.display=this.value==='Novedad'?'block':'none'" style="width:100%;">
+          <option value="Operativo">Operativo</option>
+          <option value="Novedad">Novedad</option>
+        </select>
+        <input type="text" id="ve-verifone-note" placeholder="Describe la novedad…" style="display:none;margin-top:6px;"/>
+      </div>
+      <div>
+        <label class="lbl">Observaciones</label>
+        <input type="text" id="ve-obs" placeholder="Todo en orden / detallar…"/>
+      </div>
+    </div>
+
     <div class="mfooter" style="flex-direction:column;gap:8px;">
-      <button class="submit" style="width:100%;margin:0;" onclick="confirmEntrada()">Confirmar y continuar</button>
+      <button class="submit" style="width:100%;margin:0;" onclick="confirmEntrada()">Confirmar y Generar Reporte</button>
       <button class="obtn" style="width:100%;text-align:center;font-size:.82rem;" onclick="soloVer()">Solo ver — no registrar turno activo</button>
     </div>
   </div>
@@ -1366,22 +1417,80 @@ input.err{border-color:#c00!important;}
 
 <!-- ── APERTURA MODAL ── -->
 <div class="moverlay" id="apertura-modal">
-  <div class="modal">
-    <div style="font-size:1.8rem;margin-bottom:8px;">🏦</div>
-    <h3>Apertura de Turno</h3>
+  <div class="modal wide" style="max-height:92vh;overflow-y:auto;">
+    <div style="font-size:1.8rem;margin-bottom:4px;">🏦</div>
+    <h3 style="margin-bottom:2px;">Apertura de Turno</h3>
     <p class="msub" id="ap-sub">Ingresa el efectivo en caja al inicio del turno.</p>
     <div id="ap-prev-close" style="display:none;background:#f0fdf4;border:1.5px solid #86efac;border-radius:6px;padding:10px 12px;margin-bottom:12px;font-size:.82rem;"></div>
     <div id="ap-match" style="display:none;padding:7px 10px;border-radius:6px;font-size:.82rem;font-weight:700;margin-bottom:10px;"></div>
+
+    <!-- CONTEO DE CAJA -->
+    <div style="font-size:.65rem;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:#166534;margin-bottom:6px;">💰 Conteo de Caja</div>
     <div class="field" style="margin-bottom:14px;">
-      <label class="lbl">Monto en efectivo en caja ($)</label>
+      <label class="lbl">Efectivo en caja (RD$)</label>
       <input type="number" id="ap-cash" min="0" step="0.01" placeholder="0.00"
-        onkeydown="if(event.key==='Enter')confirmApertura()"
         oninput="updAperturaMatch()" style="font-size:1.1rem;"/>
     </div>
-    <div id="ap-err" style="color:#c00;font-size:.78rem;margin-top:-8px;margin-bottom:8px;display:none;"></div>
+
+    <!-- HORA DE LLEGADA -->
+    <div style="font-size:.65rem;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:#166534;margin-bottom:6px;">🕐 Llegada</div>
+    <div class="field" style="margin-bottom:14px;">
+      <label class="lbl">Hora de llegada</label>
+      <input type="time" id="ap-arrival" style="font-size:1rem;"/>
+    </div>
+
+    <!-- REGISTROS DE ENTRADA -->
+    <div style="font-size:.65rem;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:#166534;margin-bottom:8px;">☑ Registros de Entrada</div>
+    <div style="background:#f0fdf4;border:1.5px solid #bbf7d0;border-radius:8px;padding:12px 14px;margin-bottom:14px;display:flex;flex-direction:column;gap:10px;">
+      <label style="display:flex;align-items:center;gap:10px;font-size:.88rem;font-weight:600;cursor:pointer;">
+        <input type="checkbox" id="ap-huella" style="width:18px;height:18px;accent-color:#16a34a;"/>
+        Sistema de huella — Completado
+      </label>
+      <label style="display:flex;align-items:center;gap:10px;font-size:.88rem;font-weight:600;cursor:pointer;">
+        <input type="checkbox" id="ap-web" style="width:18px;height:18px;accent-color:#16a34a;"/>
+        singularagora.com — Apertura de caja: Completado
+      </label>
+    </div>
+
+    <!-- ESTADO -->
+    <div style="font-size:.65rem;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:#166534;margin-bottom:8px;">◇ Estado</div>
+    <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:14px;">
+      <div>
+        <label class="lbl">Display</label>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <select id="ap-display" onchange="document.getElementById('ap-display-note').style.display=this.value==='Novedad'?'block':'none'" style="flex:1;">
+            <option value="En orden">En orden</option>
+            <option value="Novedad">Novedad</option>
+          </select>
+        </div>
+        <input type="text" id="ap-display-note" placeholder="Describe la novedad…" style="display:none;margin-top:6px;"/>
+      </div>
+      <div>
+        <label class="lbl">Equipos</label>
+        <select id="ap-equipos" onchange="document.getElementById('ap-equipos-note').style.display=this.value==='Novedad'?'block':'none'" style="width:100%;">
+          <option value="Operativos">Operativos</option>
+          <option value="Novedad">Novedad</option>
+        </select>
+        <input type="text" id="ap-equipos-note" placeholder="Describe la novedad…" style="display:none;margin-top:6px;"/>
+      </div>
+      <div>
+        <label class="lbl">Verifone</label>
+        <select id="ap-verifone" onchange="document.getElementById('ap-verifone-note').style.display=this.value==='Novedad'?'block':'none'" style="width:100%;">
+          <option value="Operativo">Operativo</option>
+          <option value="Novedad">Novedad</option>
+        </select>
+        <input type="text" id="ap-verifone-note" placeholder="Describe la novedad…" style="display:none;margin-top:6px;"/>
+      </div>
+      <div>
+        <label class="lbl">Observaciones</label>
+        <input type="text" id="ap-obs" placeholder="Todo en orden / detallar…"/>
+      </div>
+    </div>
+
+    <div id="ap-err" style="color:#c00;font-size:.78rem;margin-bottom:8px;display:none;"></div>
     <div class="mfooter">
       <button class="obtn" style="flex:1;" onclick="closeMod('apertura-modal')">Cancelar</button>
-      <button class="submit" style="flex:1;margin:0;" onclick="confirmApertura()">Confirmar Apertura</button>
+      <button class="submit" style="flex:1;margin:0;" onclick="confirmApertura()">Confirmar y Generar Reporte</button>
     </div>
   </div>
 </div>
@@ -2007,6 +2116,15 @@ function deleteShift(id){
   delDayRecords(rec.date);
   toast('Registros del día eliminados');
 }
+function adminDeleteTodayShift(){
+  if(!adminMode)return;
+  const rec=getDayRec();
+  if(!rec){toast('No hay turno de hoy para eliminar');return;}
+  if(!confirm('¿Eliminar el turno de HOY completo (apertura + cortes)?\nEsto permitirá hacer una nueva apertura desde cero.'))return;
+  delDayRecords(todayStr());
+  toast('✓ Turno eliminado — ahora puedes hacer una nueva apertura');
+  setTimeout(openApertura,400);
+}
 
 function updateShiftStatus(){
   const bar=document.getElementById('shift-status-bar');
@@ -2017,6 +2135,7 @@ function updateShiftStatus(){
   const rec=getDayRec(); // shared day-level caja
 
   const breakBtn=document.getElementById('ss-break-btn');
+  const delBtn=document.getElementById('ss-del-turno-btn');
   if(!rec){
     bar.className='shift-status sin';
     text.textContent='Caja sin apertura hoy — registra el monto inicial para comenzar';
@@ -2025,6 +2144,7 @@ function updateShiftStatus(){
     corteBtn.style.display='none';
     breakBtn.style.display='none';
     document.getElementById('ss-ponchar-btn').style.display='none';
+    if(delBtn)delBtn.style.display='none';
   } else if(!rec.closedAt){
     const t=new Date(rec.openedAt).toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'});
     const owner=getCurrentCajaOwner();
@@ -2046,6 +2166,8 @@ function updateShiftStatus(){
     } else {
       poncharBtn.style.display='none';
     }
+    // Admin delete-turno button
+    if(delBtn)delBtn.style.display=adminMode?'inline-flex':'none';
     // Break button — para todos los usuarios cuando la caja está abierta
     if(currentUser){
       const activeBreak=getCurrentUserBreak();
@@ -2072,6 +2194,7 @@ function updateShiftStatus(){
     corteBtn.style.display='none';
     breakBtn.style.display='none';
     document.getElementById('ss-ponchar-btn').style.display='none';
+    if(delBtn)delBtn.style.display=adminMode?'inline-flex':'none';
   }
 }
 
@@ -2117,6 +2240,15 @@ function openApertura(){
       prevEl.innerHTML=`💰 Cierre del ${new Date(prevDate+'T12:00:00').toLocaleDateString('es',{weekday:'long',day:'numeric',month:'long'})}: <strong>$${prevRec.closeCash.toLocaleString()}</strong> — ¿está tal cual en caja?`;
     } else { prevEl.style.display='none'; }
   } else { prevEl.style.display='none'; }
+  // Pre-fill arrival time with current time
+  const now2=new Date();
+  const pad=n=>String(n).padStart(2,'0');
+  document.getElementById('ap-arrival').value=`${pad(now2.getHours())}:${pad(now2.getMinutes())}`;
+  // Reset new fields
+  ['ap-huella','ap-web'].forEach(id=>{const el=document.getElementById(id);if(el)el.checked=false;});
+  ['ap-display','ap-equipos','ap-verifone'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=el.options[0].value;});
+  ['ap-display-note','ap-equipos-note','ap-verifone-note'].forEach(id=>{const el=document.getElementById(id);if(el){el.value='';el.style.display='none';}});
+  const obs=document.getElementById('ap-obs');if(obs)obs.value='';
   openMod('apertura-modal');
   setTimeout(()=>document.getElementById('ap-cash').focus(),150);
 }
@@ -2142,12 +2274,309 @@ function confirmApertura(){
   const val=parseFloat(document.getElementById('ap-cash').value);
   const er=document.getElementById('ap-err');
   if(isNaN(val)||val<0){er.textContent='Ingresa un monto válido (puede ser 0)';er.style.display='block';return;}
+  const arrival=document.getElementById('ap-arrival').value||'—';
+  const huella=document.getElementById('ap-huella').checked;
+  const web=document.getElementById('ap-web').checked;
+  const display=document.getElementById('ap-display').value;
+  const displayNote=document.getElementById('ap-display-note').value.trim();
+  const equipos=document.getElementById('ap-equipos').value;
+  const equiposNote=document.getElementById('ap-equipos-note').value.trim();
+  const verifone=document.getElementById('ap-verifone').value;
+  const verifoneNote=document.getElementById('ap-verifone-note').value.trim();
+  const obs=document.getElementById('ap-obs').value.trim();
   const now=Date.now();
   const rec={id:now,shift:curShift,date:todayStr(),openCash:val,openedAt:now,
-    openedBy:currentUser?currentUser.name:'',closedAt:null,closeCash:null,closeDiff:null,closedBy:'',notes:''};
+    openedBy:currentUser?currentUser.name:'',closedAt:null,closeCash:null,closeDiff:null,closedBy:'',notes:'',
+    aperturaReport:{arrival,huella,web,display,displayNote,equipos,equiposNote,verifone,verifoneNote,obs}};
   saveShiftRec(rec);
+  // Auto ponche de entrada
+  if(currentUser&&!verificaciones.find(v=>v.date===todayStr()&&v.employeeName===currentUser.name&&v.type==='entrada')){
+    const pRec={id:Date.now(),date:todayStr(),type:'entrada',employeeName:currentUser.name,shift:currentUser.shift||curShift,ts:Date.now(),notes:'Apertura de caja'};
+    db.ref('verificaciones/'+pRec.id).set(pRec);
+  }
   closeMod('apertura-modal');
-  toast(`Caja abierta · Inicial: $${val.toLocaleString()}`);
+  toast(`✓ Caja abierta · Entrada registrada · RD$${val.toLocaleString()}`);
+  // Generate and download the apertura report image
+  setTimeout(()=>downloadAperturaImage({
+    name:currentUser?currentUser.name:'—',
+    fecha:new Date().toLocaleDateString('es',{day:'2-digit',month:'2-digit',year:'numeric'}),
+    hora:formatTime12(arrival),
+    turno:curShift,
+    cash:val,
+    huella,web,display,displayNote,equipos,equiposNote,verifone,verifoneNote,
+    obs:obs||'Todo en orden'
+  }),300);
+}
+
+function formatTime12(t){
+  if(!t||!t.includes(':'))return t;
+  const [h,m]=t.split(':').map(Number);
+  const ampm=h>=12?'PM':'AM';
+  const h12=h%12||12;
+  return `${h12}:${String(m).padStart(2,'0')} ${ampm}`;
+}
+
+function downloadAperturaImage(d){
+  const SC=2; // retina scale
+  const W=860, PAD=64, ROW=46, SEC_GAP=8;
+  const SANS=`"Helvetica Neue",Helvetica,Arial,sans-serif`;
+  const LBL_X=PAD, VAL_X=PAD+260;
+
+  const rows=[
+    {sec:'INFORMACIÓN GENERAL'},
+    {label:'COLABORADORA', value:d.name, bold:true},
+    {label:'FECHA', value:d.fecha},
+    {label:'HORA DE LLEGADA', value:d.hora, bold:true},
+    {label:'TURNO', value:d.turno},
+    {sec:'CONTEO DE CAJA'},
+    {label:'EFECTIVO EN CAJA', value:`RD$${Number(d.cash).toLocaleString()}`, bold:true, big:true},
+    {sec:'REGISTROS DE ENTRADA'},
+    {label:'SISTEMA DE HUELLA', value:d.huella?'Completado':'Pendiente', warn:!d.huella},
+    {label:'SINGULARAGORA.COM', value:d.web?'Completado':'Pendiente', warn:!d.web},
+    {sec:'ESTADO'},
+    {label:'DISPLAY', value:d.display+(d.displayNote?' — '+d.displayNote:''), warn:d.display==='Novedad'},
+    {label:'EQUIPOS', value:d.equipos+(d.equiposNote?' — '+d.equiposNote:''), warn:d.equipos==='Novedad'},
+    {label:'VERIFONE', value:d.verifone+(d.verifoneNote?' — '+d.verifoneNote:''), warn:d.verifone==='Novedad'},
+    {label:'OBSERVACIONES', value:d.obs||'Todo en orden'},
+  ];
+
+  // Calculate height
+  let H=120; // header area
+  rows.forEach(r=>{ H+=r.sec?36:ROW; });
+  H+=80; // footer
+
+  const canvas=document.createElement('canvas');
+  canvas.width=W*SC; canvas.height=H*SC;
+  const ctx=canvas.getContext('2d');
+  ctx.scale(SC,SC);
+
+  // ── WHITE BACKGROUND ──
+  ctx.fillStyle='#ffffff';
+  ctx.fillRect(0,0,W,H);
+
+  // ── HEADER ──
+  // Logo wordmark
+  ctx.fillStyle='#000000';
+  ctx.font=`bold 30px ${SANS}`;
+  ctx.letterSpacing='6px';
+  ctx.fillText('SINGULAR', PAD, 62);
+  ctx.letterSpacing='0px';
+
+  // Right header text
+  ctx.fillStyle='#aaaaaa';
+  ctx.textAlign='right';
+  ctx.font=`10px ${SANS}`;
+  ctx.letterSpacing='2px';
+  ctx.fillText('REPORTE DE APERTURA', W-PAD, 50);
+  ctx.letterSpacing='0px';
+  ctx.font=`12px ${SANS}`;
+  ctx.fillStyle='#888888';
+  ctx.fillText(`${d.turno} — ${d.fecha}`, W-PAD, 68);
+  ctx.textAlign='left';
+
+  // Top divider
+  ctx.strokeStyle='#e8e8e8'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(PAD,86); ctx.lineTo(W-PAD,86); ctx.stroke();
+
+  // ── ROWS ──
+  let y=86;
+  rows.forEach((r,i)=>{
+    if(r.sec){
+      y+=SEC_GAP;
+      ctx.fillStyle='#bbbbbb';
+      ctx.font=`10px ${SANS}`;
+      ctx.letterSpacing='2px';
+      ctx.fillText(r.sec, PAD, y+22);
+      ctx.letterSpacing='0px';
+      y+=36;
+    } else {
+      // label
+      ctx.fillStyle='#888888';
+      ctx.font=`11px ${SANS}`;
+      ctx.fillText(r.label, LBL_X, y+ROW*0.58);
+      // value
+      ctx.fillStyle=r.warn?'#888888':'#000000';
+      const fSize=r.big?20:14;
+      ctx.font=`${r.bold?'bold':'normal'} ${fSize}px ${SANS}`;
+      if(r.warn){
+        // strikethrough-style: draw value in gray with dash prefix
+        ctx.fillText('— '+r.value, VAL_X, y+ROW*0.58);
+      } else {
+        ctx.fillText(r.value, VAL_X, y+ROW*0.58);
+      }
+      // row divider
+      ctx.strokeStyle='#f2f2f2'; ctx.lineWidth=0.5;
+      ctx.beginPath(); ctx.moveTo(PAD, y+ROW); ctx.lineTo(W-PAD, y+ROW); ctx.stroke();
+      y+=ROW;
+    }
+  });
+
+  // ── FOOTER ──
+  y+=20;
+  ctx.strokeStyle='#e8e8e8'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(PAD,y); ctx.lineTo(W-PAD,y); ctx.stroke();
+  y+=22;
+  ctx.fillStyle='#bbbbbb';
+  ctx.font=`10px ${SANS}`;
+  ctx.letterSpacing='0.5px';
+  ctx.fillText('— AVISAR AL SUPERVISOR ANTE CUALQUIER NOVEDAD', PAD, y);
+  y+=16;
+  ctx.fillText('— DOCUMENTO DE USO INTERNO · SINGULAR', PAD, y);
+  ctx.textAlign='right';
+  ctx.fillText('USO INTERNO', W-PAD, y);
+  ctx.textAlign='left';
+  ctx.letterSpacing='0px';
+
+  const a=document.createElement('a');
+  a.download=`apertura-${d.name.replace(/\s/g,'-')}-${d.fecha.replace(/\//g,'-')}.png`;
+  a.href=canvas.toDataURL('image/png');
+  a.click();
+}
+
+function downloadCorteImage(d){
+  const SC=2;
+  const W=860, PAD=64, ROW=46, SEC_GAP=8;
+  const SANS=`"Helvetica Neue",Helvetica,Arial,sans-serif`;
+  const LBL_X=PAD, VAL_X=PAD+280;
+  const PHOTO_H=320; // height reserved for novedades photo
+
+  const diffLabel=Math.abs(d.diff)<1?'Sin diferencia':d.diff>0?`Sobrante RD$${Math.abs(d.diff).toLocaleString()}`:`Faltante RD$${Math.abs(d.diff).toLocaleString()}`;
+  const diffWarn=Math.abs(d.diff)>=1;
+
+  const rows=[
+    {sec:'INFORMACIÓN GENERAL'},
+    {label:'COLABORADORA', value:d.name, bold:true},
+    {label:'FECHA', value:d.fecha},
+    {label:'HORA DE SALIDA', value:d.hora, bold:true},
+    {label:'TURNO', value:d.turno},
+    {sec:'CONTEO DE CAJA'},
+    {label:'EFECTIVO EN CAJA', value:`RD$${Number(d.efectivo).toLocaleString()}`, bold:true, big:true},
+    {label:'EFECTIVO DE VENTAS', value:`RD$${Number(d.ventas).toLocaleString()}`},
+    {label:'TOTAL EN TARJETA (VERIFONE)', value:`RD$${Number(d.tarjeta).toLocaleString()}`},
+    {label:'TOTAL EN TRANSFERENCIA', value:`RD$${Number(d.transferencia).toLocaleString()}`},
+    {label:'DIFERENCIA', value:diffLabel, bold:true, warn:diffWarn},
+    {sec:'CIERRE DE TURNO'},
+    ...(d.pedidosList&&d.pedidosList.length
+      ? d.pedidosList.map((p,i)=>({label:i===0?'PEDIDOS PENDIENTES':'', value:p, small:true}))
+      : [{label:'PEDIDOS PENDIENTES', value:'Ninguno'}]),
+    {label:'NOVEDADES', value:d.novPhoto?'Ver foto adjunta':'Sin novedades'},
+  ];
+
+  let H=120;
+  rows.forEach(r=>{H+=r.sec?36:r.small?32:ROW;});
+  if(d.novPhoto) H+=PHOTO_H+40;
+  H+=80;
+
+  function _drawBase(ctx, imgEl){
+    ctx.fillStyle='#ffffff';
+    ctx.fillRect(0,0,W,H);
+
+    // Header
+    ctx.fillStyle='#000000';
+    ctx.font=`bold 30px ${SANS}`;
+    ctx.letterSpacing='6px';
+    ctx.fillText('SINGULAR', PAD, 62);
+    ctx.letterSpacing='0px';
+
+    ctx.fillStyle='#aaaaaa';
+    ctx.textAlign='right';
+    ctx.font=`10px ${SANS}`;
+    ctx.letterSpacing='2px';
+    ctx.fillText('CIERRE DE TURNO', W-PAD, 50);
+    ctx.letterSpacing='0px';
+    ctx.font=`12px ${SANS}`;
+    ctx.fillStyle='#888888';
+    ctx.fillText(`${d.turno} — ${d.fecha}`, W-PAD, 68);
+    ctx.textAlign='left';
+
+    ctx.strokeStyle='#e8e8e8'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(PAD,86); ctx.lineTo(W-PAD,86); ctx.stroke();
+
+    let y=86;
+    rows.forEach(r=>{
+      if(r.sec){
+        y+=SEC_GAP;
+        ctx.fillStyle='#bbbbbb';
+        ctx.font=`10px ${SANS}`;
+        ctx.letterSpacing='2px';
+        ctx.fillText(r.sec, PAD, y+22);
+        ctx.letterSpacing='0px';
+        y+=36;
+      } else {
+        const rH=r.small?32:ROW;
+        ctx.fillStyle='#888888';
+        ctx.font=`11px ${SANS}`;
+        if(r.label) ctx.fillText(r.label, LBL_X, y+rH*0.62);
+        ctx.fillStyle=r.warn?'#c00000':'#000000';
+        ctx.font=`${r.bold?'bold':'normal'} ${r.big?20:r.small?11:14}px ${SANS}`;
+        // truncate long values to fit
+        let val=r.value;
+        const maxW=W-VAL_X-PAD;
+        while(val.length>10&&ctx.measureText(val).width>maxW) val=val.slice(0,-4)+'…';
+        ctx.fillText(val, VAL_X, y+rH*0.62);
+        ctx.strokeStyle='#f2f2f2'; ctx.lineWidth=0.5;
+        ctx.beginPath(); ctx.moveTo(PAD,y+rH); ctx.lineTo(W-PAD,y+rH); ctx.stroke();
+        y+=rH;
+      }
+    });
+
+    // Novedades photo block
+    if(d.novPhoto && imgEl){
+      y+=16;
+      ctx.fillStyle='#bbbbbb';
+      ctx.font=`10px ${SANS}`;
+      ctx.letterSpacing='2px';
+      ctx.fillText('FOTO DE NOVEDADES', PAD, y+14);
+      ctx.letterSpacing='0px';
+      y+=28;
+      const maxW=W-PAD*2, maxH=PHOTO_H;
+      const scale=Math.min(maxW/imgEl.naturalWidth, maxH/imgEl.naturalHeight, 1);
+      const iW=imgEl.naturalWidth*scale, iH=imgEl.naturalHeight*scale;
+      const iX=PAD+(maxW-iW)/2;
+      ctx.drawImage(imgEl, iX, y, iW, iH);
+      y+=iH+12;
+      ctx.strokeStyle='#f2f2f2'; ctx.lineWidth=0.5;
+      ctx.beginPath(); ctx.moveTo(PAD,y); ctx.lineTo(W-PAD,y); ctx.stroke();
+      y+=8;
+    }
+
+    y+=20;
+    ctx.strokeStyle='#e8e8e8'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(PAD,y); ctx.lineTo(W-PAD,y); ctx.stroke();
+    y+=22;
+    ctx.fillStyle='#bbbbbb';
+    ctx.font=`10px ${SANS}`;
+    ctx.letterSpacing='0.5px';
+    ctx.fillText('— AVISAR AL SUPERVISOR ANTE CUALQUIER NOVEDAD', PAD, y);
+    y+=16;
+    ctx.fillText('— DOCUMENTO DE USO INTERNO · SINGULAR', PAD, y);
+    ctx.textAlign='right';
+    ctx.fillText('USO INTERNO', W-PAD, y);
+    ctx.textAlign='left';
+    ctx.letterSpacing='0px';
+  }
+
+  function _finalize(canvas){
+    const a=document.createElement('a');
+    a.download=`cierre-${d.name.replace(/\s/g,'-')}-${d.fecha.replace(/\//g,'-')}.png`;
+    a.href=canvas.toDataURL('image/png');
+    a.click();
+  }
+
+  const canvas=document.createElement('canvas');
+  canvas.width=W*SC; canvas.height=H*SC;
+  const ctx=canvas.getContext('2d');
+  ctx.scale(SC,SC);
+
+  if(d.novPhoto){
+    const img=new Image();
+    img.onload=()=>{_drawBase(ctx,img);_finalize(canvas);};
+    img.onerror=()=>{_drawBase(ctx,null);_finalize(canvas);};
+    img.src=d.novPhoto;
+  } else {
+    _drawBase(ctx,null);
+    _finalize(canvas);
+  }
 }
 
 // ── CIERRE ──
@@ -2284,12 +2713,143 @@ function confirmCierre(){
     rec.closedBy=currentUser?currentUser.name:'';
     rec.notes=document.getElementById('close-notes').value.trim();
     saveShiftRec(rec);
+    // Calcular stats del día completo
+    const todayOrd=orders.filter(o=>localDateStr(o.id)===todayStr()&&o.pay);
+    const artVendidos=todayOrd.filter(o=>!SPECIAL_TYPES.includes(o.pay.type)).reduce((s,o)=>s+(o.items||[]).reduce((si,i)=>si+(i.qty||1),0),0);
+    const cantErrores=todayOrd.filter(o=>o.pay.type==='Error').length;
+    const cantCortesias=todayOrd.filter(o=>o.pay.type==='Cortesia').length;
+    const cantWebWA=todayOrd.filter(o=>o.source==='web'||o.source==='whatsapp').length;
+    const estMap={};
+    todayOrd.filter(o=>!SPECIAL_TYPES.includes(o.pay.type)&&o.registeredBy).forEach(o=>{
+      const emp=o.registeredBy;
+      estMap[emp]=(estMap[emp]||0)+(o.items||[]).reduce((si,i)=>si+(i.qty||1),0);
+    });
+    const estList=Object.entries(estMap).map(([n,c])=>`${n}: ${c} artículos`);
+    const dayCalc=calcCashForDay(todayStr());
     closeMod('cierre-modal');
     toast(`Cierre registrado · ${rec.closeDiff>=0?'Sobrante':'Faltante'} $${Math.abs(rec.closeDiff).toLocaleString('es',{minimumFractionDigits:2})}`);
+    setTimeout(()=>downloadCierreGeneralImage({
+      fecha:new Date().toLocaleDateString('es',{day:'2-digit',month:'2-digit',year:'numeric'}),
+      closedBy:rec.closedBy||'Admin',
+      efectivo:val,
+      ventas:dayCalc.netCash,
+      tarjeta:dayCalc.cardTotal,
+      transferencia:dayCalc.txfrTotal,
+      salesTotal:dayCalc.salesTotal,
+      diff:rec.closeDiff,
+      artVendidos,cantErrores,cantCortesias,cantWebWA,estList
+    }),300);
   }catch(e){
     console.error('confirmCierre error:',e);
     toast('⚠ Error al guardar cierre: '+e.message);
   }
+}
+
+function downloadCierreGeneralImage(d){
+  const SC=2;
+  const W=860, PAD=64, ROW=46, SEC_GAP=8;
+  const SANS=`"Helvetica Neue",Helvetica,Arial,sans-serif`;
+  const LBL_X=PAD, VAL_X=PAD+300;
+  const diffLabel=Math.abs(d.diff)<1?'Sin diferencia':d.diff>0?`Sobrante RD$${Math.abs(d.diff).toLocaleString()}`:`Faltante RD$${Math.abs(d.diff).toLocaleString()}`;
+  const diffWarn=Math.abs(d.diff)>=1;
+
+  const rows=[
+    {sec:'INFORMACIÓN GENERAL'},
+    {label:'FECHA', value:d.fecha, bold:true},
+    {label:'CERRADO POR', value:d.closedBy},
+    {sec:'RESUMEN DEL DÍA'},
+    {label:'ARTÍCULOS VENDIDOS', value:String(d.artVendidos), bold:true, big:true},
+    {label:'ÓRDENES WEB / WHATSAPP', value:String(d.cantWebWA)},
+    {label:'ERRORES', value:String(d.cantErrores)},
+    {label:'CORTESÍAS', value:String(d.cantCortesias)},
+    ...(d.estList&&d.estList.length
+      ? d.estList.map((e,i)=>({label:i===0?'ESTAMPADO POR PERSONA':'', value:e, small:true}))
+      : [{label:'ESTAMPADO POR PERSONA', value:'Sin datos'}]),
+    {sec:'CONTEO DE CAJA'},
+    {label:'TOTAL VENTAS DEL DÍA', value:`RD$${Number(d.salesTotal).toLocaleString()}`, bold:true},
+    {label:'EFECTIVO CONTADO EN CAJA', value:`RD$${Number(d.efectivo).toLocaleString()}`, bold:true, big:true},
+    {label:'EFECTIVO DE VENTAS', value:`RD$${Number(d.ventas).toLocaleString()}`},
+    {label:'TOTAL EN TARJETA (VERIFONE)', value:`RD$${Number(d.tarjeta).toLocaleString()}`},
+    {label:'TOTAL EN TRANSFERENCIA', value:`RD$${Number(d.transferencia).toLocaleString()}`},
+    {label:'DIFERENCIA', value:diffLabel, bold:true, warn:diffWarn},
+  ];
+
+  let H=120;
+  rows.forEach(r=>{H+=r.sec?36:r.small?32:ROW;});
+  H+=80;
+
+  const canvas=document.createElement('canvas');
+  canvas.width=W*SC; canvas.height=H*SC;
+  const ctx=canvas.getContext('2d');
+  ctx.scale(SC,SC);
+
+  ctx.fillStyle='#ffffff';
+  ctx.fillRect(0,0,W,H);
+
+  ctx.fillStyle='#000000';
+  ctx.font=`bold 30px ${SANS}`;
+  ctx.letterSpacing='6px';
+  ctx.fillText('SINGULAR', PAD, 62);
+  ctx.letterSpacing='0px';
+
+  ctx.fillStyle='#aaaaaa';
+  ctx.textAlign='right';
+  ctx.font=`10px ${SANS}`;
+  ctx.letterSpacing='2px';
+  ctx.fillText('CIERRE DE CAJA', W-PAD, 50);
+  ctx.letterSpacing='0px';
+  ctx.font=`12px ${SANS}`;
+  ctx.fillStyle='#888888';
+  ctx.fillText(d.fecha, W-PAD, 68);
+  ctx.textAlign='left';
+
+  ctx.strokeStyle='#e8e8e8'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(PAD,86); ctx.lineTo(W-PAD,86); ctx.stroke();
+
+  let y=86;
+  rows.forEach(r=>{
+    if(r.sec){
+      y+=SEC_GAP;
+      ctx.fillStyle='#bbbbbb';
+      ctx.font=`10px ${SANS}`;
+      ctx.letterSpacing='2px';
+      ctx.fillText(r.sec, PAD, y+22);
+      ctx.letterSpacing='0px';
+      y+=36;
+    } else {
+      const rH=r.small?32:ROW;
+      ctx.fillStyle='#888888';
+      ctx.font=`11px ${SANS}`;
+      if(r.label) ctx.fillText(r.label, LBL_X, y+rH*0.62);
+      ctx.fillStyle=r.warn?'#c00000':'#000000';
+      ctx.font=`${r.bold?'bold':'normal'} ${r.big?20:r.small?11:14}px ${SANS}`;
+      let val=r.value;
+      const maxW=W-VAL_X-PAD;
+      while(val.length>10&&ctx.measureText(val).width>maxW) val=val.slice(0,-4)+'…';
+      ctx.fillText(val, VAL_X, y+rH*0.62);
+      ctx.strokeStyle='#f2f2f2'; ctx.lineWidth=0.5;
+      ctx.beginPath(); ctx.moveTo(PAD,y+rH); ctx.lineTo(W-PAD,y+rH); ctx.stroke();
+      y+=rH;
+    }
+  });
+
+  y+=20;
+  ctx.strokeStyle='#e8e8e8'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(PAD,y); ctx.lineTo(W-PAD,y); ctx.stroke();
+  y+=22;
+  ctx.fillStyle='#bbbbbb';
+  ctx.font=`10px ${SANS}`;
+  ctx.letterSpacing='0.5px';
+  ctx.fillText('— DOCUMENTO DE USO INTERNO · SINGULAR', PAD, y);
+  ctx.textAlign='right';
+  ctx.fillText('USO INTERNO', W-PAD, y);
+  ctx.textAlign='left';
+  ctx.letterSpacing='0px';
+
+  const a=document.createElement('a');
+  a.download=`cierre-general-${d.fecha.replace(/\//g,'-')}.png`;
+  a.href=canvas.toDataURL('image/png');
+  a.click();
 }
 
 // ── CLOCK & REPORT HELPERS ──
@@ -2306,7 +2866,7 @@ function openPoncharEntrada(){
   document.getElementById('ve-sub').textContent=`Turno: ${currentUser.shift} · Monto esperado en caja: $${cp.cash.toLocaleString()}`;
   document.getElementById('ve-cash').value='';
   document.getElementById('ve-diff').style.display='none';
-  document.getElementById('ve-notes').value='';
+  _veResetExtraFields();
   openMod('verif-entrada-modal');
   setTimeout(()=>document.getElementById('ve-cash').focus(),200);
 }
@@ -3628,6 +4188,8 @@ function openCorte(){
   if(!currentUser)return;
   const rec=getDayRec();
   if(!rec||rec.closedAt){toast('No hay caja abierta para hacer corte');return;}
+  // Clear previous novedades photo
+  delete photoStore['corte-nov-file'];
   const cp=getLastCheckpoint();
   const calc=calcCashForPeriod(todayStr(),cp.timestamp,Date.now());
   const expected=cp.cash+calc.netCash;
@@ -3660,7 +4222,40 @@ function openCorte(){
         <label class="lbl">Notas (opcional)</label>
         <textarea id="corte-notes" placeholder="Observaciones…"></textarea>
       </div>
+    </div>
+    <div class="csum-section" style="border:1.5px solid var(--g300);">
+      <div class="csum-title">Informe de cierre</div>
+      <div class="field" style="margin-bottom:10px;">
+        <label class="lbl">🕐 Hora de salida</label>
+        <input type="time" id="corte-hora-salida" style="font-size:1rem;"/>
+      </div>
+      <div class="field" style="margin-bottom:10px;">
+        <label class="lbl">📦 Pedidos pendientes</label>
+        <div style="background:var(--g50);border:1.5px solid var(--g200);border-radius:8px;padding:10px 12px;font-size:.82rem;line-height:1.8;">${(()=>{
+          const pend=orders.filter(o=>localDateStr(o.id)>='2026-07-01'&&(o.needsApproval||['pendiente_restock','pendiente','en_proceso'].includes(o.prodStatus||'pendiente')));
+          if(!pend.length)return'<span style="color:var(--g400);">Ninguno</span>';
+          return pend.map(o=>{
+            const tag=o.needsApproval?'<span style="color:#b45309;font-weight:700;">[Aprob.]</span> ':o.prodStatus==='pendiente_restock'?'<span style="color:#7c3aed;font-weight:700;">[Restock]</span> ':'';
+            return `• ${tag}${o.name} — ${(o.items||[]).map(i=>`${i.qty}× ${i.name}${i.model?' '+i.model:''}`).join(', ')}`;
+          }).join('<br>');
+        })()}</div>
+      </div>
+      <div class="field">
+        <label class="lbl">📷 Novedades <span style="font-size:.72rem;color:var(--g500);">(opcional)</span></label>
+        <button onclick="document.getElementById('corte-nov-file').click()" style="width:100%;padding:10px;border:1.5px dashed #d1d5db;border-radius:8px;background:#f9fafb;color:#374151;cursor:pointer;font-size:.85rem;font-weight:700;">📷 Tomar o subir foto</button>
+        <input type="file" id="corte-nov-file" accept="image/*" capture="environment" style="display:none;" onchange="handlePhoto('corte-nov-file','corte-nov-prev')"/>
+        <div id="corte-nov-prev" style="margin-top:8px;display:none;">
+          <img style="width:100%;max-height:160px;object-fit:contain;border-radius:8px;border:1px solid #e5e7eb;">
+          <button onclick="clearPhoto('corte-nov-file','corte-nov-prev')" style="margin-top:4px;font-size:.72rem;color:#dc2626;background:none;border:none;cursor:pointer;font-weight:700;">✕ Quitar foto</button>
+        </div>
+      </div>
     </div>`;
+  // Pre-fill hora salida
+  const _cn=new Date();const _cp2=n=>String(n).padStart(2,'0');
+  setTimeout(()=>{
+    const hs=document.getElementById('corte-hora-salida');
+    if(hs)hs.value=`${_cp2(_cn.getHours())}:${_cp2(_cn.getMinutes())}`;
+  },50);
   openMod('corte-modal');
   setTimeout(()=>document.getElementById('corte-cash').focus(),150);
 }
@@ -3681,12 +4276,20 @@ function checkEntryVerification(){
     `Turno: ${currentUser.shift} · Último checkpoint: ${cp.label} · Monto esperado: $${cp.cash.toLocaleString()}`;
   document.getElementById('ve-cash').value='';
   document.getElementById('ve-diff').style.display='none';
-  document.getElementById('ve-notes').value='';
+  _veResetExtraFields();
   openMod('verif-entrada-modal');
   setTimeout(()=>document.getElementById('ve-cash').focus(),200);
 }
 function getLastCorteToday(){
   return cortes.filter(c=>c.date===todayStr()).sort((a,b)=>b.toTimestamp-a.toTimestamp)[0]||null;
+}
+function _veResetExtraFields(){
+  const now2=new Date();const pad=n=>String(n).padStart(2,'0');
+  const arrEl=document.getElementById('ve-arrival');if(arrEl)arrEl.value=`${pad(now2.getHours())}:${pad(now2.getMinutes())}`;
+  ['ve-huella','ve-web'].forEach(id=>{const el=document.getElementById(id);if(el)el.checked=false;});
+  ['ve-display','ve-equipos','ve-verifone'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=el.options[0].value;});
+  ['ve-display-note','ve-equipos-note','ve-verifone-note'].forEach(id=>{const el=document.getElementById(id);if(el){el.value='';el.style.display='none';}});
+  const obs=document.getElementById('ve-obs');if(obs)obs.value='';
 }
 function confirmEntrada(){
   const val=parseFloat(document.getElementById('ve-cash').value);
@@ -3695,19 +4298,34 @@ function confirmEntrada(){
   const diff=val-cp.cash;
   const key=`cv5_entry_${todayStr()}_${currentUser.name}`;
   sessionStorage.setItem(key,'1');
-  // Guardar en Firebase para registro
+  const arrival=document.getElementById('ve-arrival')?.value||'';
+  const huella=document.getElementById('ve-huella')?.checked||false;
+  const web=document.getElementById('ve-web')?.checked||false;
+  const display=document.getElementById('ve-display')?.value||'En orden';
+  const displayNote=document.getElementById('ve-display-note')?.value.trim()||'';
+  const equipos=document.getElementById('ve-equipos')?.value||'Operativos';
+  const equiposNote=document.getElementById('ve-equipos-note')?.value.trim()||'';
+  const verifone=document.getElementById('ve-verifone')?.value||'Operativo';
+  const verifoneNote=document.getElementById('ve-verifone-note')?.value.trim()||'';
+  const obs=document.getElementById('ve-obs')?.value.trim()||'';
   const rec={id:Date.now(),date:todayStr(),type:'entrada',employeeName:currentUser.name,
-    shift:currentUser.shift,monto:val,expected:cp.cash,diff,notes:document.getElementById('ve-notes').value.trim(),ts:Date.now()};
+    shift:currentUser.shift,monto:val,expected:cp.cash,diff,ts:Date.now(),
+    aperturaReport:{arrival,huella,web,display,displayNote,equipos,equiposNote,verifone,verifoneNote,obs}};
   db.ref('verificaciones/'+rec.id).set(rec);
   closeMod('verif-entrada-modal');
-  if(Math.abs(diff)<1){
-    toast('✓ Monto verificado — ¡todo cuadra!');
-  } else if(diff>0){
-    toast(`Verificación registrada · Sobrante $${diff.toLocaleString('es',{minimumFractionDigits:2})}`);
-  } else {
-    toast(`Verificación registrada · Faltante $${Math.abs(diff).toLocaleString('es',{minimumFractionDigits:2})}`);
-  }
-  setTimeout(checkPendingCorteVerification,300);
+  if(Math.abs(diff)<1){toast('✓ Monto verificado — ¡todo cuadra!');}
+  else if(diff>0){toast(`Verificación registrada · Sobrante $${diff.toLocaleString('es',{minimumFractionDigits:2})}`);}
+  else{toast(`Verificación registrada · Faltante $${Math.abs(diff).toLocaleString('es',{minimumFractionDigits:2})}`);}
+  // Generar imagen de reporte
+  setTimeout(()=>downloadAperturaImage({
+    name:currentUser.name,
+    fecha:new Date().toLocaleDateString('es',{day:'2-digit',month:'2-digit',year:'numeric'}),
+    hora:formatTime12(arrival),
+    turno:currentUser.shift||'—',
+    cash:val,huella,web,display,displayNote,equipos,equiposNote,verifone,verifoneNote,
+    obs:obs||'Todo en orden'
+  }),300);
+  setTimeout(checkPendingCorteVerification,600);
 }
 function soloVer(){
   const key=`cv5_entry_${todayStr()}_${currentUser.name}`;
@@ -3876,11 +4494,39 @@ function confirmCorte(){
       prevBalance:cp.cash,cashSales:calc.netCash,
       expectedCash:expected,cashCounted:val,diff:val-expected,
       notes:document.getElementById('corte-notes').value.trim()};
+    const horaSalida=document.getElementById('corte-hora-salida')?.value||'';
+    // Novedades from photo
+    const novPhoto=photoStore['corte-nov-file']||null;
+    // Pending orders for image
+    const pendOrders=orders.filter(o=>localDateStr(o.id)>='2026-07-01'&&(o.needsApproval||['pendiente_restock','pendiente','en_proceso'].includes(o.prodStatus||'pendiente')));
+    const pedidosList=pendOrders.map(o=>`${o.needsApproval?'[Aprob.] ':o.prodStatus==='pendiente_restock'?'[Restock] ':''}${o.name}: ${(o.items||[]).map(i=>`${i.qty}× ${i.name}${i.model?' '+i.model:''}`).join(', ')}`);
+    corteRec.horaSalida=horaSalida;
+    corteRec.novedadesPhoto=novPhoto?true:false;
+    corteRec.stats={artVendidos,cantErrores,cantCortesias,cantWebWA,estList};
     saveCorteRec(corteRec);
+    // Auto ponche de salida
+    if(currentUser&&!verificaciones.find(v=>v.date===todayStr()&&v.employeeName===currentUser.name&&v.type==='salida')){
+      const sRec={id:Date.now()+1,date:todayStr(),type:'salida',employeeName:currentUser.name,shift:currentUser.shift||'',ts:Date.now(),notes:'Corte de caja'};
+      db.ref('verificaciones/'+sRec.id).set(sRec);
+    }
     closeMod('corte-modal');
-    const d=val-expected;
-    toast(`Corte registrado · ${Math.abs(d)<1?'Cuadre exacto':d>0?`Sobrante $${d.toLocaleString('es',{minimumFractionDigits:2})}`:` Faltante $${Math.abs(d).toLocaleString('es',{minimumFractionDigits:2})}`}`);
+    const diff=val-expected;
+    toast(`Corte registrado · ${Math.abs(diff)<1?'Cuadre exacto':diff>0?`Sobrante $${diff.toLocaleString('es',{minimumFractionDigits:2})}`:`Faltante $${Math.abs(diff).toLocaleString('es',{minimumFractionDigits:2})}`}`);
     if(document.getElementById('tb2').classList.contains('active'))renderShifts();
+    // Generar imagen de cierre
+    setTimeout(()=>downloadCorteImage({
+      name:currentUser.name,
+      fecha:new Date().toLocaleDateString('es',{day:'2-digit',month:'2-digit',year:'numeric'}),
+      hora:formatTime12(horaSalida),
+      turno:currentUser.shift||curShift,
+      efectivo:val,
+      ventas:calc.netCash,
+      tarjeta:calc.cardTotal,
+      transferencia:calc.txfrTotal,
+      diff,
+      novPhoto,
+      pedidosList
+    }),300);
   }catch(e){
     console.error('confirmCorte error:',e);
     toast('⚠ Error al guardar corte: '+e.message);
@@ -4404,6 +5050,26 @@ function punchOut(){
   toast('✓ Salida registrada — ¡hasta mañana!');
   renderHorario();
 }
+function adminReopenShift(empName, dateStr){
+  if(!adminMode)return;
+  const salida=verificaciones.find(v=>v.date===dateStr&&v.employeeName===empName&&v.type==='salida');
+  if(!salida){toast('Esta colaboradora no tiene salida registrada');return;}
+  if(!confirm(`¿Reabrir turno de ${empName}?\nSe eliminará su ponche de salida para que continúe en turno.`))return;
+  db.ref('verificaciones/'+salida.id).remove();
+  toast(`✓ Turno de ${empName} reabierto`);
+  setTimeout(renderHorario,400);
+}
+function adminForceEntry(empName, dateStr){
+  if(!adminMode)return;
+  const ya=verificaciones.find(v=>v.date===dateStr&&v.employeeName===empName&&v.type==='entrada');
+  if(ya){toast(`${empName} ya tiene entrada registrada`);return;}
+  const u=users.find(x=>x.name===empName);
+  const rec={id:Date.now(),date:dateStr,type:'entrada',employeeName:empName,shift:(u&&u.shift)||'',ts:Date.now(),notes:'Registrado por admin'};
+  db.ref('verificaciones/'+rec.id).set(rec);
+  toast(`✓ Entrada de ${empName} registrada`);
+  setTimeout(renderHorario,400);
+}
+
 function renderHorario(){
   const content=document.getElementById('horario-content');if(!content)return;
   const adminHdr=document.getElementById('horario-admin-header');
@@ -4424,16 +5090,46 @@ function renderHorarioAdmin(dateStr,panel){
   const dayScheds=schedules.filter(s=>s.date===dateStr).sort((a,b)=>a.startTime.localeCompare(b.startTime));
   const clock=buildClockData(dateStr);
   const dispDate=new Date(dateStr+'T12:00:00').toLocaleDateString('es',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+
+  // ── Estado de turnos (todas las empleadas, siempre visible) ──
+  const vendedoras=users.filter(u=>u.role!=='admin'&&u.role!=='mensajero');
+  const estadoCards=vendedoras.map(u=>{
+    const entrada=verificaciones.find(v=>v.date===dateStr&&v.employeeName===u.name&&v.type==='entrada');
+    const salida=verificaciones.find(v=>v.date===dateStr&&v.employeeName===u.name&&v.type==='salida');
+    const inTxt=entrada?new Date(entrada.ts).toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'}):'—';
+    const outTxt=salida?new Date(salida.ts).toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'}):'—';
+    let dot='#d1d5db',label='Sin registrar';
+    if(salida){dot='#9ca3af';label='Turno finalizado';}
+    else if(entrada){dot='#16a34a';label='En turno';}
+    return`<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--g100);">
+      <div style="width:9px;height:9px;border-radius:50%;background:${dot};flex-shrink:0;"></div>
+      <div style="flex:1;">
+        <div style="font-weight:800;font-size:.88rem;">${u.name}</div>
+        <div style="font-size:.74rem;color:var(--g500);margin-top:1px;">
+          Entrada: <strong>${inTxt}</strong> · Salida: <strong>${outTxt}</strong>
+        </div>
+      </div>
+      <div style="display:flex;gap:6px;flex-shrink:0;">
+        ${salida?`<button onclick="adminReopenShift('${u.name}','${dateStr}')" style="padding:5px 10px;background:#f0fdf4;border:1.5px solid #86efac;border-radius:6px;font-size:.76rem;font-weight:700;cursor:pointer;color:#15803d;">🔓 Reabrir</button>`:''}
+        ${!entrada?`<button onclick="adminForceEntry('${u.name}','${dateStr}')" style="padding:5px 10px;background:#eff6ff;border:1.5px solid #bfdbfe;border-radius:6px;font-size:.76rem;font-weight:700;cursor:pointer;color:#1d4ed8;">▶ Registrar entrada</button>`:''}
+      </div>
+    </div>`;
+  }).join('');
+
+  const estadoSection=`<div class="card" style="margin-bottom:14px;padding:12px 16px;">
+    <div style="font-size:.65rem;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:var(--g500);margin-bottom:8px;">Estado de Turnos — ${dispDate}</div>
+    ${vendedoras.length?estadoCards:`<div style="font-size:.82rem;color:var(--g500);">Sin colaboradoras registradas</div>`}
+  </div>`;
+
   if(!dayScheds.length){
-    panel.innerHTML=`<div class="card" style="text-align:center;padding:28px 20px;border:1.5px dashed var(--g300);">
-      <div style="font-size:1.6rem;margin-bottom:8px;">📅</div>
+    panel.innerHTML=estadoSection+`<div class="card" style="text-align:center;padding:20px;border:1.5px dashed var(--g300);">
+      <div style="font-size:1.4rem;margin-bottom:6px;">📅</div>
       <div style="font-weight:800;margin-bottom:4px;">Sin horarios asignados</div>
-      <div style="font-size:.82rem;color:var(--g500);">${dispDate}</div>
-      <div style="font-size:.78rem;color:var(--g500);margin-top:6px;">Presiona "+ Agregar Horario" para asignar turnos.</div>
+      <div style="font-size:.78rem;color:var(--g500);">Presiona "+ Agregar Horario" para asignar turnos.</div>
     </div>`;
     return;
   }
-  panel.innerHTML=`<div style="font-size:.72rem;font-weight:800;color:var(--g500);text-transform:uppercase;letter-spacing:.7px;margin-bottom:10px;">${dispDate}</div>`
+  panel.innerHTML=estadoSection+`<div style="font-size:.72rem;font-weight:800;color:var(--g500);text-transform:uppercase;letter-spacing:.7px;margin-bottom:10px;">Horarios asignados</div>`
   +dayScheds.map(s=>{
     const emp=clock.find(e=>e.name===s.employeeName);
     const inTs=emp?emp.start:null;
@@ -4460,6 +5156,7 @@ function renderHorarioAdmin(dateStr,panel){
             <button onclick="editPunchTime('${s.employeeName}','entrada','${dateStr}')" style="background:none;border:1px solid var(--g200);border-radius:4px;padding:1px 6px;font-size:.68rem;cursor:pointer;color:var(--g600);">✏</button>
             <span>· Salida: <strong>${outTxt}</strong></span>
             <button onclick="editPunchTime('${s.employeeName}','salida','${dateStr}')" style="background:none;border:1px solid var(--g200);border-radius:4px;padding:1px 6px;font-size:.68rem;cursor:pointer;color:var(--g600);">✏</button>
+            ${outTs?`<button onclick="adminReopenShift('${s.employeeName}','${dateStr}')" style="background:#f0fdf4;border:1px solid #86efac;border-radius:4px;padding:2px 8px;font-size:.72rem;cursor:pointer;color:#15803d;font-weight:700;">🔓 Reabrir turno</button>`:''}
             ${breakTxt}
           </div>
         </div>
@@ -5761,7 +6458,16 @@ function renderProd(){
   const wrap=document.getElementById('prod-content');
   if(!wrap)return;
 
-  let dayOrders=orders.filter(o=>localDateStr(o.id)===dateVal&&!o.needsApproval);
+  const ACTIVE_STATUSES=['pendiente_restock','pendiente','en_proceso','listo','ruta_mensajero'];
+  const ROLLOVER_FROM='2026-07-01'; // rollover applies only to orders from this date onward
+  let dayOrders=orders.filter(o=>{
+    if(o.needsApproval)return false;
+    const oDate=localDateStr(o.id);
+    // Rollover: active orders on/after ROLLOVER_FROM persist until marked complete
+    if(ACTIVE_STATUSES.includes(o.prodStatus||'pendiente')&&oDate>=ROLLOVER_FROM)return true;
+    // Everything else only shows on its own date
+    return oDate===dateVal;
+  });
   if(srcFilter)dayOrders=dayOrders.filter(o=>(o.source||'tienda')===srcFilter);
 
   const isDelivery=o=>(o.source==='web'||o.source==='whatsapp');
