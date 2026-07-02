@@ -2304,7 +2304,8 @@ function confirmApertura(){
     turno:curShift,
     cash:val,
     huella,web,display,displayNote,equipos,equiposNote,verifone,verifoneNote,
-    obs:obs||'Todo en orden'
+    obs:obs||'Todo en orden',
+    pendientes:getPendingOrdersList()
   }),300);
 }
 
@@ -2316,6 +2317,13 @@ function formatTime12(t){
   return `${h12}:${String(m).padStart(2,'0')} ${ampm}`;
 }
 
+function getPendingOrdersList(){
+  return orders.filter(o=>
+    !o.needsApproval&&
+    ROLLOVER_STATUSES.includes(o.prodStatus||'pendiente')&&
+    localDateStr(o.id)>='2026-07-01'
+  ).map(o=>`${o.name}: ${(o.items||[]).map(i=>`${i.qty}× ${i.name}${i.model?' '+i.model:''}`).join(', ')}`);
+}
 function downloadAperturaImage(d){
   const SC=2; // retina scale
   const W=860, PAD=64, ROW=46, SEC_GAP=8;
@@ -2338,11 +2346,15 @@ function downloadAperturaImage(d){
     {label:'EQUIPOS', value:d.equipos+(d.equiposNote?' — '+d.equiposNote:''), warn:d.equipos==='Novedad'},
     {label:'VERIFONE', value:d.verifone+(d.verifoneNote?' — '+d.verifoneNote:''), warn:d.verifone==='Novedad'},
     {label:'OBSERVACIONES', value:d.obs||'Todo en orden'},
+    {sec:'PEDIDOS PENDIENTES'},
+    ...(d.pendientes&&d.pendientes.length
+      ? d.pendientes.map((p,i)=>({label:i===0?'':' ', value:p, small:true}))
+      : [{label:'', value:'Ninguno'}]),
   ];
 
   // Calculate height
   let H=120; // header area
-  rows.forEach(r=>{ H+=r.sec?36:ROW; });
+  rows.forEach(r=>{ H+=r.sec?36:r.small?32:ROW; });
   H+=80; // footer
 
   const canvas=document.createElement('canvas');
@@ -2391,23 +2403,24 @@ function downloadAperturaImage(d){
       y+=36;
     } else {
       // label
+      const rH=r.small?32:ROW;
       ctx.fillStyle='#888888';
       ctx.font=`11px ${SANS}`;
-      ctx.fillText(r.label, LBL_X, y+ROW*0.58);
-      // value
+      if(r.label&&r.label.trim()) ctx.fillText(r.label, LBL_X, y+rH*0.62);
       ctx.fillStyle=r.warn?'#888888':'#000000';
-      const fSize=r.big?20:14;
+      const fSize=r.big?20:r.small?11:14;
       ctx.font=`${r.bold?'bold':'normal'} ${fSize}px ${SANS}`;
       if(r.warn){
-        // strikethrough-style: draw value in gray with dash prefix
-        ctx.fillText('— '+r.value, VAL_X, y+ROW*0.58);
+        ctx.fillText('— '+r.value, VAL_X, y+rH*0.62);
       } else {
-        ctx.fillText(r.value, VAL_X, y+ROW*0.58);
+        let val=r.value;
+        const maxW=W-VAL_X-PAD;
+        while(val.length>10&&ctx.measureText(val).width>maxW) val=val.slice(0,-4)+'…';
+        ctx.fillText(val, r.small?PAD+20:VAL_X, y+rH*0.62);
       }
-      // row divider
       ctx.strokeStyle='#f2f2f2'; ctx.lineWidth=0.5;
-      ctx.beginPath(); ctx.moveTo(PAD, y+ROW); ctx.lineTo(W-PAD, y+ROW); ctx.stroke();
-      y+=ROW;
+      ctx.beginPath(); ctx.moveTo(PAD, y+rH); ctx.lineTo(W-PAD, y+rH); ctx.stroke();
+      y+=rH;
     }
   });
 
@@ -2737,7 +2750,8 @@ function confirmCierre(){
       transferencia:dayCalc.txfrTotal,
       salesTotal:dayCalc.salesTotal,
       diff:rec.closeDiff,
-      artVendidos,cantErrores,cantCortesias,cantWebWA,estList
+      artVendidos,cantErrores,cantCortesias,cantWebWA,estList,
+      pendientes:getPendingOrdersList()
     }),300);
   }catch(e){
     console.error('confirmCierre error:',e);
@@ -2772,6 +2786,10 @@ function downloadCierreGeneralImage(d){
     {label:'TOTAL EN TARJETA (VERIFONE)', value:`RD$${Number(d.tarjeta).toLocaleString()}`},
     {label:'TOTAL EN TRANSFERENCIA', value:`RD$${Number(d.transferencia).toLocaleString()}`},
     {label:'DIFERENCIA', value:diffLabel, bold:true, warn:diffWarn},
+    {sec:'PEDIDOS PENDIENTES'},
+    ...(d.pendientes&&d.pendientes.length
+      ? d.pendientes.map((p,i)=>({label:'', value:p, small:true}))
+      : [{label:'', value:'Ninguno'}]),
   ];
 
   let H=120;
@@ -4323,7 +4341,8 @@ function confirmEntrada(){
     hora:formatTime12(arrival),
     turno:currentUser.shift||'—',
     cash:val,huella,web,display,displayNote,equipos,equiposNote,verifone,verifoneNote,
-    obs:obs||'Todo en orden'
+    obs:obs||'Todo en orden',
+    pendientes:getPendingOrdersList()
   }),300);
   setTimeout(checkPendingCorteVerification,600);
 }
