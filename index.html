@@ -873,6 +873,10 @@ input.err{border-color:#c00!important;}
       <div id="canal-address-row" style="display:none;">
         <label class="lbl">Dirección de entrega</label>
         <input id="f-address" type="text" placeholder="Calle, sector, referencia…" style="width:100%;"/>
+        <label style="display:flex;align-items:center;gap:8px;margin-top:10px;cursor:pointer;font-size:.85rem;font-weight:700;color:var(--g700);">
+          <input type="checkbox" id="descuento-almacen" style="width:16px;height:16px;cursor:pointer;accent-color:#374151;"/>
+          Descontar artículos de Almacén (en lugar de Agora)
+        </label>
       </div>
     </div>
 
@@ -3165,10 +3169,11 @@ function renderShifts(){
       const confirmBadge=confirmed
         ?`<span style="font-size:.68rem;background:#f0fdf4;color:#16a34a;border:1px solid #bbf7d0;border-radius:10px;padding:1px 7px;margin-left:6px;">✓ Verificado por ${c.confirmedBy.join(', ')}</span>`
         :`<span style="font-size:.68rem;background:#fff7ed;color:#c2410c;border:1px solid #fed7aa;border-radius:10px;padding:1px 7px;margin-left:6px;">⏳ Pendiente de verificar</span>`;
+      const dlCorteBtn=adminMode?`<button onclick="adminDownloadCorte('${c.id}')" style="margin-left:8px;font-size:.68rem;padding:2px 8px;border:1px solid #d1d5db;border-radius:6px;background:#f9fafb;cursor:pointer;color:#374151;">↓ Corte</button>`:'';
       return `<div class="corte-item"><div class="corte-item-dot ${dc}"></div>
         <div class="corte-info"><span class="corte-emp-name">${c.employeeName}</span>
         <span style="font-size:.7rem;color:var(--g500);margin-left:4px;">(${c.shift||''})</span> — Corte ${ct}
-        <span class="corte-diff-badge ${dc}">${dt}</span>${confirmBadge}
+        <span class="corte-diff-badge ${dc}">${dt}</span>${confirmBadge}${dlCorteBtn}
         <br>Esperado: <strong>$${c.expectedCash.toLocaleString()}</strong> · Contado: <strong>$${c.cashCounted.toLocaleString()}</strong>
         ${c.notes?`<br><em style="color:var(--g500);">${c.notes}</em>`:''}</div></div>`;
     }).join('');
@@ -3192,12 +3197,18 @@ function renderShifts(){
     const dayOrders=orders.filter(o=>localDateStr(o.id)===date);
     const prodSummaryCompact=buildProductSummary(dayOrders,true);
     const notes=dayRec.notes?`<div class="shift-card-notes">📝 ${dayRec.notes}</div>`:'';
+    const adminDlBtns=adminMode?`
+      <div style="display:flex;gap:6px;margin-left:auto;align-items:center;flex-wrap:wrap;">
+        <button onclick="adminDownloadApertura('${date}')" style="font-size:.68rem;padding:3px 9px;border:1px solid #d1d5db;border-radius:6px;background:#f9fafb;cursor:pointer;color:#374151;">↓ Apertura</button>
+        ${!isOpen?`<button onclick="adminDownloadCierre('${date}')" style="font-size:.68rem;padding:3px 9px;border:1px solid #d1d5db;border-radius:6px;background:#f9fafb;cursor:pointer;color:#374151;">↓ Cierre</button>`:''}
+        <button class="xbtn" onclick="deleteShift(${dayRec.id})" style="color:#c00;">✕ Borrar día</button>
+      </div>`:'';
     return `<div class="shift-card">
       <div class="${headClass}">
         <span class="sh-badge">📅 ${dateDisp}</span>
         <span class="sh-date">Apertura ${openTime} · ${dayRec.openedBy||''}</span>
         ${statusHtml}
-        ${adminMode?`<button class="xbtn" onclick="deleteShift(${dayRec.id})" style="margin-left:auto;color:#c00;">✕ Borrar día</button>`:''}
+        ${adminDlBtns}
       </div>
       <div class="shift-card-body">
         <div class="sc-cell"><div class="sc-lbl">Caja inicial</div><div class="sc-val">$${dayRec.openCash.toLocaleString()}</div></div>
@@ -3215,6 +3226,100 @@ function renderShifts(){
   }).join('');
   document.getElementById('shifts-list').innerHTML=topHtml+historyHtml;
   }catch(e){document.getElementById('shifts-list').innerHTML=`<div class="card" style="color:red;">Error al cargar Turnos: ${e.message}</div>`;}
+}
+
+/* ═══════════════════════════════════════
+   ADMIN REPORT DOWNLOADS
+═══════════════════════════════════════ */
+function adminDownloadApertura(date){
+  if(!adminMode)return;
+  const dayRec=getDayRec(date);
+  if(!dayRec){toast('No hay apertura registrada para ese día');return;}
+  // Try to find aperturaReport from verificaciones
+  const verif=verificaciones.find(v=>v.date===date&&v.employeeName===dayRec.openedBy&&v.type==='entrada');
+  const ar=verif&&verif.aperturaReport||{};
+  const fecha=new Date(date+'T12:00:00').toLocaleDateString('es',{day:'2-digit',month:'2-digit',year:'numeric'});
+  const hora=ar.arrival?formatTime12(ar.arrival):new Date(dayRec.openedAt).toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'});
+  // Pending orders at that date (those that were pending from rollover)
+  const pendientes=orders.filter(o=>
+    !o.needsApproval&&
+    ROLLOVER_STATUSES.includes(o.prodStatus||'pendiente')&&
+    localDateStr(o.id)>='2026-07-01'&&
+    localDateStr(o.id)<=date
+  ).map(o=>`${o.name}: ${(o.items||[]).map(i=>`${i.qty}× ${i.name}${i.model?' '+i.model:''}`).join(', ')}`);
+  downloadAperturaImage({
+    name:dayRec.openedBy||'—',
+    fecha,hora,
+    turno:verif&&verif.shift||'—',
+    cash:dayRec.openCash||0,
+    huella:ar.huella||false,
+    web:ar.web||false,
+    display:ar.display||'—',displayNote:ar.displayNote||'',
+    equipos:ar.equipos||'—',equiposNote:ar.equiposNote||'',
+    verifone:ar.verifone||'—',verifoneNote:ar.verifoneNote||'',
+    obs:ar.obs||'—',
+    pendientes
+  });
+}
+function adminDownloadCorte(corteId){
+  if(!adminMode)return;
+  const c=cortes.find(x=>String(x.id)===String(corteId));
+  if(!c){toast('Corte no encontrado');return;}
+  const fecha=new Date(c.date+'T12:00:00').toLocaleDateString('es',{day:'2-digit',month:'2-digit',year:'numeric'});
+  const pendientes=orders.filter(o=>
+    !o.needsApproval&&
+    ROLLOVER_STATUSES.includes(o.prodStatus||'pendiente')&&
+    localDateStr(o.id)>='2026-07-01'&&
+    localDateStr(o.id)<=c.date
+  ).map(o=>`${o.name}: ${(o.items||[]).map(i=>`${i.qty}× ${i.name}${i.model?' '+i.model:''}`).join(', ')}`);
+  downloadCorteImage({
+    name:c.employeeName,
+    fecha,
+    hora:c.horaSalida?formatTime12(c.horaSalida):new Date(c.toTimestamp).toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'}),
+    turno:c.shift||'—',
+    efectivo:c.cashCounted,
+    ventas:c.cashSales||0,
+    tarjeta:0, transferencia:0,
+    diff:c.diff,
+    novPhoto:null,
+    pedidosList:pendientes
+  });
+}
+function adminDownloadCierre(date){
+  if(!adminMode)return;
+  const dayRec=getDayRec(date);
+  if(!dayRec||!dayRec.closedAt){toast('No hay cierre registrado para ese día');return;}
+  const fecha=new Date(date+'T12:00:00').toLocaleDateString('es',{day:'2-digit',month:'2-digit',year:'numeric'});
+  const dayCalc=calcCashForDay(date);
+  const todayOrd=orders.filter(o=>localDateStr(o.id)===date&&o.pay);
+  const artVendidos=todayOrd.filter(o=>!SPECIAL_TYPES.includes(o.pay.type)).reduce((s,o)=>s+(o.items||[]).filter(i=>i.pid!=='custom').reduce((si,i)=>si+(i.qty||1),0),0);
+  const cantErrores=todayOrd.filter(o=>o.pay.type==='Error').length;
+  const cantCortesias=todayOrd.filter(o=>o.pay.type==='Cortesia').length;
+  const cantWebWA=todayOrd.filter(o=>o.source==='web'||o.source==='whatsapp').length;
+  const estMap={};
+  todayOrd.filter(o=>!SPECIAL_TYPES.includes(o.pay.type)&&o.registeredBy).forEach(o=>{
+    const emp=o.registeredBy;
+    estMap[emp]=(estMap[emp]||0)+(o.items||[]).filter(i=>i.pid!=='custom').reduce((si,i)=>si+(i.qty||1),0);
+  });
+  const estList=Object.entries(estMap).map(([n,c])=>`${n}: ${c} artículos`);
+  const pendientes=orders.filter(o=>
+    !o.needsApproval&&
+    ROLLOVER_STATUSES.includes(o.prodStatus||'pendiente')&&
+    localDateStr(o.id)>='2026-07-01'&&
+    localDateStr(o.id)<=date
+  ).map(o=>`${o.name}: ${(o.items||[]).map(i=>`${i.qty}× ${i.name}${i.model?' '+i.model:''}`).join(', ')}`);
+  downloadCierreGeneralImage({
+    fecha,
+    closedBy:dayRec.closedBy||'—',
+    efectivo:dayRec.closeCash||0,
+    ventas:dayCalc.netCash,
+    tarjeta:dayCalc.cardTotal,
+    transferencia:dayCalc.txfrTotal,
+    salesTotal:dayCalc.salesTotal,
+    diff:dayRec.closeDiff||0,
+    artVendidos,cantErrores,cantCortesias,cantWebWA,estList,
+    pendientes
+  });
 }
 
 /* ═══════════════════════════════════════
@@ -4845,6 +4950,7 @@ function submitOrder(){
   }
 
   const address=(document.getElementById('f-address')?.value||'').trim();
+  const fromAlmacenChk=!!(document.getElementById('descuento-almacen')?.checked);
   const _itemToRec=i=>({name:i.name,pid:i.pid,color:i.color,model:i.model||'',qty:i.qty,price:i.price,custom:{...i.custom},...(i.notes?{notes:i.notes}:{})});
   const sourceLabel={web:'🌐 Web',whatsapp:'💬 WhatsApp',tienda:'🏪 Tienda'}[currentCanal]||'';
 
@@ -4870,7 +4976,8 @@ function submitOrder(){
       total:tot2,pay:{type:pay.type},splitFrom:now,
       ...(!adminMode?{needsApproval:true}:{})};
     saveOrderRec(order1);
-    deductAgoraForOrder(order1.items);
+    if(fromAlmacenChk) deductAlmacenForOrder(order1.items);
+    else deductAgoraForOrder(order1.items);
     saveOrderRec(order2);
     const restockNames=_restockItems.map(i=>`${i.name}${i.model?' '+i.model:''}`).join(', ');
     toast(`${sourceLabel} Orden dividida ✓ · ${_availItems.length} producto${_availItems.length>1?'s':''} en producción · Restock: ${restockNames}`);
@@ -4894,8 +5001,9 @@ function submitOrder(){
     return;
   }
   saveOrderRec(orderRec);
-  deductAgoraForOrder(orderRec.items);
-  toast(`${sourceLabel} Orden registrada ✓ — enviada a Producción`);resetForm();
+  if(fromAlmacenChk) deductAlmacenForOrder(orderRec.items);
+  else deductAgoraForOrder(orderRec.items);
+  toast(`${sourceLabel} Orden registrada ✓ — enviada a Producción${fromAlmacenChk?' · Descontado de Almacén':''}`);resetForm();
 }
 
 
@@ -5373,6 +5481,8 @@ function setCanal(canal){
   });
   const addrRow=document.getElementById('canal-address-row');
   if(addrRow)addrRow.style.display=(canal==='web'||canal==='whatsapp')?'block':'none';
+  const almChk=document.getElementById('descuento-almacen');
+  if(almChk)almChk.checked=false;
 }
 function setProdToday(){
   const el=document.getElementById('prod-date');
@@ -5435,6 +5545,21 @@ function updateInvBadge(){
   else{tb.textContent='📋 Inventario';}
 }
 
+function deductAlmacenForOrder(orderItems){
+  if(!isInvActive())return;
+  orderItems.forEach(item=>{
+    if(item.pid==='custom')return;
+    const prod=INV_PRODS.find(p=>p.id===item.pid);
+    if(!prod)return;
+    if(IS_COVER.includes(item.pid)&&!item.model)return;
+    const sku=makeSkuFromItem(item);
+    const s=getStock(sku);
+    if((s.almacen||0)<=0&&(s.agora||0)<=0)return;
+    const newAlmacen=Math.max(0,(s.almacen||0)-(item.qty||1));
+    saveInvRec(sku,{...s,almacen:newAlmacen});
+    if(newAlmacen<=0)setTimeout(()=>toast(`⚠ Sin stock en Almacén: ${item.name}${item.model?' '+item.model:''} / ${item.color}`),800);
+  });
+}
 function deductAgoraForOrder(orderItems){
   if(!isInvActive())return; // inventory not set up yet — skip deduction
   orderItems.forEach(item=>{
