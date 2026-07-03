@@ -4626,7 +4626,6 @@ function confirmCorte(){
     const pedidosList=pendOrders.map(o=>`${o.needsApproval?'[Aprob.] ':o.prodStatus==='pendiente_restock'?'[Restock] ':''}${o.name}: ${(o.items||[]).map(i=>`${i.qty}× ${i.name}${i.model?' '+i.model:''}`).join(', ')}`);
     corteRec.horaSalida=horaSalida;
     corteRec.novedadesPhoto=novPhoto?true:false;
-    corteRec.stats={artVendidos,cantErrores,cantCortesias,cantWebWA,estList};
     saveCorteRec(corteRec);
     // Auto ponche de salida
     if(currentUser&&!verificaciones.find(v=>v.date===todayStr()&&v.employeeName===currentUser.name&&v.type==='salida')){
