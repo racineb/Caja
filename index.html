@@ -2633,7 +2633,9 @@ function openCierre(){
 
   const cp=getLastCheckpoint();
   const calc=calcCashForPeriod(todayStr(),cp.timestamp,Date.now());
-  const expectedCash=cp.cash+calc.netCash;
+  // Use gross cash (cashIn - changeOut) — do NOT subtract period deductions here.
+  // Corte deductions are for shift reconciliation only; the cierre counts physical cash.
+  const expectedCash=cp.cash+(calc.cashIn-calc.changeOut);
   const openTime=new Date(rec.openedAt).toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'});
 
   document.getElementById('cierre-title').textContent=`Cierre de Caja · ${new Date().toLocaleDateString('es',{day:'numeric',month:'long'})}`;
@@ -2722,8 +2724,9 @@ function confirmCierre(){
     const cp=getLastCheckpoint();
     if(!cp){toast('⚠ No hay apertura de caja para hoy');return;}
     const calc=calcCashForPeriod(todayStr(),cp.timestamp,Date.now());
-    // Subtract pending deductions (not yet in Firebase local cache)
-    const expected=cp.cash+calc.netCash-newDeducTotal;
+    // Use gross (cashIn - changeOut), NOT netCash — corte deductions are shift-level and
+    // must not double-count here. Only cierre-modal deductions reduce the expected amount.
+    const expected=cp.cash+(calc.cashIn-calc.changeOut)-newDeducTotal;
     rec.closedAt=Date.now();
     rec.closeCash=val;
     rec.closeDiff=val-expected;
