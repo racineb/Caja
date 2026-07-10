@@ -734,6 +734,7 @@ input.err{border-color:#c00!important;}
     <div class="nav-item" id="tb5" onclick="showTab(5)"><span class="nav-icon">📊</span><span>Inventario</span></div>
     <div class="nav-item" id="tb6" onclick="showTab(6)" style="display:none;"><span class="nav-icon">📈</span><span>Reportes</span></div>
     <div class="nav-item" id="tb7" onclick="showTab(7)" style="display:none;"><span class="nav-icon">⚙️</span><span>Configuración</span></div>
+    <div class="nav-item" id="tb9" onclick="showTab(9)" style="display:none;"><span class="nav-icon">📊</span><span>Dashboard</span></div>
   </nav>
 
   <!-- Admin quick actions -->
@@ -1021,6 +1022,7 @@ input.err{border-color:#c00!important;}
       <button class="dbtn" onclick="goToday()">Hoy</button>
       <button class="dbtn" onclick="shiftDate(-1)">‹</button>
       <button class="dbtn" onclick="shiftDate(+1)">›</button>
+      <button class="dbtn" onclick="document.getElementById('td').value='';renderT()">Ver Todas</button>
       <select id="t-shift" onchange="renderT()" style="width:140px;">
         <option value="">Todos los turnos</option>
         <option>Apertura</option>
@@ -1104,6 +1106,7 @@ input.err{border-color:#c00!important;}
       <button class="dbtn" onclick="downloadInvTemplate()" style="font-size:.77rem;">📥 Plantilla</button>
       <button class="dbtn" onclick="openMod('inv-export-modal')" style="font-size:.77rem;">📤 Exportar</button>
       <button class="dbtn" onclick="showInvHistory()" style="font-size:.77rem;">📜 Historial</button>
+      <button class="dbtn" onclick="showPhantomStock()" style="font-size:.77rem;" id="phantom-btn">🔍 Stock Fantasma</button>
       <button class="dbtn dark" onclick="openRestockModal()" style="font-size:.77rem;">🚚 Restock</button>
     </div>
     <button class="dbtn" id="inv-delivery-btn" onclick="openDeliveryModal()" style="display:none;font-size:.77rem;background:#dcfce7;color:#16a34a;border-color:#86efac;">📦 Entrega</button>
@@ -1157,6 +1160,8 @@ input.err{border-color:#c00!important;}
     <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
       <input type="date" id="prod-date" onchange="renderProd()" style="width:auto;font-size:.82rem;"/>
       <button class="dbtn" onclick="setProdToday()">Hoy</button>
+      <button class="dbtn" onclick="document.getElementById('prod-date').value='';renderProd()">Ver Todas</button>
+      <button class="dbtn" id="migrate-listo-btn" onclick="migrateListoBy()" style="display:none;">🔧 Recuperar estampado pasado</button>
       <select id="prod-source-filter" onchange="renderProd()" style="font-size:.82rem;width:auto;">
         <option value="">Todos los canales</option>
         <option value="tienda">🏪 Tienda</option>
@@ -1178,6 +1183,25 @@ input.err{border-color:#c00!important;}
   <div id="ruta-panel-content"></div>
   <!-- Viajes section inside Ruta tab -->
   <div id="viajes-ruta-section" style="margin-top:18px;"></div>
+</div>
+
+<div id="pnl9" style="display:none;">
+  <div style="padding:16px;max-width:900px;margin:0 auto;" id="dashboard-root">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
+      <h2 style="margin:0;font-size:1.15rem;">📊 Dashboard</h2>
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+        <button onclick="dashSetRange('today')" id="dash-btn-today" style="padding:5px 10px;border:1.5px solid var(--g300);border-radius:6px;background:var(--white);font-size:.75rem;font-weight:700;cursor:pointer;">Hoy</button>
+        <button onclick="dashSetRange('week')" id="dash-btn-week" style="padding:5px 10px;border:1.5px solid var(--g300);border-radius:6px;background:var(--white);font-size:.75rem;font-weight:700;cursor:pointer;">7 días</button>
+        <button onclick="dashSetRange('month')" id="dash-btn-month" style="padding:5px 10px;border:1.5px solid var(--g300);border-radius:6px;background:var(--white);font-size:.75rem;font-weight:700;cursor:pointer;">Este mes</button>
+        <span style="font-size:.75rem;color:var(--g500);">o</span>
+        <input type="date" id="dash-from" style="font-size:.78rem;padding:4px 7px;border:1.5px solid var(--g300);border-radius:6px;"/>
+        <span style="font-size:.8rem;color:var(--g500);">→</span>
+        <input type="date" id="dash-to" style="font-size:.78rem;padding:4px 7px;border:1.5px solid var(--g300);border-radius:6px;"/>
+        <button onclick="renderDashboard()" style="padding:5px 12px;border:1.5px solid var(--g300);border-radius:6px;background:var(--white);font-size:.8rem;font-weight:700;cursor:pointer;">↻</button>
+      </div>
+    </div>
+    <div id="dash-content"></div>
+  </div>
 </div>
 
 <div id="pnl7" style="display:none;">
@@ -1639,9 +1663,31 @@ input.err{border-color:#c00!important;}
       <label class="lbl">Mínimo de alerta (Agora)</label>
       <input type="number" min="0" id="ism-min" style="max-width:100px;"/>
     </div>
+    <div id="ism-orders" style="margin-bottom:14px;display:none;">
+      <div style="font-size:.7rem;font-weight:800;color:var(--g500);margin-bottom:6px;">📦 ÓRDENES CON ESTE PRODUCTO</div>
+      <div id="ism-orders-list" style="max-height:200px;overflow-y:auto;font-size:.72rem;"></div>
+    </div>
+    <div id="ism-history" style="margin-bottom:14px;display:none;">
+      <div style="font-size:.7rem;font-weight:800;color:var(--g500);margin-bottom:6px;">📜 MOVIMIENTOS DE INVENTARIO</div>
+      <div id="ism-history-list" style="max-height:180px;overflow-y:auto;font-size:.72rem;"></div>
+    </div>
     <div class="mfooter">
       <button class="obtn" onclick="closeMod('inv-sku-modal')">Cancelar</button>
       <button class="submit" onclick="confirmSkuModal()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── PHANTOM STOCK MODAL ── -->
+<div class="moverlay" id="phantom-modal">
+  <div class="modal wide" style="max-width:560px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <div><h3>🔍 Stock Fantasma</h3><p class="msub" style="margin:0;">Agora con stock sin órdenes activas que lo justifiquen</p></div>
+      <button class="xbtn" onclick="closeMod('phantom-modal')" style="font-size:1.1rem;">✕</button>
+    </div>
+    <div id="phantom-list" style="max-height:420px;overflow-y:auto;"></div>
+    <div class="mfooter" style="margin-top:12px;">
+      <button class="submit" onclick="closeMod('phantom-modal')">Cerrar</button>
     </div>
   </div>
 </div>
@@ -2045,6 +2091,10 @@ function initApp(){
   if(mobtb8)mobtb8.style.display=adminMode?'flex':'none';
   const tb7=document.getElementById('tb7');
   if(tb7)tb7.style.display=adminMode?'block':'none';
+  const tb9=document.getElementById('tb9');
+  if(tb9)tb9.style.display=adminMode?'block':'none';
+  const mobtb9=document.getElementById('mob-tb9');
+  if(mobtb9)mobtb9.style.display=adminMode?'flex':'none';
   buildProds();updHdr();updateShiftStatus();renderPendingApprovals();
   // Restore break timer if this employee was on break before reload
   if(currentUser.role!=='admin') restoreBreakTimer();
@@ -2740,8 +2790,8 @@ function confirmCierre(){
     const cantCortesias=todayOrd.filter(o=>o.pay.type==='Cortesia').length;
     const cantWebWA=todayOrd.filter(o=>o.source==='web'||o.source==='whatsapp').length;
     const estMap={};
-    todayOrd.filter(o=>!SPECIAL_TYPES.includes(o.pay.type)&&o.registeredBy).forEach(o=>{
-      const emp=o.registeredBy;
+    todayOrd.filter(o=>!SPECIAL_TYPES.includes(o.pay.type)&&(o.listoBy||o.registeredBy)).forEach(o=>{
+      const emp=o.listoBy||o.registeredBy;
       estMap[emp]=(estMap[emp]||0)+(o.items||[]).filter(i=>i.pid!=='custom').reduce((si,i)=>si+(i.qty||1),0);
     });
     const estList=Object.entries(estMap).map(([n,c])=>`${n}: ${c} artículos`);
@@ -3327,6 +3377,28 @@ function adminDownloadCierre(date){
   });
 }
 
+function adminSetDeliveryCobro(id){
+  if(!adminMode)return;
+  const o=orders.find(x=>x.id===id);if(!o)return;
+  const cur=o.deliveryCobro!=null?o.deliveryCobro:'';
+  const val=prompt(`Cobro al cliente — ${o.name||'orden'} (RD$):`,cur);
+  if(val===null)return;
+  const monto=parseFloat(val);
+  if(isNaN(monto)||monto<0){toast('Monto inválido');return;}
+  db.ref('orders/'+id+'/deliveryCobro').set(monto);
+  toast('Cobro registrado ✓');
+}
+function migrateListoBy(){
+  if(!adminMode)return;
+  const toMigrate=orders.filter(o=>!o.listoBy&&o.prodUpdatedBy&&['listo','ruta_mensajero','entregada'].includes(o.prodStatus));
+  if(!toMigrate.length){toast('Sin órdenes que migrar');return;}
+  if(!confirm('Copiar quién marcó listo en '+toMigrate.length+' orden(es) pasadas. ¿Continuar?'))return;
+  toMigrate.forEach(o=>{
+    db.ref('orders/'+o.id+'/listoBy').set(o.prodUpdatedBy);
+    if(o.prodUpdatedAt)db.ref('orders/'+o.id+'/listoAt').set(o.prodUpdatedAt);
+  });
+  toast('✓ '+toMigrate.length+' orden(es) actualizadas');
+}
 function adminEditCierre(date){
   if(!adminMode)return;
   const dayRec=getDayRec(date);
@@ -3509,7 +3581,7 @@ function renderMensajeroView(){
   if(!mensajeroMode)return;
   const container=document.getElementById('msg-orders');
   const pending=orders.filter(o=>o.prodStatus==='ruta_mensajero');
-  const delivered=orders.filter(o=>o.prodStatus==='entregada'&&o.deliveredBy===currentUser.name&&localDateStr(o.id)===todayStr());
+  const delivered=orders.filter(o=>o.prodStatus==='entregada'&&localDateStr(o.deliveredAt||o.id)===todayStr());
 
   const badge=document.getElementById('msg-pending-count');
   if(badge){badge.textContent=pending.length;badge.style.display=pending.length?'inline':'none';}
@@ -3953,8 +4025,7 @@ function buildDeliveryHistoryHtml(){
   const today=todayStr();
   const allDelivered=orders.filter(o=>
     o.prodStatus==='entregada'&&
-    o.deliveredBy===currentUser.name&&
-    localDateStr(o.id)!==today
+    localDateStr(o.deliveredAt||o.id)!==today
   ).sort((a,b)=>(b.deliveredAt||b.id)-(a.deliveredAt||a.id));
 
   if(!allDelivered.length){
@@ -3967,7 +4038,7 @@ function buildDeliveryHistoryHtml(){
   // Group by date
   const byDate={};
   allDelivered.forEach(o=>{
-    const d=localDateStr(o.id);
+    const d=localDateStr(o.deliveredAt||o.id);
     if(!byDate[d])byDate[d]=[];
     byDate[d].push(o);
   });
@@ -4055,7 +4126,7 @@ function splitRestockOrder(orderId){
     splitFrom:orderId};
   saveOrderRec(restockOrder);
   saveOrderRec(availOrder);
-  deductAgoraForOrder(availOrder.items);
+  deductAgoraForOrder(availOrder.items,availOrder.name||'#'+availOrder.id);
   const availNames=avail.map(i=>`${i.name}${i.model?' '+i.model:''}`).join(', ');
   toast(`✓ Orden dividida · En producción: ${availNames}`);
   setTimeout(renderProd,500);
@@ -4093,6 +4164,13 @@ function sendToRuta(id){
   db.ref('orders/'+id+'/sentToRutaBy').set(currentUser?currentUser.name:'');
   toast('✓ Orden enviada a ruta de mensajero');
 }
+function adminMarkDelivered(id){
+  if(!adminMode)return;
+  const o=orders.find(x=>x.id===id);if(!o)return;
+  if(!confirm(`¿Marcar "${o.name||'orden'}" como entregada?\n(Sin foto — el mensajero no la subió)`))return;
+  markDelivered(id,null);
+  setTimeout(renderRutaAdmin,400);
+}
 function recallFromRuta(id){
   if(!confirm('¿Regresar esta orden a Listo?'))return;
   db.ref('orders/'+id+'/prodStatus').set('listo');
@@ -4109,7 +4187,8 @@ function renderRutaAdmin(){
 
   const listos=orders.filter(o=>o.prodStatus==='listo'&&isDelivery(o)).sort((a,b)=>a.id-b.id);
   const enRuta=orders.filter(o=>o.prodStatus==='ruta_mensajero').sort((a,b)=>a.id-b.id);
-  const entregadas=orders.filter(o=>o.prodStatus==='entregada'&&localDateStr(o.id)===today).sort((a,b)=>b.deliveredAt-a.deliveredAt);
+  const entregadas=orders.filter(o=>o.prodStatus==='entregada'&&localDateStr(o.deliveredAt||o.id)===today).sort((a,b)=>(b.deliveredAt||b.id)-(a.deliveredAt||a.id));
+  const pastEntregadas=orders.filter(o=>o.prodStatus==='entregada'&&localDateStr(o.deliveredAt||o.id)!==today).sort((a,b)=>(b.deliveredAt||b.id)-(a.deliveredAt||a.id));
 
   const fmtPhone=p=>(p||'').replace(/\D/g,'');
   const canalTag=canal=>{
@@ -4132,6 +4211,7 @@ function renderRutaAdmin(){
       <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
         ${phone?`<a href="https://wa.me/${phone}" target="_blank" style="font-size:.78rem;padding:5px 10px;background:#dcfce7;color:#166534;border-radius:6px;text-decoration:none;font-weight:700;border:1px solid #86efac;">💬 WA</a>`:''}
         <button class="dbtn dark" style="font-size:.78rem;padding:6px 12px;white-space:nowrap;" onclick="sendToRuta(${o.id})">🛵 Enviar a Ruta</button>
+        ${adminMode?`<button class="dbtn" style="font-size:.75rem;padding:5px 10px;white-space:nowrap;background:#dcfce7;color:#166534;border:1px solid #86efac;" onclick="adminMarkDelivered(${o.id})">✓ Entregada</button>`:''}
       </div>
     </div>`;
   }).join(''):`<div style="text-align:center;color:#9ca3af;padding:10px;font-size:.84rem;">Sin órdenes listas para enviar</div>`;
@@ -4152,29 +4232,51 @@ function renderRutaAdmin(){
       </div>
       <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
         ${phone?`<a href="https://wa.me/${phone}" target="_blank" style="font-size:.78rem;padding:5px 10px;background:#dcfce7;color:#166534;border-radius:6px;text-decoration:none;font-weight:700;border:1px solid #86efac;">💬 WA</a>`:''}
+        ${adminMode?`<button class="dbtn" style="font-size:.75rem;padding:5px 10px;white-space:nowrap;background:#dcfce7;color:#166534;border:1px solid #86efac;" onclick="adminMarkDelivered(${o.id})">✓ Entregada</button>`:''}
         <button class="dbtn" style="font-size:.75rem;padding:5px 10px;" onclick="recallFromRuta(${o.id})" title="Regresar a Listo">↩</button>
       </div>
     </div>`;
   }).join(''):`<div style="text-align:center;color:#9ca3af;padding:10px;font-size:.84rem;">Sin órdenes en ruta actualmente</div>`;
 
-  const entregadasHtml=entregadas.length?entregadas.map(o=>{
+  const makeEntregadaCard=(o,showRevert)=>{
     const delivTime=o.deliveredAt?new Date(o.deliveredAt).toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'}):'';
-    const itemSum=o.items.map(i=>`${i.qty}× ${i.name||i.sku}`).join(', ');
-    const photoThumb=o.deliveryPhoto?`<img src="${o.deliveryPhoto}" onclick="showPhotoOverlay(this.src)" title="Ver foto entrega" style="height:36px;width:36px;object-fit:cover;border-radius:4px;border:1px solid #e5e7eb;cursor:pointer;" onerror="this.style.display='none'">`:'';
-    return `<div class="viaje-adm-row" style="flex-wrap:wrap;gap:6px;">
-      <div style="flex:1;min-width:180px;">
-        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:3px;">
-          <strong>${o.name||'Sin nombre'}</strong><span style="font-size:.68rem;background:#dcfce7;color:#166534;padding:1px 6px;border-radius:8px;font-weight:800;">✓ ENTREGADA ${delivTime}</span>
+    const itemSum=(o.items||[]).map(i=>`${i.qty}× ${i.name||i.sku}`).join(', ');
+    const photo=o.deliveryPhoto?`<img src="${o.deliveryPhoto}" onclick="showPhotoOverlay(this.src)" style="width:100%;max-height:200px;object-fit:cover;border-radius:8px;border:1px solid #e5e7eb;cursor:pointer;margin-bottom:8px;" onerror="this.style.display='none'">`:'';
+    const cobroHtml=adminMode
+      ?(o.deliveryCobro!=null
+        ?`<div style="display:flex;align-items:center;gap:6px;margin-top:5px;">
+            <span style="font-size:.8rem;font-weight:700;color:#166534;">💰 Cobrado: $${Number(o.deliveryCobro).toLocaleString()}</span>
+            <button onclick="adminSetDeliveryCobro(${o.id})" style="font-size:.68rem;padding:2px 7px;border:1px solid #d1d5db;border-radius:5px;background:#f9fafb;cursor:pointer;">✏</button>
+          </div>`
+        :`<button onclick="adminSetDeliveryCobro(${o.id})" style="font-size:.75rem;padding:4px 10px;border:1px solid #16a34a;border-radius:6px;background:#f0fdf4;color:#166534;font-weight:700;cursor:pointer;margin-top:5px;">💰 Registrar cobro</button>`)
+      :'';
+    return`<div class="viaje-adm-row" style="flex-direction:column;gap:0;padding:10px 12px;">
+      ${photo}
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:6px;flex-wrap:wrap;">
+        <div style="flex:1;min-width:160px;">
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:3px;">
+            <strong>${o.name||'Sin nombre'}</strong>
+            <span style="font-size:.68rem;background:#dcfce7;color:#166534;padding:1px 6px;border-radius:8px;font-weight:800;">✓ ${delivTime}</span>
+          </div>
+          <div style="font-size:.78rem;color:#374151;">${itemSum}</div>
+          <div style="font-size:.7rem;color:#9ca3af;margin-top:1px;">Por ${o.deliveredBy||'—'}</div>
+          ${cobroHtml}
         </div>
-        <div style="font-size:.78rem;color:#374151;">${itemSum}</div>
-        <div style="font-size:.7rem;color:#9ca3af;margin-top:1px;">Por ${o.deliveredBy||'—'}</div>
-      </div>
-      <div style="display:flex;gap:6px;align-items:center;">
-        ${photoThumb?`<div>${photoThumb}</div>`:''}
-        <button class="dbtn" style="font-size:.72rem;padding:4px 9px;white-space:nowrap;" onclick="revertOrderStatus(${o.id})" title="Regresar a En proceso">↩ Revertir</button>
+        ${showRevert?`<button class="dbtn" style="font-size:.72rem;padding:4px 9px;white-space:nowrap;align-self:flex-start;" onclick="revertOrderStatus(${o.id})" title="Regresar">↩</button>`:''}
       </div>
     </div>`;
-  }).join(''):'';
+  };
+  const entregadasHtml=entregadas.length?entregadas.map(o=>makeEntregadaCard(o,true)).join(''):'';
+
+  // History: past days grouped by delivery date
+  const pastByDate={};
+  pastEntregadas.forEach(o=>{const d=localDateStr(o.deliveredAt||o.id);if(!pastByDate[d])pastByDate[d]=[];pastByDate[d].push(o);});
+  const dateLabel=d=>{const[y,m,day]=d.split('-').map(Number);return new Date(y,m-1,day).toLocaleDateString('es',{weekday:'short',day:'numeric',month:'short',year:'numeric'});};
+  const pastHtml=Object.keys(pastByDate).sort((a,b)=>b.localeCompare(a)).map(d=>`
+    <div style="margin-bottom:14px;">
+      <div style="font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:#374151;margin-bottom:4px;">${dateLabel(d)} — ${pastByDate[d].length} entrega(s)</div>
+      <div style="border:1.5px solid #e5e7eb;border-radius:8px;overflow:hidden;">${pastByDate[d].map(o=>makeEntregadaCard(o,false)).join('<div style="height:1px;background:#f3f4f6;margin:0 12px;"></div>')}</div>
+    </div>`).join('');
 
   el.innerHTML=`
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
@@ -4188,7 +4290,8 @@ function renderRutaAdmin(){
     <div style="font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:#9d174d;margin-bottom:4px;">🛵 En Ruta</div>
     <div style="border:1.5px solid #fce7f3;border-radius:8px;padding:0 12px;margin-bottom:14px;background:#fff7f9;">${enRutaHtml}</div>
     ${entregadas.length?`<div style="font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:#166534;margin-bottom:4px;">✓ Entregadas Hoy — ${entregadas.length}</div>
-    <div style="border:1.5px solid #bbf7d0;border-radius:8px;padding:0 12px;">${entregadasHtml}</div>`:''}
+    <div style="border:1.5px solid #bbf7d0;border-radius:8px;overflow:hidden;margin-bottom:18px;">${entregadasHtml}</div>`:''}
+    ${pastHtml?`<div style="font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:#374151;margin-bottom:8px;margin-top:4px;">📋 Historial de Entregas</div>${pastHtml}`:''}
   `;
 }
 
@@ -5010,8 +5113,8 @@ function submitOrder(){
       total:tot2,pay:{type:pay.type},splitFrom:now,
       ...(!adminMode?{needsApproval:true}:{})};
     saveOrderRec(order1);
-    if(fromAlmacenChk) deductAlmacenForOrder(order1.items);
-    else deductAgoraForOrder(order1.items);
+    if(fromAlmacenChk) deductAlmacenForOrder(order1.items,name||'#'+order1.id);
+    else deductAgoraForOrder(order1.items,name||'#'+order1.id);
     saveOrderRec(order2);
     const restockNames=_restockItems.map(i=>`${i.name}${i.model?' '+i.model:''}`).join(', ');
     toast(`${sourceLabel} Orden dividida ✓ · ${_availItems.length} producto${_availItems.length>1?'s':''} en producción · Restock: ${restockNames}`);
@@ -5035,8 +5138,8 @@ function submitOrder(){
     return;
   }
   saveOrderRec(orderRec);
-  if(fromAlmacenChk) deductAlmacenForOrder(orderRec.items);
-  else deductAgoraForOrder(orderRec.items);
+  if(fromAlmacenChk) deductAlmacenForOrder(orderRec.items,orderRec.name||'#'+orderRec.id);
+  else deductAgoraForOrder(orderRec.items,orderRec.name||'#'+orderRec.id);
   toast(`${sourceLabel} Orden registrada ✓ — enviada a Producción${fromAlmacenChk?' · Descontado de Almacén':''}`);resetForm();
 }
 
@@ -5085,12 +5188,12 @@ function approvePendingOrder(id){
     else fromAgora.push(item);
   });
 
-  if(fromAgora.length) deductAgoraForOrder(fromAgora);
+  if(fromAgora.length) deductAgoraForOrder(fromAgora,o.name||'#'+o.id);
 
   fromAlmacen.forEach(item=>{
     const sku=makeSkuFromItem(item);
     const s=getStock(sku);
-    saveInvRec(sku,{...s, almacen:Math.max(0,(s.almacen||0)-(item.qty||1))});
+    saveInvRec(sku,{...s, almacen:Math.max(0,(s.almacen||0)-(item.qty||1))},'Aprobación Almacén · '+(o.name||'#'+o.id));
   });
 
   const restockItems=fromAlmacen.map(item=>({
@@ -5530,7 +5633,7 @@ const INV_PRODS=PRODS.filter(p=>!p.custom);
 let _invSubtab='cover'; // 'cover' | 'acc'
 
 function getStock(sku){return inventarioData[sku]||{almacen:0,agora:0,min:3};}
-function saveInvRec(sku,data){
+function saveInvRec(sku,data,reason){
   const before=inventarioData[sku]||{almacen:0,agora:0,min:3};
   db.ref('inventario/'+skuToFbKey(sku)).set(data);
   // Log history if stock values changed
@@ -5540,6 +5643,7 @@ function saveInvRec(sku,data){
       before:{almacen:before.almacen||0,agora:before.agora||0},
       after:{almacen:data.almacen||0,agora:data.agora||0},
       by:currentUser?currentUser.name:'Sistema',
+      reason:reason||'',
       ts:Date.now()
     });
   }
@@ -5579,7 +5683,7 @@ function updateInvBadge(){
   else{tb.textContent='📋 Inventario';}
 }
 
-function deductAlmacenForOrder(orderItems){
+function deductAlmacenForOrder(orderItems,orderLabel){
   if(!isInvActive())return;
   orderItems.forEach(item=>{
     if(item.pid==='custom')return;
@@ -5590,11 +5694,11 @@ function deductAlmacenForOrder(orderItems){
     const s=getStock(sku);
     if((s.almacen||0)<=0&&(s.agora||0)<=0)return;
     const newAlmacen=Math.max(0,(s.almacen||0)-(item.qty||1));
-    saveInvRec(sku,{...s,almacen:newAlmacen});
+    saveInvRec(sku,{...s,almacen:newAlmacen},'Orden Almacén'+(orderLabel?' · '+orderLabel:''));
     if(newAlmacen<=0)setTimeout(()=>toast(`⚠ Sin stock en Almacén: ${item.name}${item.model?' '+item.model:''} / ${item.color}`),800);
   });
 }
-function deductAgoraForOrder(orderItems){
+function deductAgoraForOrder(orderItems,orderLabel){
   if(!isInvActive())return; // inventory not set up yet — skip deduction
   orderItems.forEach(item=>{
     const prod=INV_PRODS.find(p=>p.id===item.pid);
@@ -5605,7 +5709,7 @@ function deductAgoraForOrder(orderItems){
     if(s.agora<=0&&s.almacen<=0)return; // SKU not tracked in inventory, skip
     if(s.agora<=0)return; // Item sourced from Almacén — deduction happens at restock transfer, not at order time
     const newAgora=s.agora-(item.qty||1);
-    saveInvRec(sku,{...s,agora:newAgora});
+    saveInvRec(sku,{...s,agora:newAgora},'Orden Agora'+(orderLabel?' · '+orderLabel:''));
     if(newAgora<=0&&s.almacen>0&&!skuExcludedByRules(sku)){
       setTimeout(()=>toast(`⚠ Sin stock en Agora: ${item.name}${item.model?' '+item.model:''} / ${item.color}`),800);
     }
@@ -5628,6 +5732,68 @@ function openSkuModal(sku){
   document.getElementById('ism-almacen').value=s.almacen;
   document.getElementById('ism-min').value=s.minOverride!=null?s.minOverride:getMinForSku(sku);
   document.getElementById('ism-transfer-qty').value='';
+  // ── Orders containing this SKU ──
+  const ordBox=document.getElementById('ism-orders');
+  const ordList=document.getElementById('ism-orders-list');
+  const matchingOrders=orders.filter(o=>(o.items||[]).some(i=>i.pid!=='custom'&&makeSkuFromItem(i)===sku))
+    .sort((a,b)=>b.id-a.id);
+  if(matchingOrders.length){
+    const STATUS_LABELS={pendiente_restock:'⏳ Restock',pendiente:'⏳ Pend.',en_proceso:'▶ Proc.',listo:'✓ Listo',ruta_mensajero:'🛵 Ruta',entregada:'✅ Entregada'};
+    ordList.innerHTML=matchingOrders.map(o=>{
+      const item=(o.items||[]).find(i=>i.pid!=='custom'&&makeSkuFromItem(i)===sku);
+      const qty=item?item.qty||1:1;
+      const dt=new Date(o.id).toLocaleString('es',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+      const st=STATUS_LABELS[o.prodStatus]||o.prodStatus||'?';
+      const isActive=['pendiente_restock','pendiente','en_proceso','listo','ruta_mensajero'].includes(o.prodStatus);
+      const stColor=isActive?'#92400e':o.prodStatus==='entregada'?'#166534':'#374151';
+      return `<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--g100);">
+        <div>
+          <span style="font-weight:700;">${o.name||'—'}</span>
+          <span style="color:var(--g500);margin-left:4px;">×${qty}</span>
+          <span style="margin-left:6px;font-size:.68rem;padding:1px 5px;border-radius:10px;background:var(--g100);color:${stColor};font-weight:700;">${st}</span>
+        </div>
+        <div style="color:var(--g400);white-space:nowrap;margin-left:8px;font-size:.68rem;">${dt}</div>
+      </div>`;
+    }).join('');
+    ordBox.style.display='block';
+  } else {
+    ordBox.style.display='none';
+  }
+
+  // Load SKU-specific history
+  const histBox=document.getElementById('ism-history');
+  const histList=document.getElementById('ism-history-list');
+  histBox.style.display='none';
+  histList.innerHTML='<span style="color:var(--g400)">Cargando...</span>';
+  db.ref('inventario_history').orderByChild('sku').equalTo(sku).once('value',snap=>{
+    const entries=[];
+    snap.forEach(c=>{entries.push(c.val());});
+    entries.sort((a,b)=>(b.ts||0)-(a.ts||0));
+    if(!entries.length){
+      histList.innerHTML='<span style="color:var(--g400)">Sin historial registrado para este SKU.</span>';
+    } else {
+      histList.innerHTML=entries.map(e=>{
+        const dt=e.ts?new Date(e.ts).toLocaleString('es',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}):'?';
+        const bA=(e.before&&typeof e.before==='object')?e.before.agora||0:0;
+        const aA=(e.after&&typeof e.after==='object')?e.after.agora||0:0;
+        const bS=(e.before&&typeof e.before==='object')?e.before.almacen||0:0;
+        const aS=(e.after&&typeof e.after==='object')?e.after.almacen||0:0;
+        const dA=aA-bA, dS=aS-bS;
+        const parts=[];
+        if(dA!==0){const s=dA>0?'+':'';const c=dA>0?'#166534':'#991b1b';parts.push(`<span style="font-weight:700;color:${c};">🏪 ${s}${dA}</span><span style="color:var(--g400);font-size:.68rem;"> (${bA}→${aA})</span>`);}
+        if(dS!==0){const s=dS>0?'+':'';const c=dS>0?'#166534':'#991b1b';parts.push(`<span style="font-weight:700;color:${c};">🏭 ${s}${dS}</span><span style="color:var(--g400);font-size:.68rem;"> (${bS}→${aS})</span>`);}
+        if(!parts.length){parts.push('<span style="color:var(--g400)">sin cambio</span>');}
+        return `<div style="padding:5px 0;border-bottom:1px solid var(--g100);">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+            <div style="display:flex;flex-wrap:wrap;gap:6px;">${parts.join('')}</div>
+            <div style="color:var(--g400);white-space:nowrap;margin-left:8px;font-size:.68rem;">${dt}</div>
+          </div>
+          ${e.reason||e.by?`<div style="font-size:.68rem;color:var(--g500);margin-top:2px;">${e.reason?e.reason:''}${e.reason&&e.by?' · ':''}${e.by?e.by:''}</div>`:''}
+        </div>`;
+      }).join('');
+    }
+    histBox.style.display='block';
+  });
   openMod('inv-sku-modal');
 }
 function confirmSkuModal(){
@@ -5641,7 +5807,7 @@ function confirmSkuModal(){
   const minOverride=(minInput!==defaultMin)?minInput:null;
   const rec={almacen,agora};
   if(minOverride!=null)rec.minOverride=minOverride;
-  saveInvRec(_editSku,rec);
+  saveInvRec(_editSku,rec,'Edición manual');
   closeMod('inv-sku-modal');
   toast('Inventario actualizado ✓');
   setTimeout(renderInventario,600);
@@ -5721,7 +5887,7 @@ function confirmCsvImport(dest){
     const rec=dest==='agora'
       ?{...s,agora:qty}
       :{...s,almacen:qty};
-    saveInvRec(sku,rec);
+    saveInvRec(sku,rec,'CSV import');
   });
   const count=_csvParsed.length;
   _csvParsed=[];
@@ -5972,6 +6138,36 @@ function setInvView(v){
 }
 
 // ── History ──
+function showPhantomStock(){
+  if(!adminMode)return;
+  const activeSkus={};
+  orders.filter(o=>['pendiente_restock','pendiente','en_proceso','listo'].includes(o.prodStatus||'pendiente')).forEach(o=>{
+    (o.items||[]).forEach(i=>{if(i.pid!=='custom'){const sku=makeSkuFromItem(i);activeSkus[sku]=(activeSkus[sku]||0)+(i.qty||1);}});
+  });
+  const rows=Object.entries(inventarioData)
+    .filter(([,d])=>(d.agora||0)>0)
+    .map(([sku,d])=>{
+      const pid=skuPid(sku);
+      const label=IS_COVER.includes(pid)
+        ?`Cover ${skuModel(sku)} / ${skuColor(sku)}`
+        :`${ACC_PID_MAP[pid]||pid} / ${skuColor(sku)}`;
+      const pending=activeSkus[sku]||0;
+      const phantom=Math.max(0,d.agora-pending);
+      return{sku,label,agora:d.agora,pending,phantom};
+    })
+    .filter(r=>r.phantom>0)
+    .sort((a,b)=>b.phantom-a.phantom);
+  if(!rows.length){toast('✓ Sin stock fantasma detectado');return;}
+  const html=rows.map(r=>`<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid #f3f4f6;flex-wrap:wrap;">
+    <div style="flex:1;">
+      <div style="font-weight:700;font-size:.85rem;">${r.label}</div>
+      <div style="font-size:.72rem;color:#6b7280;">En agora: ${r.agora} · Activas: ${r.pending} · <span style="color:#dc2626;font-weight:700;">Fantasma: ${r.phantom}</span></div>
+    </div>
+    <button onclick="openSkuModal('${r.sku.replace(/'/g,&quot;\\'&quot;)}');closeMod('phantom-modal')" style="font-size:.75rem;padding:5px 10px;border:1px solid #d1d5db;border-radius:6px;background:#f9fafb;cursor:pointer;white-space:nowrap;">✏ Corregir</button>
+  </div>`).join('');
+  document.getElementById('phantom-list').innerHTML=html;
+  openMod('phantom-modal');
+}
 function showInvHistory(){
   if(!adminMode)return;
   document.getElementById('inv-history-rows').innerHTML='<div style="padding:16px;text-align:center;color:var(--g500);">Cargando…</div>';
@@ -6346,7 +6542,7 @@ function confirmDelivery(){
   _confirmRestockItems.forEach(item=>{
     if(item.qty<=0)return;
     const s=getStock(item.sku);
-    saveInvRec(item.sku,{...s,agora:s.agora+item.qty,almacen:Math.max(0,(s.almacen||0)-item.qty)});
+    saveInvRec(item.sku,{...s,agora:s.agora+item.qty,almacen:Math.max(0,(s.almacen||0)-item.qty)},'Restock confirmado');
     added+=item.qty;
   });
   db.ref(`restocks/${_confirmRestockId}`).update({
@@ -6392,7 +6588,7 @@ function repairAlmacenFromRestocks(){
       if(!item.sku||!(item.qty>0))return;
       const s=getStock(item.sku);
       const newAlmacen=Math.max(0,(s.almacen||0)-item.qty);
-      saveInvRec(item.sku,{...s,almacen:newAlmacen});
+      saveInvRec(item.sku,{...s,almacen:newAlmacen},'Reparación restock');
     });
     db.ref(`restocks/${key}/almacenDeducted`).set(true);
     fixed++;
@@ -6623,9 +6819,17 @@ function updateProdStatus(orderId,newStatus){
   const role=currentUser?currentUser.role:'';
   if(newStatus==='ruta_mensajero'&&role!=='admin'){toast('Solo admin puede enviar a ruta');return;}
   if(newStatus==='entregada'&&role!=='admin'&&role!=='mensajero'){toast('Solo admin o mensajero puede marcar como entregada');return;}
-  saveOrderRec({...o,prodStatus:newStatus,prodUpdatedAt:Date.now(),prodUpdatedBy:currentUser?currentUser.name:''});
-  const labels={en_proceso:'▶ En proceso',listo:'✓ Listo',ruta_mensajero:'🛵 En ruta',entregada:'✅ Entregada'};
-  toast(labels[newStatus]||newStatus);
+  // Deduct agora when restock finally arrives — items were never deducted at order creation
+  if(o.prodStatus==='pendiente_restock'&&newStatus==='pendiente'&&isInvActive()){
+    deductAgoraForOrder(o.items,'Restock llegó · '+(o.name||'#'+o.id));
+    toast('📦 Restock en Pendiente · stock descontado de Agora ✓');
+  } else {
+    const labels={pendiente:'⏳ Pendiente',en_proceso:'▶ En proceso',listo:'✓ Listo',ruta_mensajero:'🛵 En ruta',entregada:'✅ Entregada'};
+    toast(labels[newStatus]||newStatus);
+  }
+  const now=Date.now();
+  const extra=newStatus==='listo'?{listoBy:currentUser?currentUser.name:'',listoAt:now}:{};
+  saveOrderRec({...o,...extra,prodStatus:newStatus,prodUpdatedAt:now,prodUpdatedBy:currentUser?currentUser.name:''});
   setTimeout(renderProd,400);
 }
 
@@ -6639,6 +6843,7 @@ function renderProd(){
   const ROLLOVER_FROM='2026-07-01';
   let dayOrders=orders.filter(o=>{
     if(o.needsApproval)return false;
+    if(!dateVal)return true; // "Ver Todas" — no date filter
     const oDate=localDateStr(o.id);
     // Rollover: only orders still in progress (not listo) persist across days
     if(ROLLOVER_STATUSES.includes(o.prodStatus||'pendiente')&&oDate>=ROLLOVER_FROM)return true;
@@ -6672,13 +6877,19 @@ function renderProd(){
     if(status==='pendiente_restock'){
       const _nowAvail=isInvActive()?o.items.filter(i=>i.pid!=='custom'&&(getStock(makeSkuFromItem(i)).agora||0)>0):[];
       const _nowRestock=isInvActive()?o.items.filter(i=>i.pid!=='custom'&&(getStock(makeSkuFromItem(i)).agora||0)<=0):o.items;
+      const adminRestockBtns=adminMode?`
+        <div style="display:flex;gap:5px;margin-top:5px;flex-wrap:wrap;">
+          <button class="prod-adv-btn to-proc" style="font-size:.73rem;flex:1;" onclick="updateProdStatus(${o.id},'pendiente')">📦 Restock llegó → Pendiente</button>
+          <button class="prod-adv-btn" style="font-size:.73rem;background:#fee2e2;color:#dc2626;border-color:#fca5a5;" onclick="if(confirm('¿Eliminar esta orden?'))delOrderRec(${o.id})">🗑</button>
+        </div>`:'';
       if(adminMode&&_nowAvail.length>0&&_nowRestock.length>0){
         advBtn=`<div style="display:flex;flex-direction:column;gap:5px;margin-top:4px;">
           <div style="font-size:.72rem;color:#c2410c;">⏳ Parcial — ${_nowAvail.length} art. disponible${_nowAvail.length>1?'s':''}, ${_nowRestock.length} en restock</div>
           <button class="prod-adv-btn to-proc" style="font-size:.74rem;" onclick="splitRestockOrder(${o.id})">✂ Dividir orden</button>
+          ${adminRestockBtns}
         </div>`;
       } else {
-        advBtn=`<div style="font-size:.72rem;color:#c2410c;padding:6px 0;display:flex;align-items:center;gap:5px;"><span>⏳ Esperando restock desde Almacén</span></div>`;
+        advBtn=`<div style="font-size:.72rem;color:#c2410c;padding:4px 0 0;">⏳ Esperando restock desde Almacén${adminRestockBtns}</div>`;
       }
     }
     else if(status==='pendiente')
@@ -6699,8 +6910,11 @@ function renderProd(){
     else if(status==='ruta_mensajero')
       advBtn=adminMode?`<button class="prod-adv-btn to-done" onclick="updateProdStatus(${o.id},'entregada')">✅ Entregada</button>`:`<div style="font-size:.72rem;color:#9d174d;padding:6px 0;">🛵 En ruta — pendiente de entrega</div>`;
     const addrHtml=o.address?`<div style="font-size:.72rem;color:var(--g500);margin-top:4px;">📍 ${o.address}</div>`:'';
-    const updHtml=o.prodUpdatedBy&&status!=='pendiente'?`<div style="font-size:.68rem;color:var(--g500);margin-top:3px;">por ${o.prodUpdatedBy}</div>`:'';
     const splitBadge=(o.splitFrom||o.splitInto)?`<span style="font-size:.65rem;background:#f0f9ff;color:#0369a1;border:1px solid #bae6fd;border-radius:8px;padding:1px 6px;margin-left:4px;">🔗 Dividida</span>`:'';
+    const _listoName=o.listoBy||(o.prodStatus==='listo'?o.prodUpdatedBy:null);
+    const _listoTime=o.listoAt||(o.prodStatus==='listo'?o.prodUpdatedAt:null);
+    const _listoLabel=o.listoBy?'✍':'✍?';
+    const listoHtml=_listoName?`<div style="font-size:.68rem;color:#166534;font-weight:700;margin-top:4px;">${_listoLabel} ${_listoName}${_listoTime?' · '+new Date(_listoTime).toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'}):''}</div>`:'';
     return`<div class="prod-card ${status==='pendiente_restock'?'pend':status==='ruta_mensajero'?'proc':status==='entregada'?'done':status}">
       <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
         <span class="prod-source ${src}">${srcIcon[src]||''} ${srcLabel[src]||src}</span>
@@ -6708,7 +6922,7 @@ function renderProd(){
       </div>
       <div style="font-weight:800;font-size:.86rem;">${o.name}${o.phone?`<span style="font-weight:400;font-size:.75rem;color:var(--g500);"> · ${o.phone}</span>`:''}${splitBadge}</div>
       <div style="margin-top:5px;">${itemsHtml}</div>
-      ${addrHtml}${updHtml}
+      ${addrHtml}${listoHtml}
       ${advBtn}
     </div>`;
   }
@@ -6734,8 +6948,47 @@ function renderProd(){
     </div>
   </div>`;
 
+  // Pending / issue restock requests banner (admin only)
+  let restockBannerHtml='';
+  if(adminMode){
+    const pendRest=Object.entries(restocksData).filter(([,v])=>v.status==='pending'||v.status==='issue')
+      .sort((a,b)=>(b[1].createdAt||0)-(a[1].createdAt||0));
+    if(pendRest.length){
+      const rows=pendRest.map(([key,r])=>{
+        const dt=new Date(r.createdAt||0);
+        const dateStr=`${dt.getDate()}/${dt.getMonth()+1} ${String(dt.getHours()).padStart(2,'0')}:${String(dt.getMinutes()).padStart(2,'0')}`;
+        const itemArr=Object.values(r.items||{});
+        const totalUnits=itemArr.reduce((a,v)=>a+(v.qty||0),0);
+        const isIssue=r.status==='issue';
+        const badge=isIssue
+          ?`<span style="font-size:.65rem;background:#fee2e2;color:#dc2626;border-radius:4px;padding:1px 6px;font-weight:800;">⚠ Error</span>`
+          :`<span style="font-size:.65rem;background:#fef9c3;color:#854d0e;border-radius:4px;padding:1px 6px;font-weight:800;">⏳ Enviado</span>`;
+        const items=itemArr.slice(0,3).map(i=>{
+          const pid=skuPid(i.sku||'');
+          const label=IS_COVER.includes(pid)?`Cover ${skuModel(i.sku||'')}`:ACC_PID_MAP[pid]||pid;
+          return`${i.qty}× ${label}`;
+        }).join(', ')+(itemArr.length>3?` +${itemArr.length-3} más`:'');
+        return`<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid #fed7aa;flex-wrap:wrap;">
+          <div style="flex:1;min-width:0;">
+            <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+              ${badge}
+              <span style="font-size:.75rem;font-weight:700;">${totalUnits} uds · ${dateStr} · ${r.createdBy||'—'}</span>
+            </div>
+            <div style="font-size:.72rem;color:#92400e;margin-top:2px;">${items}</div>
+            ${isIssue&&r.issueNotes?`<div style="font-size:.7rem;color:#dc2626;margin-top:1px;">⚠ ${r.issueNotes}</div>`:''}
+          </div>
+          <button onclick="deleteRestock('${key}')" style="font-size:.7rem;padding:3px 8px;border:1px solid #fca5a5;border-radius:5px;background:#fee2e2;color:#dc2626;cursor:pointer;white-space:nowrap;flex-shrink:0;">🗑 Eliminar</button>
+        </div>`;
+      }).join('');
+      restockBannerHtml=`<div style="background:#fff7ed;border:1.5px solid #fed7aa;border-radius:10px;padding:10px 14px;margin-bottom:14px;">
+        <div style="font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:#c2410c;margin-bottom:6px;">📦 Solicitudes de Restock Enviadas</div>
+        ${rows}
+      </div>`;
+    }
+  }
+
   if(!totalCount){
-    wrap.innerHTML=summaryHtml+`<div class="empty"><div class="ei">📦</div><p>Sin órdenes para esta fecha</p></div>`;
+    wrap.innerHTML=summaryHtml+restockBannerHtml+`<div class="empty"><div class="ei">📦</div><p>Sin órdenes para esta fecha</p></div>`;
     return;
   }
 
@@ -6746,7 +6999,47 @@ function renderProd(){
     </div>`).join('')}
   </div>`;
 
-  wrap.innerHTML=summaryHtml+kanban;
+  // ── Estampado del día ──
+  const stamped=dayOrders.filter(o=>o.listoBy);
+  let estampHtml='';
+  if(stamped.length){
+    const byPerson={};
+    stamped.forEach(o=>{
+      const p=o.listoBy;
+      if(!byPerson[p])byPerson[p]=[];
+      byPerson[p].push(o);
+    });
+    const personCards=Object.entries(byPerson).sort((a,b)=>a[0].localeCompare(b[0])).map(([name,ords])=>{
+      const total=ords.reduce((s,o)=>(o.items||[]).filter(i=>i.pid!=='custom').reduce((si,i)=>si+(i.qty||1),s),0);
+      const rows=ords.sort((a,b)=>(a.listoAt||0)-(b.listoAt||0)).map(o=>{
+        const t=o.listoAt?new Date(o.listoAt).toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'}):'';
+        const items=(o.items||[]).filter(i=>i.pid!=='custom').map(i=>`${i.qty}× ${i.name}${i.model?' '+i.model:''}`).join(', ');
+        return`<div style="display:flex;justify-content:space-between;gap:8px;padding:5px 0;border-bottom:1px solid #f3f4f6;font-size:.78rem;">
+          <div style="flex:1;"><strong>${o.name}</strong><div style="color:#6b7280;font-size:.72rem;">${items}</div></div>
+          <div style="font-size:.72rem;color:#6b7280;flex-shrink:0;padding-top:2px;">${t}</div>
+        </div>`;
+      }).join('');
+      return`<div style="background:var(--white);border:1.5px solid var(--g200);border-radius:10px;padding:12px 14px;min-width:220px;flex:1;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+          <div style="font-weight:800;font-size:.9rem;">${name}</div>
+          <div style="background:#111;color:#fff;border-radius:20px;padding:2px 10px;font-size:.8rem;font-weight:800;">${total} art.</div>
+        </div>
+        ${rows}
+      </div>`;
+    }).join('');
+    estampHtml=`<div style="margin-top:18px;">
+      <div style="font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.7px;color:var(--g500);margin-bottom:10px;">✍ Estampado del día — ${stamped.length} orden(es)</div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-start;">${personCards}</div>
+    </div>`;
+  }
+
+  // Show migration button if there are listo orders without listoBy
+  const migrateBtn=document.getElementById('migrate-listo-btn');
+  if(migrateBtn){
+    const needsMigration=adminMode&&orders.some(o=>!o.listoBy&&o.prodUpdatedBy&&['listo','ruta_mensajero','entregada'].includes(o.prodStatus));
+    migrateBtn.style.display=needsMigration?'':'none';
+  }
+  wrap.innerHTML=summaryHtml+restockBannerHtml+kanban+estampHtml;
 }
 
 /* ── Ruta de Mensajero ── */
@@ -6865,6 +7158,208 @@ function setRepRange(range){
   document.getElementById('rep-to').value=to;
   renderReportes();
 }
+
+
+/* ═══════════════════════════════════════
+   ADMIN DASHBOARD
+═══════════════════════════════════════ */
+function dashSetRange(preset){
+  const today=todayStr();
+  let from=today,to=today;
+  if(preset==='week'){
+    const d=new Date(today+'T12:00:00');
+    d.setDate(d.getDate()-6);
+    from=localDateStr(d.getTime());
+  } else if(preset==='month'){
+    from=today.slice(0,8)+'01';
+  }
+  document.getElementById('dash-from').value=from;
+  document.getElementById('dash-to').value=to;
+  // highlight active button
+  ['today','week','month'].forEach(p=>{
+    const b=document.getElementById('dash-btn-'+p);
+    if(b)b.style.background=p===preset?'var(--g900)':'var(--white)',b.style.color=p===preset?'#fff':'';
+  });
+  renderDashboard();
+}
+
+function renderDashboard(){
+  if(!adminMode)return;
+  const fromEl=document.getElementById('dash-from');
+  const toEl=document.getElementById('dash-to');
+  const today=todayStr();
+  if(!fromEl.value)fromEl.value=today;
+  if(!toEl.value)toEl.value=today;
+  const fromStr=fromEl.value, toStr=toEl.value;
+  const isMultiDay=fromStr!==toStr;
+  const root=document.getElementById('dash-content');
+  if(!root)return;
+
+  // ── Filter orders in range ──
+  const rangeOrders=orders.filter(o=>localDateStr(o.id)>=fromStr&&localDateStr(o.id)<=toStr);
+  const salesOrders=rangeOrders.filter(o=>o.pay&&!SPECIAL_TYPES.includes(o.pay.type)&&o.source!=='web'&&o.source!=='whatsapp');
+  const cortesias=rangeOrders.filter(o=>o.pay&&o.pay.type==='Cortesia').length;
+  const errores=rangeOrders.filter(o=>o.pay&&o.pay.type==='Error').length;
+  const garantias=rangeOrders.filter(o=>o.pay&&o.pay.type==='Garantia').length;
+
+  // ── Aggregate cash across all days in range ──
+  let cashIn=0,changeOut=0,cardTotal=0,txfrTotal=0,salesTotal=0,netCash=0;
+  salesOrders.forEach(o=>{
+    salesTotal+=o.total||0;
+    const pt=o.pay.type;
+    if(pt==='Tarjeta') cardTotal+=o.total||0;
+    else if(pt==='Efectivo'){cashIn+=o.pay.received||0;changeOut+=o.pay.change||0;}
+    else if(pt==='Transferencia') txfrTotal+=o.total||0;
+    else if(pt==='Dividido'&&o.pay.rows){
+      let chLeft=o.pay.change||0;
+      o.pay.rows.forEach(r=>{
+        if(r.method==='Efectivo'){cashIn+=r.received;if(chLeft>0){const d=Math.min(r.received,chLeft);changeOut+=d;chLeft-=d;}}
+        else if(r.method==='Tarjeta') cardTotal+=r.received;
+        else if(r.method==='Transferencia') txfrTotal+=r.received;
+      });
+    }
+  });
+  // Deducciones in range
+  const rangeDeduc=deducciones.filter(d=>{
+    const dts=d.ts||(typeof d.id==='number'?d.id:parseInt(String(d.id)));
+    return localDateStr(dts)>=fromStr&&localDateStr(dts)<=toStr;
+  });
+  const totalDeduc=rangeDeduc.reduce((s,d)=>s+d.monto,0);
+  netCash=cashIn-changeOut-totalDeduc;
+
+  const fmtMoney=n=>'RD$'+Math.round(n).toLocaleString('es');
+  const rangeLabel=isMultiDay?`${fromStr} → ${toStr}`:fromStr;
+
+  // ── Prod status counts (always current pipeline) ──
+  const statuses=['pendiente_restock','pendiente','en_proceso','listo','ruta_mensajero'];
+  const statusLabels={pendiente_restock:'⏳ Restock',pendiente:'⏳ Pendiente',en_proceso:'▶ En proceso',listo:'✓ Listo',ruta_mensajero:'🛵 En ruta'};
+  const statusColors={pendiente_restock:'#7c3aed',pendiente:'#b45309',en_proceso:'#1d4ed8',listo:'#166534',ruta_mensajero:'#0369a1'};
+  const activeOrders=orders.filter(o=>statuses.includes(o.prodStatus));
+  const entregadasRango=orders.filter(o=>o.prodStatus==='entregada'&&localDateStr(o.deliveredAt||o.id)>=fromStr&&localDateStr(o.deliveredAt||o.id)<=toStr);
+  const statusCounts={};
+  statuses.forEach(s=>statusCounts[s]=activeOrders.filter(o=>o.prodStatus===s).length);
+
+  // ── Inventory alerts ──
+  const zeroSkus=getZeroStockSkus();
+  const lowSkus=getLowStockSkus();
+  const activeSkus={};
+  activeOrders.forEach(o=>(o.items||[]).forEach(i=>{if(i.pid!=='custom'){const sku=makeSkuFromItem(i);activeSkus[sku]=(activeSkus[sku]||0)+(i.qty||1);}}));
+  const phantomCount=isInvActive()?Object.entries(inventarioData).filter(([sku,d])=>(d.agora||0)>0&&!(activeSkus[sku]>0)).length:0;
+
+  // ── Top products in range ──
+  const prodCount={};
+  salesOrders.forEach(o=>(o.items||[]).forEach(i=>{
+    const key=`${i.name}${i.model?' '+i.model:''} / ${i.color}`;
+    prodCount[key]=(prodCount[key]||0)+(i.qty||1);
+  }));
+  const topProds=Object.entries(prodCount).sort((a,b)=>b[1]-a[1]).slice(0,5);
+
+  // ── Staff activity in range ──
+  const staffReg={},staffListo={};
+  rangeOrders.forEach(o=>{
+    const by=o.registeredBy||'?';
+    staffReg[by]=(staffReg[by]||0)+1;
+  });
+  orders.filter(o=>o.listoBy&&localDateStr(o.listoAt||o.id)>=fromStr&&localDateStr(o.listoAt||o.id)<=toStr).forEach(o=>{
+    const items=(o.items||[]).reduce((s,i)=>s+(i.qty||1),0);
+    staffListo[o.listoBy]=(staffListo[o.listoBy]||0)+items;
+  });
+
+  const card=(title,body,accent)=>`<div style="background:var(--white);border:1.5px solid var(--g200);border-radius:10px;padding:14px;${accent?'border-left:4px solid '+accent+';':''}">
+    <div style="font-size:.68rem;font-weight:800;color:var(--g500);margin-bottom:8px;letter-spacing:.04em;">${title}</div>
+    ${body}
+  </div>`;
+
+  const kpi=(label,val,sub,color)=>`<div style="text-align:center;padding:6px 0;">
+    <div style="font-size:1.35rem;font-weight:900;color:${color||'var(--g900)'};">${val}</div>
+    <div style="font-size:.7rem;font-weight:700;color:var(--g600);">${label}</div>
+    ${sub?`<div style="font-size:.65rem;color:var(--g400);">${sub}</div>`:''}
+  </div>`;
+
+  const avgOrder=salesOrders.length?Math.round(salesTotal/salesOrders.length):0;
+
+  const salesBlock=`<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;">
+    ${kpi('Ventas',fmtMoney(salesTotal),'ingreso bruto','#1d4ed8')}
+    ${kpi('Órdenes',salesOrders.length,'pagadas','')}
+    ${kpi('Efectivo neto',fmtMoney(netCash),'- deducciones','#166534')}
+    ${kpi('Promedio',fmtMoney(avgOrder),'por orden','')}
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-top:6px;border-top:1px solid var(--g100);padding-top:6px;">
+    ${kpi('Tarjeta',fmtMoney(cardTotal),'','')}
+    ${kpi('Transferencia',fmtMoney(txfrTotal),'','')}
+    ${kpi('Cort / Err / Gar',`${cortesias} / ${errores} / ${garantias}`,'','#92400e')}
+  </div>`;
+
+  const prodBlock=`<div style="display:flex;gap:6px;flex-wrap:wrap;">
+    ${Object.entries(statusCounts).map(([s,n])=>`<div style="flex:1;min-width:80px;text-align:center;padding:8px 4px;background:var(--g50);border-radius:8px;border:1.5px solid var(--g100);">
+      <div style="font-size:1.1rem;font-weight:900;color:${statusColors[s]||'#374151'};">${n}</div>
+      <div style="font-size:.62rem;font-weight:700;color:var(--g500);">${statusLabels[s]}</div>
+    </div>`).join('')}
+    <div style="flex:1;min-width:80px;text-align:center;padding:8px 4px;background:#f0fdf4;border-radius:8px;border:1.5px solid #bbf7d0;">
+      <div style="font-size:1.1rem;font-weight:900;color:#166534;">${entregadasRango.length}</div>
+      <div style="font-size:.62rem;font-weight:700;color:#166534;">✅ ${isMultiDay?'Entregadas':'Entregadas hoy'}</div>
+    </div>
+  </div>`;
+
+  const invBlock=!isInvActive()?'<span style="color:var(--g400);font-size:.8rem;">Inventario no configurado</span>':`<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">
+    <div style="text-align:center;cursor:pointer;" onclick="showPhantomStock()">
+      <div style="font-size:1.3rem;font-weight:900;color:${phantomCount?'#dc2626':'#166534'};">${phantomCount}</div>
+      <div style="font-size:.68rem;font-weight:700;color:var(--g500);">👻 Stock fantasma</div>
+    </div>
+    <div style="text-align:center;">
+      <div style="font-size:1.3rem;font-weight:900;color:${zeroSkus.length?'#dc2626':'#166534'};">${zeroSkus.length}</div>
+      <div style="font-size:.68rem;font-weight:700;color:var(--g500);">⬛ Sin stock</div>
+    </div>
+    <div style="text-align:center;">
+      <div style="font-size:1.3rem;font-weight:900;color:${lowSkus.length?'#d97706':'#166534'};">${lowSkus.length}</div>
+      <div style="font-size:.68rem;font-weight:700;color:var(--g500);">⚠️ Stock bajo</div>
+    </div>
+  </div>`;
+
+  const topProdsBlock=topProds.length
+    ?topProds.map(([name,qty],i)=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--g100);">
+        <div style="font-size:.75rem;font-weight:${i===0?'800':'600'};color:var(--g800);">${i===0?'🥇':i===1?'🥈':i===2?'🥉':'  '} ${name}</div>
+        <div style="font-size:.75rem;font-weight:800;color:#1d4ed8;">${qty} uds</div>
+      </div>`).join('')
+    :'<span style="color:var(--g400);font-size:.8rem;">Sin ventas registradas</span>';
+
+  const staffRegBlock=Object.keys(staffReg).length
+    ?Object.entries(staffReg).sort((a,b)=>b[1]-a[1]).map(([name,n])=>`<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--g100);">
+        <span style="font-size:.75rem;font-weight:600;">${name}</span>
+        <span style="font-size:.75rem;font-weight:800;color:#374151;">${n} orden${n!==1?'es':''}</span>
+      </div>`).join('')
+    :'<span style="color:var(--g400);font-size:.8rem;">—</span>';
+
+  const staffListoBlock=Object.keys(staffListo).length
+    ?Object.entries(staffListo).sort((a,b)=>b[1]-a[1]).map(([name,n])=>`<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--g100);">
+        <span style="font-size:.75rem;font-weight:600;">${name}</span>
+        <span style="font-size:.75rem;font-weight:800;color:#166534;">${n} artículo${n!==1?'s':''}</span>
+      </div>`).join('')
+    :'<span style="color:var(--g400);font-size:.8rem;">—</span>';
+
+  const toolsBlock=`<div style="display:flex;gap:8px;flex-wrap:wrap;">
+    <button onclick="showPhantomStock()" style="padding:6px 12px;border:1.5px solid var(--g300);border-radius:7px;background:var(--white);font-size:.75rem;font-weight:700;cursor:pointer;">👻 Stock fantasma</button>
+    <button onclick="showInvHistory()" style="padding:6px 12px;border:1.5px solid var(--g300);border-radius:7px;background:var(--white);font-size:.75rem;font-weight:700;cursor:pointer;">📜 Historial inventario</button>
+    <button onclick="migrateListoBy()" style="padding:6px 12px;border:1.5px solid var(--g300);border-radius:7px;background:var(--white);font-size:.75rem;font-weight:700;cursor:pointer;">🔧 Migrar listoBy</button>
+    <button onclick="showTab(6)" style="padding:6px 12px;border:1.5px solid var(--g300);border-radius:7px;background:var(--white);font-size:.75rem;font-weight:700;cursor:pointer;">📈 Reportes</button>
+  </div>`;
+
+  root.innerHTML=`
+    <div style="display:grid;gap:12px;">
+      ${card('💰 VENTAS · '+rangeLabel, salesBlock, '#1d4ed8')}
+      ${card('🏭 PRODUCCIÓN ACTIVA (pipeline actual)', prodBlock, '#7c3aed')}
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        ${card('📦 INVENTARIO', invBlock, '#d97706')}
+        ${card('🏆 TOP PRODUCTOS · '+rangeLabel, topProdsBlock, '#0369a1')}
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        ${card('🛒 VENTAS POR PERSONA · '+rangeLabel, staffRegBlock, '')}
+        ${card('✍ ESTAMPADO · '+rangeLabel, staffListoBlock, '#166534')}
+      </div>
+      ${card('🔧 HERRAMIENTAS ADMIN', toolsBlock, '')}
+    </div>`;
+}
+
 
 function renderReportes(){
   if(!adminMode)return;
@@ -7495,7 +7990,7 @@ function addManualRestockItem(){
 /* ═══════════════════════════════════════
    TABS
 ═══════════════════════════════════════ */
-const TAB_TITLES=['Nueva Orden','Transacciones','Turnos','Horario','Producción','Inventario','Reportes','Configuración','Ruta'];
+const TAB_TITLES=['Nueva Orden','Transacciones','Turnos','Horario','Producción','Inventario','Reportes','Configuración','Ruta','Dashboard'];
 function showTab(n){
   if(n===0&&currentUser){
     const key=`cv5_entry_${todayStr()}_${currentUser.name}`;
@@ -7505,12 +8000,12 @@ function showTab(n){
       return;
     }
   }
-  [0,1,2,3,4,5,6,7,8].forEach(i=>{
+  [0,1,2,3,4,5,6,7,8,9].forEach(i=>{
     const p=document.getElementById(`pnl${i}`);if(p)p.style.display=i===n?'block':'none';
     const t=document.getElementById(`tb${i}`);if(t)t.classList.toggle('active',i===n);
   });
   // sync mobile nav
-  [0,1,2,3,4,5,6,7,8].forEach(i=>{
+  [0,1,2,3,4,5,6,7,8,9].forEach(i=>{
     const m=document.getElementById(`mob-tb${i}`);
     if(m)m.classList.toggle('active',i===n);
   });
@@ -7551,6 +8046,7 @@ function showTab(n){
     try{renderRutaAdmin();}catch(e){const c=document.getElementById('ruta-panel-content');if(c)c.innerHTML='<span style="color:red;font-size:.8rem;">'+e.message+'</span>';}
     try{renderViajesAdmin();}catch(e){const c=document.getElementById('viajes-ruta-section');if(c)c.innerHTML='<span style="color:red;font-size:.8rem;">'+e.message+'</span>';}
   }
+  if(n===9){if(!document.getElementById('dash-from').value)dashSetRange('today');else renderDashboard();}
 }
 
 /* ═══════════════════════════════════════
@@ -8166,6 +8662,7 @@ function checkSession(){
     <div class="mob-nav-item" id="mob-tb6" onclick="showTab(6)" style="display:none;"><span class="mni">📈</span><span>Reportes</span></div>
     <div class="mob-nav-item" id="mob-tb7" onclick="showTab(7)" style="display:none;"><span class="mni">⚙️</span><span>Config.</span></div>
     <div class="mob-nav-item" id="mob-tb8" onclick="showTab(8)" style="display:none;"><span class="mni">🛵</span><span>Ruta</span></div>
+    <div class="mob-nav-item" id="mob-tb9" onclick="showTab(9)" style="display:none;"><span class="mni">📊</span><span>Dashboard</span></div>
   </div>
 </nav>
 </body>
