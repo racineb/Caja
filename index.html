@@ -6163,7 +6163,7 @@ function showPhantomStock(){
       <div style="font-weight:700;font-size:.85rem;">${r.label}</div>
       <div style="font-size:.72rem;color:#6b7280;">En agora: ${r.agora} · Activas: ${r.pending} · <span style="color:#dc2626;font-weight:700;">Fantasma: ${r.phantom}</span></div>
     </div>
-    <button onclick="openSkuModal('${r.sku.replace(/'/g,&quot;\\'&quot;)}');closeMod('phantom-modal')" style="font-size:.75rem;padding:5px 10px;border:1px solid #d1d5db;border-radius:6px;background:#f9fafb;cursor:pointer;white-space:nowrap;">✏ Corregir</button>
+    <button onclick="openSkuModal('${r.sku.replace(/'/g, "\\'")}');closeMod('phantom-modal')" style="font-size:.75rem;padding:5px 10px;border:1px solid #d1d5db;border-radius:6px;background:#f9fafb;cursor:pointer;white-space:nowrap;">✏ Corregir</button>
   </div>`).join('');
   document.getElementById('phantom-list').innerHTML=html;
   openMod('phantom-modal');
@@ -7185,6 +7185,8 @@ function dashSetRange(preset){
 
 function renderDashboard(){
   if(!adminMode)return;
+  const _dashRoot=document.getElementById('dash-content');
+  try{
   const fromEl=document.getElementById('dash-from');
   const toEl=document.getElementById('dash-to');
   const today=todayStr();
@@ -7358,6 +7360,10 @@ function renderDashboard(){
       </div>
       ${card('🔧 HERRAMIENTAS ADMIN', toolsBlock, '')}
     </div>`;
+  }catch(e){
+    if(_dashRoot)_dashRoot.innerHTML='<div style="color:red;padding:16px;font-size:.85rem;"><strong>Error cargando dashboard:</strong><br>'+e.message+'<br><pre style="font-size:.75rem;white-space:pre-wrap;">'+e.stack+'</pre></div>';
+    console.error('Dashboard error:',e);
+  }
 }
 
 
@@ -8046,7 +8052,7 @@ function showTab(n){
     try{renderRutaAdmin();}catch(e){const c=document.getElementById('ruta-panel-content');if(c)c.innerHTML='<span style="color:red;font-size:.8rem;">'+e.message+'</span>';}
     try{renderViajesAdmin();}catch(e){const c=document.getElementById('viajes-ruta-section');if(c)c.innerHTML='<span style="color:red;font-size:.8rem;">'+e.message+'</span>';}
   }
-  if(n===9){if(!document.getElementById('dash-from').value)dashSetRange('today');else renderDashboard();}
+  if(n===9){try{if(!document.getElementById('dash-from').value)dashSetRange('today');else renderDashboard();}catch(e){const dc=document.getElementById('dash-content');if(dc)dc.innerHTML='<div style="color:red;padding:16px;font-size:.85rem;"><strong>Error en Dashboard:</strong><br>'+e.message+'<br><pre style="font-size:.75rem;white-space:pre-wrap;">'+e.stack+'</pre></div>';}}
 }
 
 /* ═══════════════════════════════════════
