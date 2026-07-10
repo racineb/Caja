@@ -734,7 +734,7 @@ input.err{border-color:#c00!important;}
     <div class="nav-item" id="tb5" onclick="showTab(5)"><span class="nav-icon">📊</span><span>Inventario</span></div>
     <div class="nav-item" id="tb6" onclick="showTab(6)" style="display:none;"><span class="nav-icon">📈</span><span>Reportes</span></div>
     <div class="nav-item" id="tb7" onclick="showTab(7)" style="display:none;"><span class="nav-icon">⚙️</span><span>Configuración</span></div>
-    <div class="nav-item" id="tb9" onclick="showTab(9)" style="display:none;"><span class="nav-icon">📊</span><span>Dashboard</span></div>
+    <div class="nav-item" id="tb9" onclick="showTab(9)" style="display:none;"><span class="nav-icon">📋</span><span>Auditoría</span></div>
   </nav>
 
   <!-- Admin quick actions -->
@@ -1694,21 +1694,29 @@ input.err{border-color:#c00!important;}
 
 <!-- ── INV HISTORY MODAL ── -->
 <div class="moverlay" id="inv-history-modal">
-  <div class="modal wide" style="max-width:640px;">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
-      <div><h3>📜 Historial de Ediciones</h3><p class="msub" style="margin:0;">Últimas 50 modificaciones al inventario</p></div>
+  <div class="modal wide" style="max-width:700px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+      <div><h3>📜 Movimientos de Inventario</h3><p class="msub" style="margin:0;">Todos los descuentos y ajustes desde la fecha seleccionada</p></div>
       <button class="xbtn" onclick="closeMod('inv-history-modal')" style="font-size:1.1rem;">✕</button>
     </div>
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap;">
+      <label style="font-size:.75rem;font-weight:700;color:var(--g600);">Desde:</label>
+      <input type="date" id="inv-hist-from" value="2026-06-20" style="font-size:.8rem;padding:4px 8px;border:1.5px solid var(--g300);border-radius:6px;"/>
+      <label style="font-size:.75rem;font-weight:700;color:var(--g600);">Hasta:</label>
+      <input type="date" id="inv-hist-to" style="font-size:.8rem;padding:4px 8px;border:1.5px solid var(--g300);border-radius:6px;"/>
+      <button onclick="showInvHistory()" style="padding:4px 12px;border:1.5px solid var(--g300);border-radius:6px;background:var(--white);font-size:.8rem;font-weight:700;cursor:pointer;">↻ Filtrar</button>
+      <span id="inv-hist-count" style="font-size:.72rem;color:var(--g500);margin-left:4px;"></span>
+    </div>
     <div style="overflow-x:auto;">
-      <div class="hist-row hist-row-hdr">
-        <span>Fecha</span><span>SKU</span><span>Antes</span><span>Después</span><span>Por</span>
-      </div>
-      <div id="inv-history-rows" style="max-height:400px;overflow-y:auto;"></div>
+      <div id="inv-hist-header"></div>
+      <div id="inv-history-rows" style="max-height:420px;overflow-y:auto;"></div>
     </div>
     <div class="mfooter" style="margin-top:12px;">
       <button class="submit" onclick="closeMod('inv-history-modal')">Cerrar</button>
     </div>
   </div>
+</div>
+
 </div>
 
 <!-- ── INV RESTOCK MODAL ── -->
@@ -6170,34 +6178,101 @@ function showPhantomStock(){
 }
 function showInvHistory(){
   if(!adminMode)return;
-  document.getElementById('inv-history-rows').innerHTML='<div style="padding:16px;text-align:center;color:var(--g500);">Cargando…</div>';
+  const fromEl=document.getElementById('inv-hist-from');
+  const toEl=document.getElementById('inv-hist-to');
+  if(!toEl.value)toEl.value=todayStr();
+  const fromStr=fromEl.value||'2026-06-20';
+  const toStr=toEl.value||todayStr();
+  const fromTs=new Date(fromStr+'T00:00:00').getTime();
+  const toTs=new Date(toStr+'T23:59:59').getTime();
+  const rowsEl=document.getElementById('inv-history-rows');
+  const countEl=document.getElementById('inv-hist-count');
   openMod('inv-history-modal');
-  db.ref('inventario_history').orderByChild('ts').limitToLast(50).once('value',snap=>{
-    const items=[];
-    snap.forEach(c=>items.unshift({...c.val(),key:c.key}));
-    if(!items.length){document.getElementById('inv-history-rows').innerHTML='<div style="padding:16px;text-align:center;color:var(--g500);">Sin historial aún.</div>';return;}
-    document.getElementById('inv-history-rows').innerHTML=items.map(h=>{
-      const pid=skuPid(h.sku);
+
+  // ── Build consumption from ORDERS (all non-restock completed orders) ──
+  // Include all orders in range that are NOT purely pending_restock with no progress
+  const rangeOrders=orders.filter(o=>{
+    if(o.needsApproval)return false;
+    if(SPECIAL_TYPES.includes((o.pay||{}).type))return false;
+    if(o.id<fromTs||o.id>toTs)return false;
+    // Include orders that have left pendiente_restock (i.e. were or are being produced)
+    return o.prodStatus!=='pendiente_restock';
+  });
+
+  // Also include pendiente_restock orders that were split (have splitFrom) — those had the available part deducted
+  // Build line items: one row per item per order
+  const lines=[];
+  rangeOrders.forEach(o=>{
+    (o.items||[]).forEach(i=>{
+      if(i.pid==='custom')return;
+      const sku=makeSkuFromItem(i);
+      const pid=skuPid(sku);
       const label=IS_COVER.includes(pid)
-        ?`Cover ${skuModel(h.sku)} / ${skuColor(h.sku)}`
-        :`${ACC_PID_MAP[pid]||pid} / ${skuColor(h.sku)}`;
-      const d=new Date(h.ts);
-      const ds=`${d.getDate()}/${d.getMonth()+1} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`;
-      const aChange=h.after.agora-h.before.agora, mChange=h.after.almacen-h.before.almacen;
-      const changes=[];
-      if(aChange!==0)changes.push(`Agora ${aChange>0?'+':''}${aChange}`);
-      if(mChange!==0)changes.push(`Almacén ${mChange>0?'+':''}${mChange}`);
-      const afterTxt=`A:${h.after.agora} M:${h.after.almacen}`;
-      const beforeTxt=`A:${h.before.agora} M:${h.before.almacen}`;
-      const chColor=aChange<0?'#dc2626':aChange>0?'#16a34a':'#92400e';
-      return `<div class="hist-row">
-        <span style="color:var(--g500);font-size:.7rem;">${ds}</span>
+        ?`Cover ${skuModel(sku)} / ${skuColor(sku)}`
+        :`${ACC_PID_MAP[pid]||pid} / ${skuColor(sku)}`;
+      const d=new Date(o.id);
+      const ds=`${d.getDate()}/${d.getMonth()+1} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+      lines.push({ts:o.id,ds,label,sku,qty:i.qty||1,client:o.name||'—',by:o.registeredBy||'—',status:o.prodStatus,orderId:o.id});
+    });
+  });
+  lines.sort((a,b)=>b.ts-a.ts);
+
+  // Also load Firebase inventario_history for manual adjustments in range
+  db.ref('inventario_history').orderByChild('ts').startAt(fromTs).endAt(toTs).once('value',snap=>{
+    const adjItems=[];
+    snap.forEach(c=>adjItems.push(c.val()));
+    // Only show manual adjustments (not order deductions which we already show from orders)
+    const manualAdj=adjItems.filter(h=>!h.reason||(!h.reason.startsWith('Orden')));
+
+    const totalLines=lines.length+manualAdj.length;
+    if(countEl)countEl.textContent=`${lines.length} línea${lines.length!==1?'s':''} de órdenes · ${manualAdj.length} ajuste${manualAdj.length!==1?'s':''} manuales`;
+
+    if(!totalLines){
+      rowsEl.innerHTML='<div style="padding:16px;text-align:center;color:var(--g500);">Sin movimientos en este período.</div>';
+      return;
+    }
+
+    const STATUS_COLOR={pendiente_restock:'#7c3aed',pendiente:'#b45309',en_proceso:'#1d4ed8',listo:'#166534',ruta_mensajero:'#0369a1',entregada:'#166534'};
+    const STATUS_LABEL={pendiente_restock:'Restock',pendiente:'Pendiente',en_proceso:'En proceso',listo:'Listo',ruta_mensajero:'En ruta',entregada:'Entregada'};
+
+    // Order lines
+    const orderRows=lines.map(l=>`<div style="display:grid;grid-template-columns:90px 1fr 40px 1fr 80px 70px;gap:0;padding:5px 8px;border-bottom:1px solid var(--g100);font-size:.72rem;align-items:center;">
+      <span style="color:var(--g500);">${l.ds}</span>
+      <span style="font-weight:600;">${l.label}</span>
+      <span style="font-weight:800;color:#dc2626;text-align:center;">−${l.qty}</span>
+      <span style="color:var(--g600);">${l.client}</span>
+      <span style="color:var(--g500);">${l.by}</span>
+      <span style="font-size:.65rem;padding:1px 5px;border-radius:8px;background:var(--g100);color:${STATUS_COLOR[l.status]||'#374151'};font-weight:700;">${STATUS_LABEL[l.status]||l.status}</span>
+    </div>`).join('');
+
+    // Manual adjustment rows
+    const adjRows=manualAdj.sort((a,b)=>(b.ts||0)-(a.ts||0)).map(h=>{
+      const pid=skuPid(h.sku||'');
+      const label=IS_COVER.includes(pid)?`Cover ${skuModel(h.sku)} / ${skuColor(h.sku)}`:`${ACC_PID_MAP[pid]||pid} / ${skuColor(h.sku)}`;
+      const d=new Date(h.ts||0);
+      const ds=`${d.getDate()}/${d.getMonth()+1} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+      const bA=(h.before&&typeof h.before==='object')?h.before.agora||0:0;
+      const aA=(h.after&&typeof h.after==='object')?h.after.agora||0:0;
+      const dA=aA-bA;
+      const sign=dA>=0?'+':'';
+      const color=dA>=0?'#166534':'#dc2626';
+      return `<div style="display:grid;grid-template-columns:90px 1fr 40px 1fr 80px 70px;gap:0;padding:5px 8px;border-bottom:1px solid var(--g100);font-size:.72rem;align-items:center;background:#fef3c7;">
+        <span style="color:var(--g500);">${ds}</span>
         <span style="font-weight:600;">${label}</span>
-        <span style="color:var(--g500);">${beforeTxt}</span>
-        <span style="color:${chColor};font-weight:700;">${afterTxt}</span>
-        <span style="color:var(--g500);">${h.by}</span>
+        <span style="font-weight:800;color:${color};text-align:center;">${sign}${dA}</span>
+        <span style="color:var(--g500);font-style:italic;">${h.reason||'Ajuste manual'}</span>
+        <span style="color:var(--g500);">${h.by||'—'}</span>
+        <span style="font-size:.65rem;padding:1px 5px;border-radius:8px;background:#fde68a;color:#92400e;font-weight:700;">Ajuste</span>
       </div>`;
     }).join('');
+
+    rowsEl.innerHTML=`
+      ${lines.length?`<div style="font-size:.68rem;font-weight:800;color:var(--g500);padding:6px 8px;background:var(--g50);letter-spacing:.04em;">📦 CONSUMO POR ÓRDENES</div>
+      <div style="display:grid;grid-template-columns:90px 1fr 40px 1fr 80px 70px;gap:0;font-size:.65rem;font-weight:800;color:var(--g400);padding:3px 8px;border-bottom:1px solid var(--g200);">
+        <span>FECHA</span><span>PRODUCTO</span><span>UDS</span><span>CLIENTE</span><span>VENDEDORA</span><span>ESTADO</span>
+      </div>${orderRows}`:''}
+      ${adjRows?`<div style="font-size:.68rem;font-weight:800;color:var(--g500);padding:6px 8px;background:#fef3c7;letter-spacing:.04em;margin-top:4px;">🔧 AJUSTES MANUALES</div>${adjRows}`:''}
+    `;
   });
 }
 
@@ -6596,6 +6671,112 @@ function repairAlmacenFromRestocks(){
   toast(`✓ ${fixed} restock(s) reparados — almacén actualizado`);
   setTimeout(renderInventario,800);
 }
+
+// ── Physical Count (inline in Auditoría tab) ──
+let _pcInlineType='agora';
+let _pcInlineRows=[];
+
+function pcInlineInit(type){
+  _pcInlineType=type||'agora';
+  _pcInlineRows=[];
+  const btnA=document.getElementById('pc-btn-agora');
+  const btnAl=document.getElementById('pc-btn-almacen');
+  if(btnA){btnA.style.cssText='padding:5px 14px;border-radius:6px;font-size:.75rem;font-weight:800;cursor:pointer;border:1.5px solid '+(type==='agora'?'#166534;background:#dcfce7;color:#166534':'var(--g300);background:var(--white);color:var(--g600)')+';}'}
+  if(btnAl){btnAl.style.cssText='padding:5px 14px;border-radius:6px;font-size:.75rem;font-weight:800;cursor:pointer;border:1.5px solid '+(type==='almacen'?'#0369a1;background:#e0f2fe;color:#0369a1':'var(--g300);background:var(--white);color:var(--g600)')+';}'}
+
+  function fmtSku(sku){
+    const p=sku.split('__');
+    if(p[0]==='cover')return 'Cover '+p[1]+' · '+p[2];
+    const n={'ch':'Card Holder','kt':'Key Tag','bt':'Bag Tag','ph':'Passport Holder','cos':'Cosmetic Bag'};
+    return (n[p[0]]||p[0])+' · '+p[1];
+  }
+  const allSkus=Object.keys(inventarioData).sort((a,b)=>{
+    const ap=a.split('__'),bp=b.split('__');
+    const ac=ap[0]==='cover',bc=bp[0]==='cover';
+    if(ac!==bc)return ac?-1:1;
+    if(ac){const cc=(ap[2]||'').localeCompare(bp[2]||'');if(cc!==0)return cc;}
+    return a.localeCompare(b);
+  });
+  const wrap=document.getElementById('pc-inline-table-wrap');
+  if(!wrap)return;
+  const thS='padding:5px 8px;font-size:.65rem;font-weight:800;color:var(--g500);text-align:center;border-bottom:2px solid var(--g200);position:sticky;top:0;background:var(--white);z-index:1;';
+  let rowsHtml='';
+  allSkus.forEach(sku=>{
+    const d=inventarioData[sku]||{};
+    const sysVal=type==='almacen'?(d.almacen||0):(d.agora||0);
+    rowsHtml+='<tr data-sku="'+sku+'" data-sys="'+sysVal+'" data-diff="0">'
+      +'<td style="padding:4px 8px;font-size:.72rem;border-bottom:1px solid var(--g100);">'+fmtSku(sku)+'</td>'
+      +'<td style="padding:4px 8px;font-size:.72rem;border-bottom:1px solid var(--g100);text-align:center;font-weight:700;">'+sysVal+'</td>'
+      +'<td style="padding:3px 6px;border-bottom:1px solid var(--g100);text-align:center;">'
+      +'<input type="number" min="0" value="'+sysVal+'" data-sku="'+sku+'" data-sys="'+sysVal
+      +'" oninput="pcInlineUpdateRow(this)" style="width:54px;padding:2px 4px;border:1.5px solid var(--g300);border-radius:5px;font-size:.76rem;text-align:center;font-weight:700;"/>'
+      +'</td>'
+      +'<td class="pci-diff" style="padding:4px 8px;font-size:.72rem;border-bottom:1px solid var(--g100);text-align:center;font-weight:900;">—</td>'
+      +'</tr>';
+  });
+  wrap.innerHTML='<table style="width:100%;border-collapse:collapse;">'
+    +'<thead><tr>'
+    +'<th style="'+thS+'text-align:left;">Artículo</th>'
+    +'<th style="'+thS+'">Sistema</th>'
+    +'<th style="'+thS+'">Conteo</th>'
+    +'<th style="'+thS+'">Diferencia</th>'
+    +'</tr></thead>'
+    +'<tbody id="pci-tbody">'+rowsHtml+'</tbody>'
+    +'</table>';
+  _pcInlineRows=Array.from(document.querySelectorAll('#pci-tbody tr'));
+  pcInlineUpdateSummary();
+}
+
+function pcInlineSetType(type){_pcInlineType=type;pcInlineInit(type);}
+
+function pcInlineUpdateRow(inp){
+  const sys=parseInt(inp.dataset.sys)||0;
+  const physical=parseInt(inp.value);
+  const tr=inp.closest('tr');
+  const diffCell=tr.querySelector('.pci-diff');
+  if(isNaN(physical)||inp.value===''){
+    diffCell.textContent='—';diffCell.style.background='';diffCell.style.color='var(--g400)';
+    tr.dataset.diff='';
+  } else {
+    const diff=physical-sys;
+    tr.dataset.diff=diff;
+    diffCell.textContent=(diff>0?'+':'')+diff;
+    if(diff===0){diffCell.style.background='#dcfce7';diffCell.style.color='#166534';}
+    else if(diff>0){diffCell.style.background='#fef9c3';diffCell.style.color='#854d0e';}
+    else{diffCell.style.background='#fee2e2';diffCell.style.color='#991b1b';}
+  }
+  pcInlineUpdateSummary();
+}
+
+function pcInlineFilter(){
+  const q=(document.getElementById('pc-inline-search')?.value||'').toLowerCase();
+  _pcInlineRows.forEach(tr=>{
+    tr.style.display=(!q||tr.cells[0]?.textContent?.toLowerCase().includes(q))?'':'none';
+  });
+}
+
+function pcInlineUpdateSummary(){
+  const changed=_pcInlineRows.filter(tr=>tr.dataset.diff!==''&&tr.dataset.diff!==undefined&&tr.dataset.diff!=='0');
+  const el=document.getElementById('pc-inline-summary');
+  if(el)el.textContent=_pcInlineRows.length+' SKUs · '+(changed.length?changed.length+' con diferencia':'sin cambios');
+}
+
+function pcInlineSave(){
+  if(!adminMode)return;
+  const toSave=_pcInlineRows.filter(tr=>tr.dataset.diff!==''&&tr.dataset.diff!==undefined&&tr.dataset.diff!=='0'&&tr.style.display!=='none');
+  if(!toSave.length){toast('Sin cambios que guardar');return;}
+  if(!confirm('¿Aplicar '+toSave.length+' corrección(es) al inventario de '+(_pcInlineType==='almacen'?'Almacén':'Agora')+'?'))return;
+  toSave.forEach(tr=>{
+    const sku=tr.dataset.sku;
+    const inp=tr.querySelector('input');
+    const newVal=parseInt(inp?.value)||0;
+    const s=getStock(sku);
+    saveInvRec(sku,{...s,[_pcInlineType]:newVal},'Conteo físico · '+_pcInlineType);
+  });
+  toast('✓ '+toSave.length+' SKU(s) actualizados');
+  setTimeout(()=>renderDashboard(),900);
+}
+
 
 // ── Render ──
 function setInvSubtab(t){_invSubtab=t;renderInventario();}
@@ -7186,6 +7367,7 @@ function dashSetRange(preset){
 function renderDashboard(){
   if(!adminMode)return;
   const _dashRoot=document.getElementById('dash-content');
+  if(!_dashRoot)return;
   try{
   const fromEl=document.getElementById('dash-from');
   const toEl=document.getElementById('dash-to');
@@ -7193,178 +7375,171 @@ function renderDashboard(){
   if(!fromEl.value)fromEl.value=today;
   if(!toEl.value)toEl.value=today;
   const fromStr=fromEl.value, toStr=toEl.value;
-  const isMultiDay=fromStr!==toStr;
+  const fromMs=new Date(fromStr+'T00:00:00').getTime();
+  const toMs  =new Date(toStr +'T23:59:59').getTime();
+  const rangeLabel=fromStr===toStr?'Hoy · '+fromStr:'Del '+fromStr+' al '+toStr;
+
+  function card(title,body,color){
+    const bdr=color?'border-top:3px solid '+color:'';
+    return '<div style="background:var(--white);border-radius:12px;padding:16px;box-shadow:0 1px 4px #0001;'+bdr+'">'
+      +'<div style="font-size:.65rem;font-weight:900;letter-spacing:.06em;color:var(--g500);margin-bottom:10px;text-transform:uppercase;">'+title+'</div>'
+      +body+'</div>';
+  }
+
   const root=document.getElementById('dash-content');
-  if(!root)return;
 
-  // ── Filter orders in range ──
-  const rangeOrders=orders.filter(o=>localDateStr(o.id)>=fromStr&&localDateStr(o.id)<=toStr);
-  const salesOrders=rangeOrders.filter(o=>o.pay&&!SPECIAL_TYPES.includes(o.pay.type)&&o.source!=='web'&&o.source!=='whatsapp');
-  const cortesias=rangeOrders.filter(o=>o.pay&&o.pay.type==='Cortesia').length;
-  const errores=rangeOrders.filter(o=>o.pay&&o.pay.type==='Error').length;
-  const garantias=rangeOrders.filter(o=>o.pay&&o.pay.type==='Garantia').length;
+  // ── 1. VENTAS POR MODELO Y COLOR ──
+  const saleOrders=orders.filter(o=>{
+    if(!o.id||o.id<fromMs||o.id>toMs)return false;
+    if(SPECIAL_TYPES.includes((o.pay||{}).type))return false;
+    if(o.needsApproval)return false;
+    if(o.prodStatus==='pendiente_restock')return false;
+    return true;
+  });
+  const totalRevenue=saleOrders.reduce((a,o)=>a+(o.pay?.total||o.total||0),0);
+  const salesMap={};
+  saleOrders.forEach(o=>{
+    (o.items||[]).forEach(i=>{
+      if(i.pid==='custom')return;
+      const sku=makeSkuFromItem(i);
+      const qty=i.qty||1;
+      if(!salesMap[sku])salesMap[sku]={sku,qty:0,rev:0};
+      salesMap[sku].qty+=qty;
+      salesMap[sku].rev+=(i.price||0)*qty;
+    });
+  });
+  const salesArr=Object.values(salesMap).sort((a,b)=>b.qty-a.qty);
+  const totalUnits=salesArr.reduce((a,s)=>a+s.qty,0);
+  function fmtS(sku){
+    const p=sku.split('__');
+    if(p[0]==='cover')return p[1]+' · '+p[2];
+    const n={'ch':'Card Holder','kt':'Key Tag','bt':'Bag Tag','ph':'Passport Holder','cos':'Cosmetic Bag'};
+    return (n[p[0]]||p[0])+' · '+p[1];
+  }
+  const salesRows=salesArr.map(s=>'<tr>'
+    +'<td style="padding:4px 8px;font-size:.72rem;border-bottom:1px solid var(--g100);">'+fmtS(s.sku)+'</td>'
+    +'<td style="padding:4px 8px;font-size:.72rem;border-bottom:1px solid var(--g100);text-align:center;font-weight:800;">'+s.qty+'</td>'
+    +'<td style="padding:4px 8px;font-size:.72rem;border-bottom:1px solid var(--g100);text-align:right;">'+(s.rev?'$'+s.rev.toLocaleString('es-MX'):'—')+'</td>'
+    +'</tr>').join('');
+  const salesBlock='<div style="display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap;">'
+    +'<div style="padding:8px 14px;background:#ede9fe;border-radius:8px;"><div style="font-size:1.1rem;font-weight:900;color:#4f46e5;">'+saleOrders.length+'</div><div style="font-size:.65rem;color:#6d28d9;font-weight:700;">Órdenes</div></div>'
+    +'<div style="padding:8px 14px;background:#dcfce7;border-radius:8px;"><div style="font-size:1.1rem;font-weight:900;color:#166534;">'+totalUnits+'</div><div style="font-size:.65rem;color:#166534;font-weight:700;">Unidades</div></div>'
+    +(totalRevenue?'<div style="padding:8px 14px;background:#e0f2fe;border-radius:8px;"><div style="font-size:1.1rem;font-weight:900;color:#0369a1;">$'+totalRevenue.toLocaleString('es-MX')+'</div><div style="font-size:.65rem;color:#0369a1;font-weight:700;">Ingresos</div></div>':'')
+    +'</div>'
+    +(salesArr.length
+      ?'<div style="overflow-y:auto;max-height:260px;"><table style="width:100%;border-collapse:collapse;">'
+        +'<thead style="position:sticky;top:0;background:var(--white);"><tr>'
+        +'<th style="padding:4px 8px;font-size:.65rem;font-weight:800;color:var(--g500);text-align:left;border-bottom:2px solid var(--g200);">Artículo</th>'
+        +'<th style="padding:4px 8px;font-size:.65rem;font-weight:800;color:var(--g500);text-align:center;border-bottom:2px solid var(--g200);">Uds</th>'
+        +'<th style="padding:4px 8px;font-size:.65rem;font-weight:800;color:var(--g500);text-align:right;border-bottom:2px solid var(--g200);">Ingresos</th>'
+        +'</tr></thead>'
+        +'<tbody>'+salesRows+'</tbody></table></div>'
+      :'<div style="color:var(--g400);font-size:.8rem;">Sin ventas en este período</div>');
 
-  // ── Aggregate cash across all days in range ──
-  let cashIn=0,changeOut=0,cardTotal=0,txfrTotal=0,salesTotal=0,netCash=0;
-  salesOrders.forEach(o=>{
-    salesTotal+=o.total||0;
-    const pt=o.pay.type;
-    if(pt==='Tarjeta') cardTotal+=o.total||0;
-    else if(pt==='Efectivo'){cashIn+=o.pay.received||0;changeOut+=o.pay.change||0;}
-    else if(pt==='Transferencia') txfrTotal+=o.total||0;
-    else if(pt==='Dividido'&&o.pay.rows){
-      let chLeft=o.pay.change||0;
-      o.pay.rows.forEach(r=>{
-        if(r.method==='Efectivo'){cashIn+=r.received;if(chLeft>0){const d=Math.min(r.received,chLeft);changeOut+=d;chLeft-=d;}}
-        else if(r.method==='Tarjeta') cardTotal+=r.received;
-        else if(r.method==='Transferencia') txfrTotal+=r.received;
-      });
+  // ── 2. ÓRDENES ACTIVAS ──
+  const activeOrdenes=orders.filter(o=>o.prodStatus==='en_proceso'||o.prodStatus==='ruta_mensajero');
+  const stLabel={'en_proceso':'🔨 En proceso','ruta_mensajero':'🛵 En ruta'};
+  const stColor={'en_proceso':'#7c3aed','ruta_mensajero':'#0369a1'};
+  const stBg={'en_proceso':'#ede9fe','ruta_mensajero':'#e0f2fe'};
+  const ordersBlock=activeOrdenes.length
+    ?activeOrdenes.map(o=>{
+      const items=(o.items||[]).map(i=>(i.qty||1)+'× '+(i.name||i.sku||i.pid)).join(', ');
+      const hrs=Math.round((Date.now()-(o.prodUpdatedAt||o.id||0))/3600000);
+      const st=o.prodStatus;
+      return '<div style="padding:8px 10px;border-radius:8px;background:'+(stBg[st]||'var(--g100)')+';margin-bottom:6px;display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">'
+        +'<div><div style="font-weight:800;font-size:.75rem;color:'+(stColor[st]||'var(--g700)')+';">'+(o.name||('#'+o.id))+'</div>'
+        +'<div style="font-size:.68rem;color:var(--g600);margin-top:2px;">'+items+'</div></div>'
+        +'<div style="text-align:right;white-space:nowrap;"><div style="font-size:.65rem;font-weight:800;color:'+(stColor[st]||'var(--g500)')+';">'+(stLabel[st]||st)+'</div>'
+        +'<div style="font-size:.62rem;color:var(--g400);">'+hrs+'h</div></div></div>';
+    }).join('')
+    :'<div style="color:var(--g400);font-size:.8rem;">Sin órdenes activas</div>';
+
+  // ── 3. CONTEO FÍSICO (inline) ──
+  const conteoBlock='<div id="pc-inline-root">'
+    +'<div style="display:flex;gap:6px;margin-bottom:10px;align-items:center;flex-wrap:wrap;">'
+    +'<button onclick="pcInlineSetType(\'agora\')" id="pc-btn-agora" style="padding:5px 14px;border-radius:6px;font-size:.75rem;font-weight:800;cursor:pointer;border:1.5px solid #166534;background:#dcfce7;color:#166534;">Agora</button>'
+    +'<button onclick="pcInlineSetType(\'almacen\')" id="pc-btn-almacen" style="padding:5px 14px;border-radius:6px;font-size:.75rem;font-weight:800;cursor:pointer;border:1.5px solid var(--g300);background:var(--white);color:var(--g600);">Almacén</button>'
+    +'<input type="text" id="pc-inline-search" placeholder="Buscar SKU…" oninput="pcInlineFilter()" style="padding:4px 8px;border:1.5px solid var(--g300);border-radius:6px;font-size:.75rem;flex:1;min-width:100px;"/>'
+    +'</div>'
+    +'<div id="pc-inline-table-wrap" style="overflow-y:auto;max-height:300px;"></div>'
+    +'<div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;">'
+    +'<span id="pc-inline-summary" style="font-size:.72rem;color:var(--g500);"></span>'
+    +'<button onclick="pcInlineSave()" style="padding:6px 16px;border:none;border-radius:7px;background:#4f46e5;color:#fff;font-size:.75rem;font-weight:800;cursor:pointer;">💾 Guardar</button>'
+    +'</div></div>';
+
+  // ── 4. MOVIMIENTOS (placeholder, filled async) ──
+  const movBlock='<div id="inv-mov-root" style="max-height:300px;overflow-y:auto;">'
+    +'<div style="color:var(--g400);font-size:.8rem;padding:6px 0;">Cargando…</div></div>';
+
+  root.innerHTML='<div style="display:grid;gap:14px;">'
+    +card('📊 VENTAS POR MODELO Y COLOR · '+rangeLabel, salesBlock, '#7c3aed')
+    +card('🕐 ÓRDENES ACTIVAS · EN PROCESO + EN RUTA', ordersBlock, '#0369a1')
+    +card('📋 CONTEO FÍSICO VS SISTEMA', conteoBlock, '#166534')
+    +card('📜 MOVIMIENTOS DE INVENTARIO · '+rangeLabel, movBlock, '#d97706')
+    +'</div>';
+
+  // Render physical count inline after DOM ready
+  setTimeout(()=>pcInlineInit('agora'),0);
+
+  // Load inventory movements async
+  db.ref('inventario_history').orderByChild('ts').startAt(fromMs).endAt(toMs).once('value',snap=>{
+    const movEl=document.getElementById('inv-mov-root');
+    if(!movEl)return;
+    const entries=[];
+    snap.forEach(c=>{const v=c.val();if(v)entries.push(v);});
+    entries.sort((a,b)=>b.ts-a.ts);
+    if(!entries.length){
+      movEl.innerHTML='<div style="color:var(--g400);font-size:.8rem;padding:6px 0;">Sin movimientos en este período</div>';
+      return;
     }
-  });
-  // Deducciones in range
-  const rangeDeduc=deducciones.filter(d=>{
-    const dts=d.ts||(typeof d.id==='number'?d.id:parseInt(String(d.id)));
-    return localDateStr(dts)>=fromStr&&localDateStr(dts)<=toStr;
-  });
-  const totalDeduc=rangeDeduc.reduce((s,d)=>s+d.monto,0);
-  netCash=cashIn-changeOut-totalDeduc;
-
-  const fmtMoney=n=>'RD$'+Math.round(n).toLocaleString('es');
-  const rangeLabel=isMultiDay?`${fromStr} → ${toStr}`:fromStr;
-
-  // ── Prod status counts (always current pipeline) ──
-  const statuses=['pendiente_restock','pendiente','en_proceso','listo','ruta_mensajero'];
-  const statusLabels={pendiente_restock:'⏳ Restock',pendiente:'⏳ Pendiente',en_proceso:'▶ En proceso',listo:'✓ Listo',ruta_mensajero:'🛵 En ruta'};
-  const statusColors={pendiente_restock:'#7c3aed',pendiente:'#b45309',en_proceso:'#1d4ed8',listo:'#166534',ruta_mensajero:'#0369a1'};
-  const activeOrders=orders.filter(o=>statuses.includes(o.prodStatus));
-  const entregadasRango=orders.filter(o=>o.prodStatus==='entregada'&&localDateStr(o.deliveredAt||o.id)>=fromStr&&localDateStr(o.deliveredAt||o.id)<=toStr);
-  const statusCounts={};
-  statuses.forEach(s=>statusCounts[s]=activeOrders.filter(o=>o.prodStatus===s).length);
-
-  // ── Inventory alerts ──
-  const zeroSkus=getZeroStockSkus();
-  const lowSkus=getLowStockSkus();
-  const activeSkus={};
-  activeOrders.forEach(o=>(o.items||[]).forEach(i=>{if(i.pid!=='custom'){const sku=makeSkuFromItem(i);activeSkus[sku]=(activeSkus[sku]||0)+(i.qty||1);}}));
-  const phantomCount=isInvActive()?Object.entries(inventarioData).filter(([sku,d])=>(d.agora||0)>0&&!(activeSkus[sku]>0)).length:0;
-
-  // ── Top products in range ──
-  const prodCount={};
-  salesOrders.forEach(o=>(o.items||[]).forEach(i=>{
-    const key=`${i.name}${i.model?' '+i.model:''} / ${i.color}`;
-    prodCount[key]=(prodCount[key]||0)+(i.qty||1);
-  }));
-  const topProds=Object.entries(prodCount).sort((a,b)=>b[1]-a[1]).slice(0,5);
-
-  // ── Staff activity in range ──
-  const staffReg={},staffListo={};
-  rangeOrders.forEach(o=>{
-    const by=o.registeredBy||'?';
-    staffReg[by]=(staffReg[by]||0)+1;
-  });
-  orders.filter(o=>o.listoBy&&localDateStr(o.listoAt||o.id)>=fromStr&&localDateStr(o.listoAt||o.id)<=toStr).forEach(o=>{
-    const items=(o.items||[]).reduce((s,i)=>s+(i.qty||1),0);
-    staffListo[o.listoBy]=(staffListo[o.listoBy]||0)+items;
+    const thS='padding:4px 8px;font-size:.65rem;font-weight:800;color:var(--g500);border-bottom:2px solid var(--g200);white-space:nowrap;';
+    const tdS='padding:4px 8px;font-size:.71rem;border-bottom:1px solid var(--g100);';
+    function fmtSkuS(sku){
+      const p=(sku||'').split('__');
+      if(p[0]==='cover')return p[1]+' '+p[2];
+      const n={'ch':'CH','kt':'KT','bt':'BT','ph':'PH','cos':'Cos'};
+      return (n[p[0]]||p[0])+' '+(p[1]||'');
+    }
+    function fmtTs(ts){
+      const d=new Date(ts);
+      return d.getDate()+'/'+(d.getMonth()+1)+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+    }
+    const rows=entries.map(e=>{
+      const reason=e.reason||'';
+      const isOrder=reason.startsWith('Orden');
+      const isRestock=reason.startsWith('Restock')||reason.startsWith('Conteo');
+      const isManual=!isOrder&&!isRestock;
+      const rowBg=isManual?'background:#fef9c3;':'';
+      const flag=isManual?'⚠ ':'';
+      const agoraDiff=(e.after?.agora||0)-(e.before?.agora||0);
+      const almDiff=(e.after?.almacen||0)-(e.before?.almacen||0);
+      const diffStr=(agoraDiff!==0?(agoraDiff>0?'+':'')+agoraDiff+' Ag':'')+(almDiff!==0?' '+(almDiff>0?'+':'')+almDiff+' Al':'');
+      const diffColor=agoraDiff<0||almDiff<0?'#991b1b':agoraDiff>0||almDiff>0?'#166534':'var(--g500)';
+      return '<tr style="'+rowBg+'">'
+        +'<td style="'+tdS+'">'+fmtTs(e.ts)+'</td>'
+        +'<td style="'+tdS+'">'+fmtSkuS(e.sku||'')+'</td>'
+        +'<td style="'+tdS+'color:'+diffColor+';font-weight:800;">'+(diffStr||'—')+'</td>'
+        +'<td style="'+tdS+'color:'+(isManual?'#854d0e':isRestock?'#166534':'var(--g600)')+';">'+flag+reason+'</td>'
+        +'<td style="'+tdS+'color:var(--g500);">'+(e.by||'—')+'</td>'
+        +'</tr>';
+    }).join('');
+    movEl.innerHTML='<table style="width:100%;border-collapse:collapse;">'
+      +'<thead><tr>'
+      +'<th style="'+thS+'">Fecha</th>'
+      +'<th style="'+thS+'">Artículo</th>'
+      +'<th style="'+thS+'">Cambio</th>'
+      +'<th style="'+thS+'">Razón</th>'
+      +'<th style="'+thS+'">Por</th>'
+      +'</tr></thead>'
+      +'<tbody>'+rows+'</tbody></table>';
   });
 
-  const card=(title,body,accent)=>`<div style="background:var(--white);border:1.5px solid var(--g200);border-radius:10px;padding:14px;${accent?'border-left:4px solid '+accent+';':''}">
-    <div style="font-size:.68rem;font-weight:800;color:var(--g500);margin-bottom:8px;letter-spacing:.04em;">${title}</div>
-    ${body}
-  </div>`;
-
-  const kpi=(label,val,sub,color)=>`<div style="text-align:center;padding:6px 0;">
-    <div style="font-size:1.35rem;font-weight:900;color:${color||'var(--g900)'};">${val}</div>
-    <div style="font-size:.7rem;font-weight:700;color:var(--g600);">${label}</div>
-    ${sub?`<div style="font-size:.65rem;color:var(--g400);">${sub}</div>`:''}
-  </div>`;
-
-  const avgOrder=salesOrders.length?Math.round(salesTotal/salesOrders.length):0;
-
-  const salesBlock=`<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;">
-    ${kpi('Ventas',fmtMoney(salesTotal),'ingreso bruto','#1d4ed8')}
-    ${kpi('Órdenes',salesOrders.length,'pagadas','')}
-    ${kpi('Efectivo neto',fmtMoney(netCash),'- deducciones','#166534')}
-    ${kpi('Promedio',fmtMoney(avgOrder),'por orden','')}
-  </div>
-  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-top:6px;border-top:1px solid var(--g100);padding-top:6px;">
-    ${kpi('Tarjeta',fmtMoney(cardTotal),'','')}
-    ${kpi('Transferencia',fmtMoney(txfrTotal),'','')}
-    ${kpi('Cort / Err / Gar',`${cortesias} / ${errores} / ${garantias}`,'','#92400e')}
-  </div>`;
-
-  const prodBlock=`<div style="display:flex;gap:6px;flex-wrap:wrap;">
-    ${Object.entries(statusCounts).map(([s,n])=>`<div style="flex:1;min-width:80px;text-align:center;padding:8px 4px;background:var(--g50);border-radius:8px;border:1.5px solid var(--g100);">
-      <div style="font-size:1.1rem;font-weight:900;color:${statusColors[s]||'#374151'};">${n}</div>
-      <div style="font-size:.62rem;font-weight:700;color:var(--g500);">${statusLabels[s]}</div>
-    </div>`).join('')}
-    <div style="flex:1;min-width:80px;text-align:center;padding:8px 4px;background:#f0fdf4;border-radius:8px;border:1.5px solid #bbf7d0;">
-      <div style="font-size:1.1rem;font-weight:900;color:#166534;">${entregadasRango.length}</div>
-      <div style="font-size:.62rem;font-weight:700;color:#166534;">✅ ${isMultiDay?'Entregadas':'Entregadas hoy'}</div>
-    </div>
-  </div>`;
-
-  const invBlock=!isInvActive()?'<span style="color:var(--g400);font-size:.8rem;">Inventario no configurado</span>':`<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">
-    <div style="text-align:center;cursor:pointer;" onclick="showPhantomStock()">
-      <div style="font-size:1.3rem;font-weight:900;color:${phantomCount?'#dc2626':'#166534'};">${phantomCount}</div>
-      <div style="font-size:.68rem;font-weight:700;color:var(--g500);">👻 Stock fantasma</div>
-    </div>
-    <div style="text-align:center;">
-      <div style="font-size:1.3rem;font-weight:900;color:${zeroSkus.length?'#dc2626':'#166534'};">${zeroSkus.length}</div>
-      <div style="font-size:.68rem;font-weight:700;color:var(--g500);">⬛ Sin stock</div>
-    </div>
-    <div style="text-align:center;">
-      <div style="font-size:1.3rem;font-weight:900;color:${lowSkus.length?'#d97706':'#166534'};">${lowSkus.length}</div>
-      <div style="font-size:.68rem;font-weight:700;color:var(--g500);">⚠️ Stock bajo</div>
-    </div>
-  </div>`;
-
-  const topProdsBlock=topProds.length
-    ?topProds.map(([name,qty],i)=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--g100);">
-        <div style="font-size:.75rem;font-weight:${i===0?'800':'600'};color:var(--g800);">${i===0?'🥇':i===1?'🥈':i===2?'🥉':'  '} ${name}</div>
-        <div style="font-size:.75rem;font-weight:800;color:#1d4ed8;">${qty} uds</div>
-      </div>`).join('')
-    :'<span style="color:var(--g400);font-size:.8rem;">Sin ventas registradas</span>';
-
-  const staffRegBlock=Object.keys(staffReg).length
-    ?Object.entries(staffReg).sort((a,b)=>b[1]-a[1]).map(([name,n])=>`<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--g100);">
-        <span style="font-size:.75rem;font-weight:600;">${name}</span>
-        <span style="font-size:.75rem;font-weight:800;color:#374151;">${n} orden${n!==1?'es':''}</span>
-      </div>`).join('')
-    :'<span style="color:var(--g400);font-size:.8rem;">—</span>';
-
-  const staffListoBlock=Object.keys(staffListo).length
-    ?Object.entries(staffListo).sort((a,b)=>b[1]-a[1]).map(([name,n])=>`<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--g100);">
-        <span style="font-size:.75rem;font-weight:600;">${name}</span>
-        <span style="font-size:.75rem;font-weight:800;color:#166534;">${n} artículo${n!==1?'s':''}</span>
-      </div>`).join('')
-    :'<span style="color:var(--g400);font-size:.8rem;">—</span>';
-
-  const toolsBlock=`<div style="display:flex;gap:8px;flex-wrap:wrap;">
-    <button onclick="showPhantomStock()" style="padding:6px 12px;border:1.5px solid var(--g300);border-radius:7px;background:var(--white);font-size:.75rem;font-weight:700;cursor:pointer;">👻 Stock fantasma</button>
-    <button onclick="showInvHistory()" style="padding:6px 12px;border:1.5px solid var(--g300);border-radius:7px;background:var(--white);font-size:.75rem;font-weight:700;cursor:pointer;">📜 Historial inventario</button>
-    <button onclick="migrateListoBy()" style="padding:6px 12px;border:1.5px solid var(--g300);border-radius:7px;background:var(--white);font-size:.75rem;font-weight:700;cursor:pointer;">🔧 Migrar listoBy</button>
-    <button onclick="showTab(6)" style="padding:6px 12px;border:1.5px solid var(--g300);border-radius:7px;background:var(--white);font-size:.75rem;font-weight:700;cursor:pointer;">📈 Reportes</button>
-  </div>`;
-
-  root.innerHTML=`
-    <div style="display:grid;gap:12px;">
-      ${card('💰 VENTAS · '+rangeLabel, salesBlock, '#1d4ed8')}
-      ${card('🏭 PRODUCCIÓN ACTIVA (pipeline actual)', prodBlock, '#7c3aed')}
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-        ${card('📦 INVENTARIO', invBlock, '#d97706')}
-        ${card('🏆 TOP PRODUCTOS · '+rangeLabel, topProdsBlock, '#0369a1')}
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-        ${card('🛒 VENTAS POR PERSONA · '+rangeLabel, staffRegBlock, '')}
-        ${card('✍ ESTAMPADO · '+rangeLabel, staffListoBlock, '#166534')}
-      </div>
-      ${card('🔧 HERRAMIENTAS ADMIN', toolsBlock, '')}
-    </div>`;
   }catch(e){
-    if(_dashRoot)_dashRoot.innerHTML='<div style="color:red;padding:16px;font-size:.85rem;"><strong>Error cargando dashboard:</strong><br>'+e.message+'<br><pre style="font-size:.75rem;white-space:pre-wrap;">'+e.stack+'</pre></div>';
-    console.error('Dashboard error:',e);
+    if(_dashRoot)_dashRoot.innerHTML='<div style="color:red;padding:16px;font-size:.85rem;"><strong>Error:</strong><br>'+e.message+'<br><pre style="font-size:.75rem;white-space:pre-wrap;">'+e.stack+'</pre></div>';
+    console.error('Auditoría error:',e);
   }
 }
+
 
 
 function renderReportes(){
@@ -7709,6 +7884,52 @@ function renderReportes(){
     <!-- Comprobantes Fiscales — rendered by renderRncSection() -->
     <div id="rnc-section-wrap"></div>
 
+    <!-- Artículos por Color -->
+    ${(()=>{
+      const colorMap={};
+      saleOrd.forEach(o=>{
+        (o.items||[]).forEach(i=>{
+          const key=`${i.name}${i.model?' '+i.model:''} / ${i.color||'?'}`;
+          if(!colorMap[key])colorMap[key]={name:i.name,model:i.model||'',color:i.color||'?',qty:0,revenue:0};
+          colorMap[key].qty+=(i.qty||1);
+          // revenue: distribute order total proportionally by qty
+          const totalItems=(o.items||[]).reduce((s,x)=>s+(x.qty||1),0);
+          colorMap[key].revenue+=totalItems>0?((o.total||0)*(i.qty||1)/totalItems):0;
+        });
+      });
+      const rows=Object.entries(colorMap).sort((a,b)=>b[1].qty-a[1].qty);
+      const totalUnits=rows.reduce((s,[,v])=>s+v.qty,0);
+      if(!rows.length)return '';
+      return `<div class="rep-section">
+        <div class="rep-title">🎨 Artículos Vendidos por Color (${totalUnits} uds total)</div>
+        <div style="overflow-x:auto;"><table class="rep-tbl">
+          <thead><tr><th>Producto</th><th>Color</th><th style="text-align:right;">Uds</th><th style="text-align:right;">% del total</th><th style="text-align:right;">Ingreso est.</th></tr></thead>
+          <tbody>${rows.map(([,v],i)=>{
+            const pct=totalUnits>0?(v.qty/totalUnits*100).toFixed(1):0;
+            const barW=totalUnits>0?Math.round(v.qty/rows[0][1].qty*100):0;
+            return `<tr>
+              <td style="font-weight:${i<3?'700':'400'};">${v.name}${v.model?' '+v.model:''}</td>
+              <td><span style="display:inline-block;padding:2px 8px;border-radius:10px;background:var(--g100);font-size:.75rem;font-weight:700;">${v.color}</span></td>
+              <td style="text-align:right;font-weight:800;">${v.qty}</td>
+              <td style="text-align:right;">
+                <div style="display:flex;align-items:center;gap:6px;justify-content:flex-end;">
+                  <div style="width:60px;height:6px;background:var(--g100);border-radius:3px;"><div style="width:${barW}%;height:100%;background:#6366f1;border-radius:3px;"></div></div>
+                  <span style="font-size:.75rem;color:var(--g600);">${pct}%</span>
+                </div>
+              </td>
+              <td style="text-align:right;color:var(--g600);">$${Math.round(v.revenue).toLocaleString()}</td>
+            </tr>`;
+          }).join('')}</tbody>
+          <tfoot><tr style="background:var(--g50);">
+            <td colspan="2" style="font-weight:800;">TOTAL</td>
+            <td style="text-align:right;font-weight:900;">${totalUnits}</td>
+            <td style="text-align:right;font-size:.75rem;color:var(--g500);">100%</td>
+            <td style="text-align:right;font-weight:800;">$${Math.round(rows.reduce((s,[,v])=>s+v.revenue,0)).toLocaleString()}</td>
+          </tr></tfoot>
+        </table></div>
+      </div>`;
+    })()}
+
     <!-- Tabla de Transacciones -->
     <div class="rep-section">
       <div class="rep-title">📋 Tabla de Transacciones (${saleOrd.length})</div>
@@ -7996,7 +8217,7 @@ function addManualRestockItem(){
 /* ═══════════════════════════════════════
    TABS
 ═══════════════════════════════════════ */
-const TAB_TITLES=['Nueva Orden','Transacciones','Turnos','Horario','Producción','Inventario','Reportes','Configuración','Ruta','Dashboard'];
+const TAB_TITLES=['Nueva Orden','Transacciones','Turnos','Horario','Producción','Inventario','Reportes','Configuración','Ruta','Auditoría'];
 function showTab(n){
   if(n===0&&currentUser){
     const key=`cv5_entry_${todayStr()}_${currentUser.name}`;
@@ -8668,7 +8889,7 @@ function checkSession(){
     <div class="mob-nav-item" id="mob-tb6" onclick="showTab(6)" style="display:none;"><span class="mni">📈</span><span>Reportes</span></div>
     <div class="mob-nav-item" id="mob-tb7" onclick="showTab(7)" style="display:none;"><span class="mni">⚙️</span><span>Config.</span></div>
     <div class="mob-nav-item" id="mob-tb8" onclick="showTab(8)" style="display:none;"><span class="mni">🛵</span><span>Ruta</span></div>
-    <div class="mob-nav-item" id="mob-tb9" onclick="showTab(9)" style="display:none;"><span class="mni">📊</span><span>Dashboard</span></div>
+    <div class="mob-nav-item" id="mob-tb9" onclick="showTab(9)" style="display:none;"><span class="mni">📋</span><span>Auditoría</span></div>
   </div>
 </nav>
 </body>
