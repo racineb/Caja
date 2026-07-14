@@ -7109,9 +7109,15 @@ function renderProd(){
     if(o.needsApproval)return false;
     if(!dateVal)return true; // "Ver Todas" — no date filter
     const oDate=localDateStr(o.id);
-    // Rollover: only orders still in progress (not listo) persist across days
-    if(ROLLOVER_STATUSES.includes(o.prodStatus||'pendiente')&&oDate>=ROLLOVER_FROM)return true;
-    // Everything else (listo, entregada, or pre-rollover) only shows on its own date
+    const st=o.prodStatus||'pendiente';
+    // Rollover: active orders persist across days
+    if(ROLLOVER_STATUSES.includes(st)&&oDate>=ROLLOVER_FROM)return true;
+    // Listo/entregada: show on the date they were FINISHED (listoAt), not created
+    if(st==='listo'||st==='entregada'){
+      const listoDate=localDateStr(o.listoAt||o.prodUpdatedAt||o.id);
+      return listoDate===dateVal;
+    }
+    // Everything else: show on creation date
     return oDate===dateVal;
   });
   if(srcFilter)dayOrders=dayOrders.filter(o=>(o.source||'tienda')===srcFilter);
@@ -7178,11 +7184,19 @@ function renderProd(){
     const _listoName=o.listoBy||(o.prodStatus==='listo'?o.prodUpdatedBy:null);
     const _listoTime=o.listoAt||(o.prodStatus==='listo'?o.prodUpdatedAt:null);
     const _listoLabel=o.listoBy?'✍':'✍?';
-    const listoHtml=_listoName?`<div style="font-size:.68rem;color:#166534;font-weight:700;margin-top:4px;">${_listoLabel} ${_listoName}${_listoTime?' · '+new Date(_listoTime).toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'}):''}</div>`:'';
+    // Show creation date if listo/entregada was on a different day
+    const _createdDate=localDateStr(o.id);
+    const _listoDate=_listoTime?localDateStr(_listoTime):null;
+    const _showCreated=_listoDate&&_listoDate!==_createdDate;
+    const createdBadge=_showCreated?`<span style="font-size:.62rem;color:var(--g400);margin-left:4px;">📅 digitada ${_createdDate}</span>`:'';
+    const listoHtml=_listoName
+      ?`<div style="font-size:.68rem;color:#166534;font-weight:700;margin-top:4px;">${_listoLabel} ${_listoName}${_listoTime?' · '+new Date(_listoTime).toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'}):''}</div>`
+      :'';
     return`<div class="prod-card ${status==='pendiente_restock'?'pend':status==='ruta_mensajero'?'proc':status==='entregada'?'done':status}">
-      <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;flex-wrap:wrap;">
         <span class="prod-source ${src}">${srcIcon[src]||''} ${srcLabel[src]||src}</span>
         <span style="font-size:.72rem;color:var(--g500);margin-left:auto;">${time}</span>
+        ${createdBadge}
       </div>
       <div style="font-weight:800;font-size:.86rem;">${o.name}${o.phone?`<span style="font-weight:400;font-size:.75rem;color:var(--g500);"> · ${o.phone}</span>`:''}${splitBadge}</div>
       <div style="margin-top:5px;">${itemsHtml}</div>
