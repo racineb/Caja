@@ -1767,6 +1767,29 @@ input.err{border-color:#c00!important;}
   </div>
 </div>
 
+<!-- ── LISTO DATE MODAL ── -->
+<div class="moverlay" id="listo-date-modal">
+  <div class="modal" style="max-width:340px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <h3 style="margin:0;">✓ Marcar listo</h3>
+      <button class="xbtn" onclick="closeMod('listo-date-modal')" style="font-size:1.1rem;">✕</button>
+    </div>
+    <p style="font-size:.8rem;color:var(--g600);margin:0 0 14px;">¿En qué fecha y hora fue terminada esta orden?</p>
+    <div class="field" style="margin-bottom:10px;">
+      <label style="font-size:.75rem;font-weight:700;">Fecha</label>
+      <input type="date" id="listo-date-input" style="width:100%;"/>
+    </div>
+    <div class="field" style="margin-bottom:16px;">
+      <label style="font-size:.75rem;font-weight:700;">Hora</label>
+      <input type="time" id="listo-time-input" style="width:100%;"/>
+    </div>
+    <div class="mfooter" style="display:flex;gap:8px;">
+      <button class="obtn" onclick="closeMod('listo-date-modal')">Cancelar</button>
+      <button class="submit" onclick="confirmListoDate()">✓ Confirmar</button>
+    </div>
+  </div>
+</div>
+
 <!-- ── CONFIRM DELIVERY MODAL ── -->
 <div class="moverlay" id="confirm-delivery-modal">
   <div class="modal wide" style="max-width:560px;">
@@ -6669,6 +6692,8 @@ function confirmDelivery(){
       return agoraAfter>0;
     });
     if(allCovered){
+      // Deduct agora for this order's items (they were never deducted at order creation because stock was 0)
+      deductAgoraForOrder(o.items,'Restock llegó · '+(o.name||'#'+o.id));
       saveOrderRec({...o,prodStatus:'pendiente',prodUpdatedAt:Date.now(),prodUpdatedBy:'Restock confirmado'});
       advanced++;
     }
@@ -7023,6 +7048,20 @@ function renderInventario(){
 /* ═══════════════════════════════════════
    PRODUCCIÓN
 ═══════════════════════════════════════ */
+let _pendingListoOrderId=null;
+function confirmListoDate(){
+  const o=orders.find(x=>x.id===_pendingListoOrderId);
+  if(!o){closeMod('listo-date-modal');return;}
+  const dateVal=document.getElementById('listo-date-input')?.value||todayStr();
+  const timeVal=document.getElementById('listo-time-input')?.value||'00:00';
+  const ts=new Date(dateVal+'T'+timeVal+':00').getTime();
+  saveOrderRec({...o,prodStatus:'listo',prodUpdatedAt:ts,prodUpdatedBy:currentUser?currentUser.name:'',
+    listoBy:currentUser?currentUser.name:'',listoAt:ts});
+  closeMod('listo-date-modal');
+  _pendingListoOrderId=null;
+  toast('✓ Listo · '+dateVal+' '+timeVal);
+  setTimeout(renderProd,400);
+}
 function updateProdStatus(orderId,newStatus){
   const o=orders.find(x=>x.id===orderId);
   if(!o)return;
@@ -7038,8 +7077,22 @@ function updateProdStatus(orderId,newStatus){
     const labels={pendiente:'⏳ Pendiente',en_proceso:'▶ En proceso',listo:'✓ Listo',ruta_mensajero:'🛵 En ruta',entregada:'✅ Entregada'};
     toast(labels[newStatus]||newStatus);
   }
+  if(newStatus==='listo'){
+    // Ask for the actual completion date/time
+    _pendingListoOrderId=id;
+    const now=new Date();
+    const pad=n=>String(n).padStart(2,'0');
+    const todayVal=now.getFullYear()+'-'+pad(now.getMonth()+1)+'-'+pad(now.getDate());
+    const timeVal=pad(now.getHours())+':'+pad(now.getMinutes());
+    const di=document.getElementById('listo-date-input');
+    const ti=document.getElementById('listo-time-input');
+    if(di)di.value=todayVal;
+    if(ti)ti.value=timeVal;
+    openMod('listo-date-modal');
+    return;
+  }
   const now=Date.now();
-  const extra=newStatus==='listo'?{listoBy:currentUser?currentUser.name:'',listoAt:now}:{};
+  const extra={};
   saveOrderRec({...o,...extra,prodStatus:newStatus,prodUpdatedAt:now,prodUpdatedBy:currentUser?currentUser.name:''});
   setTimeout(renderProd,400);
 }
