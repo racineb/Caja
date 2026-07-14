@@ -1108,6 +1108,7 @@ input.err{border-color:#c00!important;}
       <button class="dbtn" onclick="showInvHistory()" style="font-size:.77rem;">📜 Historial</button>
       <button class="dbtn" onclick="showPhantomStock()" style="font-size:.77rem;" id="phantom-btn">🔍 Stock Fantasma</button>
       <button class="dbtn dark" onclick="openRestockModal()" style="font-size:.77rem;">🚚 Restock</button>
+      <button class="dbtn" onclick="openRestockModalPendingOnly()" style="font-size:.77rem;background:#fef9c3;color:#92400e;border-color:#fde68a;">📦 Solo pendientes</button>
     </div>
     <button class="dbtn" id="inv-delivery-btn" onclick="openDeliveryModal()" style="display:none;font-size:.77rem;background:#dcfce7;color:#16a34a;border-color:#86efac;">📦 Entrega</button>
   </div>
@@ -1726,6 +1727,7 @@ input.err{border-color:#c00!important;}
       <div><h3>🚚 Solicitud de Restock</h3><p class="msub" style="margin:0;">SKUs con stock bajo o en cero en Agora</p></div>
       <button class="xbtn" onclick="closeMod('inv-restock-modal')" style="font-size:1.1rem;">✕</button>
     </div>
+    <div id="inv-restock-mode-label" style="font-size:.7rem;font-weight:800;color:var(--g500);margin-bottom:6px;"></div>
     <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
       <button class="dbtn" onclick="autoFillRestock()">Auto-llenar cantidades</button>
     </div>
@@ -6278,8 +6280,12 @@ function showInvHistory(){
 
 // ── Restock ──
 let _restockItems=[];
-function openRestockModal(){
+function openRestockModalPendingOnly(){openRestockModal('pending_only');}
+function openRestockModal(mode){
   if(!adminMode)return;
+  const pendingOnly=(mode==='pending_only');
+  const lbl=document.getElementById('inv-restock-mode-label');
+  if(lbl)lbl.textContent=pendingOnly?'📦 Solo órdenes pendientes':'📦 Stock bajo + órdenes pendientes';
 
   // Build pending order qty map: {sku → {qty, names[]}}
   const pendingMap={};
@@ -6294,9 +6300,9 @@ function openRestockModal(){
     });
   });
 
-  // Build restock list: SKUs below min OR with pending orders
+  // Build restock list: only pending orders OR (below min + pending orders)
   const skuSet=new Set([
-    ...Object.keys(inventarioData).filter(sku=>needsRestock(sku)&&!skuExcludedByRules(sku)),
+    ...(pendingOnly?[]:Object.keys(inventarioData).filter(sku=>needsRestock(sku)&&!skuExcludedByRules(sku))),
     ...Object.keys(pendingMap)
   ]);
 
