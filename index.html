@@ -1201,6 +1201,7 @@ input.err{border-color:#c00!important;}
         <span style="font-size:.8rem;color:var(--g500);">→</span>
         <input type="date" id="dash-to" style="font-size:.78rem;padding:4px 7px;border:1.5px solid var(--g300);border-radius:6px;"/>
         <button onclick="renderDashboard()" style="padding:5px 12px;border:1.5px solid var(--g300);border-radius:6px;background:var(--white);font-size:.8rem;font-weight:700;cursor:pointer;">↻</button>
+        <button onclick="printAuditoria()" style="padding:5px 12px;border:1.5px solid var(--g300);border-radius:6px;background:var(--black);color:#fff;font-size:.8rem;font-weight:700;cursor:pointer;">🖨 Imprimir</button>
       </div>
     </div>
     <div id="dash-content"></div>
@@ -7791,6 +7792,146 @@ function renderDashboard(){
 }
 
 
+
+function printAuditoria(){
+  if(!adminMode)return;
+  const fromEl=document.getElementById('dash-from');
+  const toEl=document.getElementById('dash-to');
+  const today=todayStr();
+  const fromStr=fromEl?.value||today;
+  const toStr=toEl?.value||today;
+  const fromMs=new Date(fromStr+'T00:00:00').getTime();
+  const toMs  =new Date(toStr +'T23:59:59').getTime();
+  const rangeLabel=fromStr===toStr
+    ?new Date(fromStr+'T12:00').toLocaleDateString('es',{weekday:'long',day:'numeric',month:'long',year:'numeric'})
+    :'Del '+new Date(fromStr+'T12:00').toLocaleDateString('es',{day:'numeric',month:'long'})+' al '+new Date(toStr+'T12:00').toLocaleDateString('es',{day:'numeric',month:'long',year:'numeric'});
+  const genAt=new Date().toLocaleString('es',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+
+  // ── Ventas ──
+  const saleOrders=orders.filter(o=>{
+    if(!o.id||o.id<fromMs||o.id>toMs)return false;
+    if(SPECIAL_TYPES.includes((o.pay||{}).type))return false;
+    if(o.needsApproval||o.prodStatus==='pendiente_restock')return false;
+    return true;
+  });
+  const totalRevenue=saleOrders.reduce((a,o)=>a+(o.pay?.total||o.total||0),0);
+  const salesMap={};
+  saleOrders.forEach(o=>(o.items||[]).forEach(i=>{
+    if(i.pid==='custom')return;
+    const sku=makeSkuFromItem(i),qty=i.qty||1;
+    if(!salesMap[sku])salesMap[sku]={sku,qty:0,rev:0};
+    salesMap[sku].qty+=qty;salesMap[sku].rev+=(i.price||0)*qty;
+  }));
+  const salesArr=Object.values(salesMap).sort((a,b)=>b.qty-a.qty);
+  const totalUnits=salesArr.reduce((a,s)=>a+s.qty,0);
+  function fmtSku(sku){
+    const p=(sku||'').split('__');
+    if(p[0]==='cover')return p[1]+' · '+p[2];
+    const n={ch:'Card Holder',kt:'Key Tag',bt:'Bag Tag',ph:'Passport Holder',cos:'Cosmetic Bag'};
+    return(n[p[0]]||p[0])+' · '+(p[1]||'');
+  }
+  const salesRows=salesArr.map(s=>`<tr><td>${fmtSku(s.sku)}</td><td style="text-align:center;font-weight:700;">${s.qty}</td><td style="text-align:right;">${s.rev?'$'+s.rev.toLocaleString('es-MX'):'—'}</td></tr>`).join('');
+
+  // ── Inventario actual ──
+  const invSkus=Object.keys(inventarioData).sort();
+  const covers=invSkus.filter(s=>s.startsWith('cover__'));
+  const accs=invSkus.filter(s=>!s.startsWith('cover__'));
+  const accLabel={ch:'Card Holder',kt:'Key Tag',bt:'Bag Tag',ph:'Passport Holder',cos:'Cosmetic Bag'};
+  function invRow(sku){
+    const s=getStock(sku);const label=fmtSku(sku);
+    return `<tr><td>${label}</td><td style="text-align:center;">${s.agora??0}</td><td style="text-align:center;">${s.almacen??0}</td><td style="text-align:center;font-weight:700;">${(s.agora??0)+(s.almacen??0)}</td></tr>`;
+  }
+  const coverInvRows=covers.map(invRow).join('');
+  const accInvRows=accs.map(invRow).join('');
+  const totAgCov=covers.reduce((a,s)=>a+(getStock(s).agora||0),0);
+  const totAlCov=covers.reduce((a,s)=>a+(getStock(s).almacen||0),0);
+  const totAgAcc=accs.reduce((a,s)=>a+(getStock(s).agora||0),0);
+  const totAlAcc=accs.reduce((a,s)=>a+(getStock(s).almacen||0),0);
+
+  // ── Fetch movements then print ──
+  toast('⏳ Preparando documento…');
+  db.ref('inventario_history').orderByChild('ts').startAt(fromMs).endAt(toMs).once('value',snap=>{
+    const entries=[];
+    snap.forEach(c=>{const v=c.val();if(v)entries.push(v);});
+    entries.sort((a,b)=>b.ts-a.ts);
+    function fmtTs(ts){
+      const d=new Date(ts);
+      return d.getDate()+'/'+(d.getMonth()+1)+'/'+(d.getFullYear()%100)+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+    }
+    const movRows=entries.map(e=>{
+      const agoraDiff=(e.after?.agora||0)-(e.before?.agora||0);
+      const almDiff=(e.after?.almacen||0)-(e.before?.almacen||0);
+      const diffStr=(agoraDiff!==0?(agoraDiff>0?'+':'')+agoraDiff+' Ag':'')+(almDiff!==0?' '+(almDiff>0?'+':'')+almDiff+' Al':'');
+      const reason=e.reason||'';
+      const isManual=!reason.startsWith('Orden')&&!reason.startsWith('Restock')&&!reason.startsWith('Conteo');
+      const flag=isManual?'⚠ ':'';
+      const diffColor=agoraDiff<0||almDiff<0?'#991b1b':agoraDiff>0||almDiff>0?'#166534':'#555';
+      return `<tr style="${isManual?'background:#fef9c3;':''}"><td>${fmtTs(e.ts)}</td><td>${fmtSku(e.sku||'')}</td><td style="color:${diffColor};font-weight:700;">${diffStr||'—'}</td><td>${flag}${reason}</td><td style="color:#6b7280;">${e.by||'—'}</td></tr>`;
+    }).join('');
+    const movSection=entries.length
+      ?`<table><thead><tr><th>Fecha</th><th>Artículo</th><th>Cambio</th><th>Razón</th><th>Por</th></tr></thead><tbody>${movRows}</tbody></table>`
+      :`<p class="empty">Sin movimientos en este período</p>`;
+
+    const win=window.open('','_blank');
+    win.document.write(`<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"/>
+    <title>Auditoría · Singular</title>
+    <style>
+      *{box-sizing:border-box;margin:0;padding:0;}
+      body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:13px;color:#111;padding:28px 32px;max-width:960px;margin:0 auto;}
+      .logo{font-weight:900;font-size:1.5rem;letter-spacing:-.03em;margin-bottom:2px;}
+      .sub{font-size:.78rem;color:#6b7280;margin-bottom:22px;}
+      h2{font-size:.7rem;font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:#6b7280;margin:24px 0 8px;padding-bottom:5px;border-bottom:2px solid #e5e7eb;}
+      h2 span{color:#111;font-size:.95rem;letter-spacing:0;text-transform:none;}
+      .kpis{display:flex;gap:12px;margin-bottom:14px;flex-wrap:wrap;}
+      .kpi{background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:10px 18px;text-align:center;}
+      .kpi .v{font-size:1.4rem;font-weight:900;}
+      .kpi .l{font-size:.65rem;color:#6b7280;font-weight:700;text-transform:uppercase;margin-top:2px;}
+      table{width:100%;border-collapse:collapse;margin-bottom:6px;}
+      thead th{background:#f3f4f6;font-size:.68rem;font-weight:800;color:#374151;text-transform:uppercase;padding:6px 8px;text-align:left;border-bottom:2px solid #d1d5db;}
+      tbody td{padding:5px 8px;font-size:.77rem;border-bottom:1px solid #f3f4f6;vertical-align:top;}
+      tfoot td{padding:6px 8px;font-size:.77rem;font-weight:900;background:#111;color:#fff;}
+      tr:nth-child(even) td{background:#f9fafb;}
+      .empty{font-size:.8rem;color:#9ca3af;padding:8px 0;}
+      .footer{margin-top:32px;padding-top:12px;border-top:1px solid #e5e7eb;font-size:.7rem;color:#9ca3af;display:flex;justify-content:space-between;}
+      .print-btn{display:inline-block;margin-bottom:20px;padding:9px 24px;background:#111;color:#fff;border:none;border-radius:6px;font-size:.85rem;font-weight:700;cursor:pointer;letter-spacing:.02em;}
+      @media print{.print-btn{display:none!important;}body{padding:16px;}h2{margin-top:20px;}}
+    </style></head><body>
+    <div class="logo">SINGULAR</div>
+    <div class="sub">Auditoría de Inventario &nbsp;·&nbsp; ${rangeLabel} &nbsp;·&nbsp; Generado: ${genAt}</div>
+    <button class="print-btn" onclick="window.print()">🖨 Imprimir / Guardar PDF</button>
+
+    <h2>📊 VENTAS POR PRODUCTO &nbsp;<span>· ${rangeLabel}</span></h2>
+    <div class="kpis">
+      <div class="kpi"><div class="v">${saleOrders.length}</div><div class="l">Órdenes</div></div>
+      <div class="kpi"><div class="v">${totalUnits}</div><div class="l">Unidades</div></div>
+      ${totalRevenue?`<div class="kpi"><div class="v">$${totalRevenue.toLocaleString('es-MX')}</div><div class="l">Ingresos</div></div>`:''}
+    </div>
+    ${salesArr.length
+      ?`<table><thead><tr><th>Artículo</th><th style="text-align:center;">Uds.</th><th style="text-align:right;">Ingresos</th></tr></thead><tbody>${salesRows}</tbody><tfoot><tr><td>TOTAL</td><td style="text-align:center;">${totalUnits}</td><td style="text-align:right;">${totalRevenue?'$'+totalRevenue.toLocaleString('es-MX'):'—'}</td></tr></tfoot></table>`
+      :'<p class="empty">Sin ventas en este período</p>'}
+
+    <h2>📦 INVENTARIO ACTUAL &nbsp;<span>· Covers</span></h2>
+    <table><thead><tr><th>Modelo · Color</th><th style="text-align:center;">Agora</th><th style="text-align:center;">Almacén</th><th style="text-align:center;">Total</th></tr></thead>
+    <tbody>${coverInvRows}</tbody>
+    <tfoot><tr><td>TOTAL COVERS</td><td style="text-align:center;">${totAgCov}</td><td style="text-align:center;">${totAlCov}</td><td style="text-align:center;">${totAgCov+totAlCov}</td></tr></tfoot></table>
+
+    ${accInvRows?`<h2>📦 INVENTARIO ACTUAL &nbsp;<span>· Accesorios</span></h2>
+    <table><thead><tr><th>Tipo · Color</th><th style="text-align:center;">Agora</th><th style="text-align:center;">Almacén</th><th style="text-align:center;">Total</th></tr></thead>
+    <tbody>${accInvRows}</tbody>
+    <tfoot><tr><td>TOTAL ACCESORIOS</td><td style="text-align:center;">${totAgAcc}</td><td style="text-align:center;">${totAlAcc}</td><td style="text-align:center;">${totAgAcc+totAlAcc}</td></tr></tfoot></table>`:''}
+
+    <h2>📜 MOVIMIENTOS DE INVENTARIO &nbsp;<span>· ${rangeLabel}</span></h2>
+    ${movSection}
+
+    <div class="footer">
+      <span>Singular &nbsp;·&nbsp; Auditoría de Inventario</span>
+      <span>${genAt}</span>
+    </div>
+    </body></html>`);
+    win.document.close();
+    toast('📄 Documento listo para imprimir');
+  });
+}
 
 function renderReportes(){
   if(!adminMode)return;
