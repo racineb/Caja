@@ -246,6 +246,8 @@ input.err{border-color:#c00!important;}
 .prod-adv-btn{padding:5px 12px;font-size:.75rem;font-weight:700;border:none;border-radius:6px;cursor:pointer;margin-top:6px;}
 .prod-adv-btn.to-proc{background:#dbeafe;color:#1e40af;}
 .prod-adv-btn.to-done{background:#dcfce7;color:#166534;}
+.enviar-method-btn{padding:8px 6px;border:1.5px solid var(--g200);border-radius:8px;background:var(--white);font-size:.78rem;font-weight:700;cursor:pointer;transition:all .15s;color:var(--g700);}
+.enviar-method-btn.active{border-color:var(--black);background:var(--black);color:#fff;}
 .canal-section{background:#f0f9ff;border:1.5px solid #bae6fd;border-radius:8px;padding:12px 14px;margin-bottom:12px;}
 .canal-btn{padding:6px 16px;border:1.5px solid var(--g300);border-radius:20px;font-size:.8rem;font-weight:700;cursor:pointer;background:var(--white);color:var(--g700);transition:all .15s;}
 .canal-btn.active{background:var(--black);color:#fff;border-color:var(--black);}
@@ -1792,6 +1794,68 @@ input.err{border-color:#c00!important;}
     <div class="mfooter" style="display:flex;gap:8px;">
       <button class="obtn" onclick="closeMod('listo-date-modal')">Cancelar</button>
       <button class="submit" onclick="confirmListoDate()">✓ Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── ENVIAR ORDEN MODAL ── -->
+<div class="moverlay" id="enviar-modal">
+  <div class="modal" style="max-width:360px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <h3 style="margin:0;">📤 Enviar orden</h3>
+      <button class="xbtn" onclick="closeMod('enviar-modal')">✕</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">
+      <button onclick="setEnviarMethod('mensajero')" id="em-btn-mensajero" class="enviar-method-btn active">🛵 Mensajero</button>
+      <button onclick="setEnviarMethod('bmcargo')" id="em-btn-bmcargo" class="enviar-method-btn">📦 BMCARGO</button>
+      <button onclick="setEnviarMethod('transportista')" id="em-btn-transportista" class="enviar-method-btn">🚚 Transportista</button>
+      <button onclick="setEnviarMethod('pickup')" id="em-btn-pickup" class="enviar-method-btn">🏪 Pickup</button>
+    </div>
+    <div id="em-fields-mensajero">
+      <div class="field" style="margin-bottom:10px;">
+        <label style="font-size:.75rem;font-weight:700;">Dirección de entrega</label>
+        <input type="text" id="em-address" placeholder="Dirección completa" style="width:100%;"/>
+      </div>
+    </div>
+    <div id="em-fields-bmcargo" style="display:none;">
+      <div class="field" style="margin-bottom:8px;">
+        <label style="font-size:.75rem;font-weight:700;">Sucursal BMCARGO</label>
+        <select id="em-bmcargo-sucursal" style="width:100%;padding:6px 8px;border:1.5px solid var(--g300);border-radius:7px;font-size:.82rem;">
+          <option value="">— Seleccionar sucursal —</option>
+          <option>Santiago</option>
+          <option>Santo Domingo Norte</option>
+          <option>Santo Domingo Este</option>
+          <option>Santo Domingo Oeste</option>
+          <option>La Romana</option>
+          <option>San Pedro de Macorís</option>
+          <option>Puerto Plata</option>
+          <option>La Vega</option>
+          <option>Moca</option>
+          <option>Bonao</option>
+          <option>Otra</option>
+        </select>
+      </div>
+      <div class="field" style="margin-bottom:10px;">
+        <label style="font-size:.75rem;font-weight:700;">No. tracking <span style="font-weight:400;color:var(--g400);">(opcional)</span></label>
+        <input type="text" id="em-bmcargo-tracking" placeholder="Ej: BMC-123456" style="width:100%;"/>
+      </div>
+    </div>
+    <div id="em-fields-transportista" style="display:none;">
+      <div class="field" style="margin-bottom:8px;">
+        <label style="font-size:.75rem;font-weight:700;">Transportista</label>
+        <input type="text" id="em-carrier" placeholder="Ej: Caribe Express, Fedex..." style="width:100%;"/>
+      </div>
+      <div class="field" style="margin-bottom:10px;">
+        <label style="font-size:.75rem;font-weight:700;">No. tracking <span style="font-weight:400;color:var(--g400);">(opcional)</span></label>
+        <input type="text" id="em-carrier-tracking" placeholder="Número de seguimiento" style="width:100%;"/>
+      </div>
+    </div>
+    <div id="em-fields-pickup" style="display:none;">
+      <p style="font-size:.82rem;color:var(--g600);margin:0 0 10px;">El cliente recoge en tienda. La orden quedará como <strong>Entregada</strong>.</p>
+    </div>
+    <div class="mfooter" style="display:flex;gap:8px;">
+      <button class="obtn" onclick="closeMod('enviar-modal')">Cancelar</button>
+      <button class="submit" onclick="confirmEnviar()">📤 Confirmar envío</button>
     </div>
   </div>
 </div>
@@ -4202,6 +4266,63 @@ function sendToRuta(id){
   db.ref('orders/'+id+'/sentToRutaAt').set(Date.now());
   db.ref('orders/'+id+'/sentToRutaBy').set(currentUser?currentUser.name:'');
   toast('✓ Orden enviada a ruta de mensajero');
+}
+// ── Enviar orden modal ──
+let _pendingEnviarOrderId=null;
+let _enviarMethod='mensajero';
+function openEnviarModal(orderId){
+  if(!adminMode)return;
+  _pendingEnviarOrderId=orderId;
+  const o=orders.find(x=>x.id===orderId);
+  if(!o)return;
+  const addrEl=document.getElementById('em-address');
+  if(addrEl)addrEl.value=o.address||'';
+  const bmcEl=document.getElementById('em-bmcargo-tracking');
+  if(bmcEl)bmcEl.value='';
+  const carrEl=document.getElementById('em-carrier');
+  if(carrEl)carrEl.value='';
+  const carrTrkEl=document.getElementById('em-carrier-tracking');
+  if(carrTrkEl)carrTrkEl.value='';
+  setEnviarMethod('mensajero');
+  openMod('enviar-modal');
+}
+function setEnviarMethod(method){
+  _enviarMethod=method;
+  ['mensajero','bmcargo','transportista','pickup'].forEach(m=>{
+    const btn=document.getElementById('em-btn-'+m);
+    const fields=document.getElementById('em-fields-'+m);
+    if(btn)btn.classList.toggle('active',m===method);
+    if(fields)fields.style.display=m===method?'':'none';
+  });
+}
+function confirmEnviar(){
+  const o=orders.find(x=>x.id===_pendingEnviarOrderId);
+  if(!o){closeMod('enviar-modal');return;}
+  const now=Date.now();
+  const by=currentUser?currentUser.name:'';
+  let update={...o,prodUpdatedAt:now,prodUpdatedBy:by,deliveryMethod:_enviarMethod};
+  if(_enviarMethod==='mensajero'){
+    const addr=document.getElementById('em-address')?.value.trim()||o.address||'';
+    update={...update,prodStatus:'ruta_mensajero',address:addr,sentToRutaAt:now,sentToRutaBy:by};
+    toast('🛵 Enviada a ruta de mensajero');
+  } else if(_enviarMethod==='bmcargo'){
+    const suc=document.getElementById('em-bmcargo-sucursal')?.value||'';
+    const trk=document.getElementById('em-bmcargo-tracking')?.value.trim()||'';
+    update={...update,prodStatus:'ruta_mensajero',bmcargoSucursal:suc,trackingNumber:trk,sentToRutaAt:now,sentToRutaBy:by};
+    toast('📦 BMCARGO'+(suc?' · '+suc:''));
+  } else if(_enviarMethod==='transportista'){
+    const carrier=document.getElementById('em-carrier')?.value.trim()||'';
+    const trk=document.getElementById('em-carrier-tracking')?.value.trim()||'';
+    update={...update,prodStatus:'ruta_mensajero',carrier,trackingNumber:trk,sentToRutaAt:now,sentToRutaBy:by};
+    toast('🚚 '+(carrier||'Transportista'));
+  } else if(_enviarMethod==='pickup'){
+    update={...update,prodStatus:'entregada',deliveredAt:now,deliveredBy:by};
+    toast('🏪 Pickup · Entregada');
+  }
+  saveOrderRec(update);
+  closeMod('enviar-modal');
+  _pendingEnviarOrderId=null;
+  setTimeout(renderProd,400);
 }
 function adminMarkDelivered(id){
   if(!adminMode)return;
@@ -7127,7 +7248,7 @@ function renderProd(){
   const wrap=document.getElementById('prod-content');
   if(!wrap)return;
 
-  const ROLLOVER_STATUSES=['pendiente_restock','pendiente','en_proceso','ruta_mensajero'];
+  const ROLLOVER_STATUSES=['pendiente_restock','pendiente','en_proceso'];
   const ROLLOVER_FROM='2026-07-01';
   let dayOrders=orders.filter(o=>{
     if(o.needsApproval)return false;
@@ -7197,12 +7318,22 @@ function renderProd(){
       let _btns='';
       if(_canMerge)
         _btns+=`<button class="prod-adv-btn" style="background:#f0f9ff;color:#0369a1;border:1.5px solid #bae6fd;font-size:.76rem;width:100%;margin-bottom:5px;" onclick="mergeOrders(${o.id},${_linked.id})">🔗 Unir órdenes para entregar</button>`;
-      if(delivery)
-        _btns+=adminMode?`<button class="prod-adv-btn" style="background:#fce7f3;color:#9d174d;border-color:#f9a8d4;" onclick="updateProdStatus(${o.id},'ruta_mensajero')">🛵 Enviar a ruta</button>`:`<div style="font-size:.72rem;color:#9ca3af;padding:6px 0;">⏳ Esperando envío a ruta</div>`;
+      if(adminMode)
+        _btns+=`<button class="prod-adv-btn" style="background:#fce7f3;color:#9d174d;border-color:#f9a8d4;width:100%;" onclick="openEnviarModal(${o.id})">📤 Enviar / Entregar</button>`;
       if(_btns)advBtn=_btns;
     }
-    else if(status==='ruta_mensajero')
-      advBtn=adminMode?`<button class="prod-adv-btn to-done" onclick="updateProdStatus(${o.id},'entregada')">✅ Entregada</button>`:`<div style="font-size:.72rem;color:#9d174d;padding:6px 0;">🛵 En ruta — pendiente de entrega</div>`;
+    else if(status==='ruta_mensajero'){
+      const dm=o.deliveryMethod||'mensajero';
+      const dmLabel={mensajero:'🛵 Mensajero',bmcargo:'📦 BMCARGO',transportista:'🚚 Transportista',pickup:'🏪 Pickup'}[dm]||'🛵 En ruta';
+      const dmDetail=dm==='bmcargo'&&o.bmcargoSucursal?' · '+o.bmcargoSucursal
+        :dm==='transportista'&&o.carrier?' · '+o.carrier:'';
+      const trkBadge=o.trackingNumber?`<div style="font-size:.68rem;color:var(--g500);">🔖 ${o.trackingNumber}</div>`:'';
+      advBtn=`<div style="margin-top:4px;">
+        <div style="font-size:.7rem;font-weight:700;color:#9d174d;margin-bottom:4px;">${dmLabel}${dmDetail}</div>
+        ${trkBadge}
+        ${adminMode?`<button class="prod-adv-btn to-done" style="width:100%;" onclick="updateProdStatus(${o.id},'entregada')">✅ Entregada</button>`:'<div style="font-size:.72rem;color:#9d174d;padding:4px 0;">Pendiente de entrega</div>'}
+      </div>`;
+    }
     const addrHtml=o.address?`<div style="font-size:.72rem;color:var(--g500);margin-top:4px;">📍 ${o.address}</div>`:'';
     const splitBadge=(o.splitFrom||o.splitInto)?`<span style="font-size:.65rem;background:#f0f9ff;color:#0369a1;border:1px solid #bae6fd;border-radius:8px;padding:1px 6px;margin-left:4px;">🔗 Dividida</span>`:'';
     const _listoName=o.listoBy||(o.prodStatus==='listo'?o.prodUpdatedBy:null);
@@ -7234,11 +7365,9 @@ function renderProd(){
     {key:'pendiente',   label:'Pendiente',       cls:'pend',     icon:'⏳'},
     {key:'en_proceso',  label:'En proceso',       cls:'proc',     icon:'▶'},
     {key:'listo',       label:'Listo',            cls:'done',     icon:'✓'},
-    {key:'ruta_mensajero', label:'Ruta Mensajero',cls:'ruta',    icon:'🛵'},
-    {key:'entregada',   label:'Entregada',        cls:'entregada',icon:'✅'},
   ];
 
-  const totalCount=dayOrders.length;
+  const totalCount=dayOrders.filter(o=>!['ruta_mensajero','entregada'].includes(o.prodStatus)).length;
   const summaryHtml=`<div class="prod-summary" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;">
     ${cols.map(c=>`<div style="background:var(--white);border:1.5px solid var(--g200);border-radius:8px;padding:7px 12px;text-align:center;">
       <div style="font-size:1rem;font-weight:900;">${groups[c.key].length}</div>
@@ -7302,7 +7431,7 @@ function renderProd(){
   </div>`;
 
   // ── Estampado del día ──
-  const stamped=dayOrders.filter(o=>o.listoBy);
+  const stamped=dayOrders.filter(o=>o.listoBy&&(!dateVal||localDateStr(o.listoAt||o.prodUpdatedAt||o.id)===dateVal));
   let estampHtml='';
   if(stamped.length){
     const byPerson={};
