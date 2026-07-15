@@ -1774,14 +1774,20 @@ input.err{border-color:#c00!important;}
       <h3 style="margin:0;">✓ Marcar listo</h3>
       <button class="xbtn" onclick="closeMod('listo-date-modal')" style="font-size:1.1rem;">✕</button>
     </div>
-    <p style="font-size:.8rem;color:var(--g600);margin:0 0 14px;">¿En qué fecha y hora fue terminada esta orden?</p>
+    <p style="font-size:.8rem;color:var(--g600);margin:0 0 14px;">¿En qué fecha y hora fue terminada, y quién la estampó?</p>
     <div class="field" style="margin-bottom:10px;">
-      <label style="font-size:.75rem;font-weight:700;">Fecha</label>
-      <input type="date" id="listo-date-input" style="width:100%;"/>
+      <label style="font-size:.75rem;font-weight:700;">¿Quién estampó?</label>
+      <select id="listo-stamper-input" style="width:100%;padding:6px 8px;border:1.5px solid var(--g300);border-radius:7px;font-size:.82rem;"></select>
     </div>
-    <div class="field" style="margin-bottom:16px;">
-      <label style="font-size:.75rem;font-weight:700;">Hora</label>
-      <input type="time" id="listo-time-input" style="width:100%;"/>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;">
+      <div class="field">
+        <label style="font-size:.75rem;font-weight:700;">Fecha</label>
+        <input type="date" id="listo-date-input" style="width:100%;"/>
+      </div>
+      <div class="field">
+        <label style="font-size:.75rem;font-weight:700;">Hora</label>
+        <input type="time" id="listo-time-input" style="width:100%;"/>
+      </div>
     </div>
     <div class="mfooter" style="display:flex;gap:8px;">
       <button class="obtn" onclick="closeMod('listo-date-modal')">Cancelar</button>
@@ -7054,12 +7060,14 @@ function confirmListoDate(){
   if(!o){closeMod('listo-date-modal');return;}
   const dateVal=document.getElementById('listo-date-input')?.value||todayStr();
   const timeVal=document.getElementById('listo-time-input')?.value||'00:00';
+  const stamper=document.getElementById('listo-stamper-input')?.value||'';
   const ts=new Date(dateVal+'T'+timeVal+':00').getTime();
+  const listoBy=stamper||currentUser?.name||'';
   saveOrderRec({...o,prodStatus:'listo',prodUpdatedAt:ts,prodUpdatedBy:currentUser?currentUser.name:'',
-    listoBy:currentUser?currentUser.name:'',listoAt:ts});
+    listoBy,listoAt:ts,markedListoBy:currentUser?currentUser.name:''});
   closeMod('listo-date-modal');
   _pendingListoOrderId=null;
-  toast('✓ Listo · '+dateVal+' '+timeVal);
+  toast('✓ Listo · '+(stamper?stamper+' · ':'')+dateVal+' '+timeVal);
   setTimeout(renderProd,400);
 }
 function updateProdStatus(orderId,newStatus){
@@ -7078,18 +7086,34 @@ function updateProdStatus(orderId,newStatus){
     toast(labels[newStatus]||newStatus);
   }
   if(newStatus==='listo'){
-    // Ask for the actual completion date/time
-    _pendingListoOrderId=id;
-    const now=new Date();
-    const pad=n=>String(n).padStart(2,'0');
-    const todayVal=now.getFullYear()+'-'+pad(now.getMonth()+1)+'-'+pad(now.getDate());
-    const timeVal=pad(now.getHours())+':'+pad(now.getMinutes());
-    const di=document.getElementById('listo-date-input');
-    const ti=document.getElementById('listo-time-input');
-    if(di)di.value=todayVal;
-    if(ti)ti.value=timeVal;
-    openMod('listo-date-modal');
-    return;
+    if(adminMode){
+      // Admins: pick date/time and who stamped it
+      _pendingListoOrderId=orderId;
+      const now=new Date();
+      const pad=n=>String(n).padStart(2,'0');
+      const todayVal=now.getFullYear()+'-'+pad(now.getMonth()+1)+'-'+pad(now.getDate());
+      const timeVal=pad(now.getHours())+':'+pad(now.getMinutes());
+      const di=document.getElementById('listo-date-input');
+      const ti=document.getElementById('listo-time-input');
+      const si=document.getElementById('listo-stamper-input');
+      if(di)di.value=todayVal;
+      if(ti)ti.value=timeVal;
+      if(si){
+        const stampers=users.filter(u=>u.role==='vendedora'||u.role==='admin');
+        si.innerHTML='<option value="">— Sin especificar —</option>'
+          +stampers.map(u=>`<option value="${u.name}"${u.name===(currentUser?.name||'')?'':''} >${u.name}</option>`).join('');
+      }
+      openMod('listo-date-modal');
+      return;
+    } else {
+      // Vendedoras: mark listo with current timestamp, no date picker
+      const ts=Date.now();
+      saveOrderRec({...o,prodStatus:'listo',prodUpdatedAt:ts,prodUpdatedBy:currentUser?currentUser.name:'',
+        listoBy:currentUser?currentUser.name:'',listoAt:ts});
+      toast('✓ Listo');
+      setTimeout(renderProd,400);
+      return;
+    }
   }
   const now=Date.now();
   const extra={};
