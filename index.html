@@ -248,6 +248,33 @@ input.err{border-color:#c00!important;}
 .prod-adv-btn.to-done{background:#dcfce7;color:#166534;}
 .enviar-method-btn{padding:8px 6px;border:1.5px solid var(--g200);border-radius:8px;background:var(--white);font-size:.78rem;font-weight:700;cursor:pointer;transition:all .15s;color:var(--g700);}
 .enviar-method-btn.active{border-color:var(--black);background:var(--black);color:#fff;}
+.ci-emp-row:hover{background:var(--g50);}
+.ci-emp-row td{transition:background .1s;}
+/* ── Repeat Order Modal ── */
+.ro-type-btn{flex:1;padding:10px;border:1.5px solid var(--g200);border-radius:8px;background:var(--white);font-size:.85rem;font-weight:700;cursor:pointer;transition:all .15s;color:var(--g600);}
+.ro-type-btn.active{border-color:var(--black);background:var(--black);color:#fff;}
+.ro-item-card{border:1.5px solid var(--g200);border-radius:10px;padding:12px 14px;margin-bottom:10px;transition:opacity .15s;}
+.ro-item-card.unchecked{opacity:.4;}
+.ro-qty-btn{width:28px;height:28px;border:1.5px solid var(--g200);border-radius:6px;background:var(--white);cursor:pointer;font-size:1rem;font-weight:700;display:inline-flex;align-items:center;justify-content:center;}
+/* ── Transaction filter chips ── */
+.tch-btn{padding:4px 10px;font-size:.75rem;font-weight:700;border:1.5px solid var(--g200);border-radius:6px;background:var(--white);cursor:pointer;color:var(--g500);transition:all .15s;}
+.tch-btn.on{border-color:var(--black);background:var(--black);color:#fff;}
+.tmode-btn{padding:4px 12px;font-size:.75rem;font-weight:700;border:none;background:transparent;cursor:pointer;color:var(--g500);transition:all .1s;}
+.tmode-btn.on{background:var(--black);color:#fff;border-radius:5px;}
+/* ── Historial de Caja ── */
+.hcaj-day{margin-bottom:18px;}
+.hcaj-date-label{font-size:.63rem;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:#9ca3af;padding:0 0 8px;}
+.hcaj-card{display:flex;align-items:flex-start;gap:11px;padding:11px 14px;border-radius:10px;background:#fafafa;border:1.5px solid #e5e7eb;margin-bottom:7px;}
+.hcaj-badge{font-size:.6rem;font-weight:800;text-transform:uppercase;letter-spacing:.5px;padding:3px 8px;border-radius:4px;flex-shrink:0;margin-top:2px;}
+.hcaj-badge.ap{background:#dcfce7;color:#15803d;}
+.hcaj-badge.co{background:#dbeafe;color:#1e40af;}
+.hcaj-badge.ci{background:#fee2e2;color:#b91c1c;}
+.hcaj-info{flex:1;min-width:0;}
+.hcaj-main{font-size:.84rem;font-weight:700;margin-bottom:2px;}
+.hcaj-sub{font-size:.73rem;color:#6b7280;line-height:1.5;}
+.hcaj-dl-btn{padding:5px 12px;font-size:.71rem;font-weight:700;border:1.5px solid #e5e7eb;border-radius:7px;background:#fff;cursor:pointer;color:#374151;flex-shrink:0;transition:background .1s;}
+.hcaj-dl-btn:hover{background:#f3f4f6;}
+#ci-emp-detail-modal .moverlay-inner{max-width:520px;max-height:85vh;overflow-y:auto;}
 .canal-section{background:#f0f9ff;border:1.5px solid #bae6fd;border-radius:8px;padding:12px 14px;margin-bottom:12px;}
 .canal-btn{padding:6px 16px;border:1.5px solid var(--g300);border-radius:20px;font-size:.8rem;font-weight:700;cursor:pointer;background:var(--white);color:var(--g700);transition:all .15s;}
 .canal-btn.active{background:var(--black);color:#fff;border-color:var(--black);}
@@ -349,6 +376,10 @@ input.err{border-color:#c00!important;}
 /* MODALS */
 .moverlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:50;display:none;align-items:center;justify-content:center;padding:16px;}
 .moverlay.open{display:flex;}
+@keyframes ccSlideUp{from{transform:translateY(60px);opacity:0}to{transform:translateY(0);opacity:1}}
+#customer-confirm-modal.open>.cco-sheet{animation:ccSlideUp .28s cubic-bezier(.22,.68,0,1.2);}
+.cco-confirm-btn{width:100%;padding:17px;background:#0a0a0a;color:#fff;border:none;border-radius:14px;font-size:.95rem;font-weight:800;cursor:pointer;letter-spacing:1.5px;transition:transform .1s,opacity .1s;}
+.cco-confirm-btn:active{transform:scale(.97);opacity:.88;}
 .modal{background:var(--white);border-radius:var(--r);width:100%;max-width:360px;padding:24px;box-shadow:0 10px 40px rgba(0,0,0,.25);}
 .modal.wide{max-width:560px;max-height:90vh;overflow-y:auto;}
 .modal h3{font-size:1rem;font-weight:800;margin-bottom:4px;}
@@ -728,7 +759,7 @@ input.err{border-color:#c00!important;}
     <div class="nav-section-lbl">Operaciones</div>
     <div class="nav-item" id="tb2" onclick="showTab(2)"><span class="nav-icon">⏱</span><span>Turnos</span></div>
     <div class="nav-item" id="tb8" onclick="showTab(8)" style="display:none;"><span class="nav-icon">🛵</span><span>Ruta</span></div>
-    <div class="nav-item" id="tb3" onclick="showTab(3)"><span class="nav-icon">🗓</span><span>Horario</span></div>
+    <div class="nav-item" id="tb3" onclick="showTab(3)" style="display:none;"><span class="nav-icon">🗓</span><span>Horario</span></div>
     <div class="nav-item" id="tb4" onclick="showTab(4)"><span class="nav-icon">📦</span><span>Producción</span></div>
 
     <div class="nav-sep"></div>
@@ -792,6 +823,7 @@ input.err{border-color:#c00!important;}
     <button class="ss-action" id="ss-ponchar-btn" onclick="openPoncharEntrada()" style="display:none;background:#f0fdf4;color:#16a34a;border-color:#bbf7d0;">▶ Ponchar Entrada</button>
     <button class="ss-action" id="ss-break-btn" onclick="startBreak()" style="display:none;">☕ Break</button>
     <button class="ss-action" id="ss-del-turno-btn" onclick="adminDeleteTodayShift()" style="display:none;background:#fff0f0;color:#c00;border-color:#fca5a5;" title="Eliminar turno de hoy">🗑 Eliminar turno</button>
+    <button class="ss-action" onclick="openHistorialCaja()" title="Historial de Apertura, Cortes y Cierre" style="font-size:.72rem;padding:4px 10px;">📋</button>
     <button class="ss-action primary" id="ss-btn" onclick="ssAction()">—</button>
   </div>
 
@@ -997,7 +1029,7 @@ input.err{border-color:#c00!important;}
         <div class="field" style="margin-top:10px;">
           <label class="lbl">📷 Foto del error <span style="color:#dc2626;">*</span></label>
           <button onclick="document.getElementById('error-file').click()" style="width:100%;padding:10px;border:1.5px dashed #fca5a5;border-radius:8px;background:#fff1f2;color:#9f1239;cursor:pointer;font-size:.85rem;font-weight:700;">📷 Tomar o subir foto</button>
-          <input type="file" id="error-file" accept="image/*" capture="environment" style="display:none;" onchange="handlePhoto('error-file','error-prev')"/>
+          <input type="file" id="error-file" accept="image/*" style="display:none;" onchange="handlePhoto('error-file','error-prev')"/>
           <div id="error-prev" style="margin-top:8px;display:none;">
             <img style="width:100%;max-height:160px;object-fit:contain;border-radius:8px;border:1px solid #fecaca;">
             <button onclick="clearPhoto('error-file','error-prev')" style="margin-top:4px;font-size:.72rem;color:#dc2626;background:none;border:none;cursor:pointer;font-weight:700;">✕ Quitar foto</button>
@@ -1019,21 +1051,33 @@ input.err{border-color:#c00!important;}
 <!-- ═══ TRANSACTIONS ═══ -->
 <div id="pnl1" style="display:none;">
   <div class="tnav">
-    <div class="fld"><label class="lbl">Fecha</label><input type="date" id="td" onchange="renderT()"/></div>
-    <div class="navbtns">
-      <button class="dbtn" onclick="goToday()">Hoy</button>
-      <button class="dbtn" onclick="shiftDate(-1)">‹</button>
-      <button class="dbtn" onclick="shiftDate(+1)">›</button>
-      <button class="dbtn" onclick="document.getElementById('td').value='';renderT()">Ver Todas</button>
-      <select id="t-shift" onchange="renderT()" style="width:140px;">
+    <!-- Row 1: always-visible from→to + nav arrows + presets -->
+    <div style="display:flex;gap:5px;align-items:center;flex-wrap:wrap;margin-bottom:8px;">
+      <button class="dbtn" onclick="shiftTDate(-1)" style="font-size:.95rem;padding:4px 9px;">‹</button>
+      <input type="date" id="td-from" onchange="renderT()" style="font-size:.82rem;"/>
+      <span style="color:var(--g500);font-size:.82rem;">→</span>
+      <input type="date" id="td-to" onchange="renderT()" style="font-size:.82rem;"/>
+      <button class="dbtn" onclick="shiftTDate(+1)" style="font-size:.95rem;padding:4px 9px;">›</button>
+      <div style="width:1px;height:20px;background:var(--g200);margin:0 1px;flex-shrink:0;"></div>
+      <button class="dbtn" onclick="setTPreset('today')">Hoy</button>
+      <button class="dbtn" onclick="setTPreset('week')">Esta Semana</button>
+      <button class="dbtn" onclick="setTPreset('month')">Este Mes</button>
+      <button class="dbtn" onclick="setTPreset('lastmonth')">Mes Anterior</button>
+      <button class="dbtn" onclick="setTPreset('all')">Ver Todas</button>
+    </div>
+    <!-- Row 2: channel chips + shift + search + export -->
+    <div class="navbtns" style="flex-wrap:wrap;gap:5px;">
+      <span style="font-size:.65rem;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--g400);align-self:center;">Canal:</span>
+      <button id="tch-tienda"    class="tch-btn on" onclick="toggleTChannel('tienda')">🏪 Tienda</button>
+      <button id="tch-web"       class="tch-btn on" onclick="toggleTChannel('web')">🌐 Web</button>
+      <button id="tch-whatsapp"  class="tch-btn on" onclick="toggleTChannel('whatsapp')">💬 WhatsApp</button>
+      <div style="width:1px;height:20px;background:var(--g200);margin:0 2px;"></div>
+      <select id="t-shift" onchange="renderT()" style="width:135px;font-size:.8rem;">
         <option value="">Todos los turnos</option>
-        <option>Apertura</option>
-        <option>Entre Medio</option>
-        <option>Cierre</option>
-        <option>Mañana</option>
-        <option>Noche</option>
+        <option>Apertura</option><option>Entre Medio</option><option>Cierre</option>
+        <option>Mañana</option><option>Noche</option>
       </select>
-      <input type="text" id="tsrch" placeholder="Buscar…" oninput="renderT()" style="width:130px;"/>
+      <input type="text" id="tsrch" placeholder="Buscar…" oninput="renderT()" style="width:120px;"/>
       <button class="dbtn dark" onclick="exportCSV()">Exportar CSV</button>
     </div>
   </div>
@@ -1044,9 +1088,14 @@ input.err{border-color:#c00!important;}
 
 <!-- ═══ SHIFTS TAB ═══ -->
 <div id="pnl2" style="display:none;">
+  <!-- ── Clock-in panel (rendered by renderClockin) ── -->
+  <div id="ci-root"></div>
+
+  <!-- ── Cash register shift history ── -->
+  <div id="ci-shifts-section">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px;">
     <div>
-      <div style="font-weight:800;font-size:1rem;">Historial de Turnos</div>
+      <div style="font-weight:800;font-size:.9rem;color:var(--g600);">📂 Turnos de Caja</div>
       <div style="font-size:.75rem;color:var(--g500);margin-top:2px;">Apertura y cierre de caja por turno</div>
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;">
@@ -1065,6 +1114,7 @@ input.err{border-color:#c00!important;}
     </div>
   </div>
   <div id="shifts-list"></div>
+  </div><!-- end ci-shifts-section -->
 </div>
 
 <!-- ═══ HORARIO TAB ═══ -->
@@ -1444,6 +1494,38 @@ input.err{border-color:#c00!important;}
     <div class="mfooter">
       <button class="submit" style="width:100%;margin:0;" onclick="confirmCorteHandoff()">Confirmar recepción de caja</button>
     </div>
+  </div>
+</div>
+
+<!-- ── REPEAT ORDER MODAL ── -->
+<div class="moverlay" id="repeat-order-modal">
+  <div class="modal" style="max-width:520px;width:95%;max-height:92vh;display:flex;flex-direction:column;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;flex-shrink:0;">
+      <div>
+        <h3 style="margin:0;font-size:1rem;">🔄 Nueva reposición</h3>
+        <div id="ro-client" style="font-size:.75rem;color:var(--g500);margin-top:2px;"></div>
+      </div>
+      <button onclick="closeMod('repeat-order-modal')" style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--g500);">✕</button>
+    </div>
+    <div style="display:flex;gap:8px;margin:12px 0;flex-shrink:0;">
+      <button id="ro-btn-error" class="ro-type-btn" onclick="setRepeatType('Error')">⚠ Error</button>
+      <button id="ro-btn-garantia" class="ro-type-btn" onclick="setRepeatType('Garantia')">🔄 Garantía</button>
+    </div>
+    <div id="ro-items" style="overflow-y:auto;flex:1;min-height:0;padding-right:2px;"></div>
+    <div style="flex-shrink:0;padding-top:12px;border-top:1px solid var(--g100);margin-top:8px;">
+      <button onclick="confirmRepeat()" style="width:100%;padding:14px;background:#0a0a0a;color:#fff;border:none;border-radius:12px;font-size:.9rem;font-weight:800;cursor:pointer;letter-spacing:1px;">Cargar en formulario →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── HISTORIAL DE CAJA MODAL ── -->
+<div class="moverlay" id="historial-caja-modal">
+  <div class="modal" style="max-width:520px;width:95%;max-height:90vh;display:flex;flex-direction:column;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-shrink:0;">
+      <h3 style="margin:0;font-size:1rem;">📋 Historial de Caja</h3>
+      <button onclick="closeMod('historial-caja-modal')" style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--g500);">✕</button>
+    </div>
+    <div id="historial-caja-content" style="overflow-y:auto;flex:1;min-height:0;"></div>
   </div>
 </div>
 
@@ -1861,6 +1943,209 @@ input.err{border-color:#c00!important;}
   </div>
 </div>
 
+<!-- ── EMPLOYEE ATTENDANCE DETAIL MODAL ── -->
+<div class="moverlay" id="ci-emp-detail-modal">
+  <div class="modal" style="max-width:520px;max-height:85vh;overflow-y:auto;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div id="ced-avatar" style="width:40px;height:40px;border-radius:50%;background:#6366f1;color:#fff;display:flex;align-items:center;justify-content:center;font-size:1rem;font-weight:800;flex-shrink:0;"></div>
+        <div>
+          <div id="ced-name" style="font-size:1rem;font-weight:800;"></div>
+          <div style="font-size:.72rem;color:var(--g500);margin-top:1px;">Últimos 7 días</div>
+        </div>
+      </div>
+      <button class="xbtn" onclick="closeMod('ci-emp-detail-modal')">✕</button>
+    </div>
+    <!-- Stats grid -->
+    <div id="ced-stats" style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:16px;"></div>
+    <!-- Legend -->
+    <div style="display:flex;gap:14px;margin-bottom:12px;flex-wrap:wrap;">
+      <div style="display:flex;align-items:center;gap:5px;font-size:.68rem;color:var(--g600);"><div style="width:8px;height:8px;border-radius:2px;background:#6366f1;"></div>Trabajo</div>
+      <div style="display:flex;align-items:center;gap:5px;font-size:.68rem;color:var(--g600);"><div style="width:8px;height:8px;border-radius:2px;background:#22d3ee;"></div>Pausa</div>
+      <div style="display:flex;align-items:center;gap:5px;font-size:.68rem;color:var(--g600);"><div style="width:8px;height:8px;border-radius:2px;background:#f59e0b;"></div>Overtime</div>
+      <div style="display:flex;align-items:center;gap:5px;font-size:.68rem;color:var(--g600);"><div style="width:8px;height:8px;border-radius:2px;background:#dc2626;"></div>Tarde</div>
+    </div>
+    <!-- Timeline rows -->
+    <div id="ced-timeline"></div>
+  </div>
+</div>
+
+<!-- ══ CUSTOMER ORDER CONFIRMATION ══ -->
+<div class="moverlay" id="customer-confirm-modal" style="align-items:flex-end;justify-content:center;padding:0;z-index:80;">
+  <div class="cco-sheet" style="background:#fff;width:100%;max-width:480px;border-radius:24px 24px 0 0;overflow:hidden;display:flex;flex-direction:column;max-height:92dvh;">
+
+    <!-- Brand header -->
+    <div style="background:#0a0a0a;padding:26px 28px 18px;text-align:center;flex-shrink:0;">
+      <div style="color:#fff;letter-spacing:8px;font-size:1.05rem;font-weight:800;text-transform:uppercase;">Singular</div>
+      <div style="color:rgba(255,255,255,.4);font-size:.6rem;letter-spacing:3px;margin-top:5px;text-transform:uppercase;">Leather Accessories</div>
+    </div>
+
+    <!-- Heading -->
+    <div style="padding:20px 28px 4px;text-align:center;flex-shrink:0;">
+      <div style="font-size:1rem;font-weight:800;">Confirma tu pedido</div>
+      <div id="cco-client" style="font-size:.75rem;color:var(--g400);margin-top:4px;"></div>
+    </div>
+
+    <!-- Items list (scrollable) -->
+    <div id="cco-items" style="padding:8px 28px 4px;overflow-y:auto;flex:1;min-height:0;"></div>
+
+    <!-- Totals -->
+    <div id="cco-totals" style="padding:8px 28px 10px;border-top:1px solid var(--g100);flex-shrink:0;"></div>
+
+    <!-- Payment method pill -->
+    <div id="cco-pay" style="padding:0 28px 14px;text-align:center;flex-shrink:0;">
+      <span id="cco-pay-pill" style="display:inline-block;background:var(--g50);border:1px solid var(--g200);border-radius:20px;padding:5px 16px;font-size:.72rem;color:var(--g600);font-weight:600;"></span>
+    </div>
+
+    <!-- Confirm button -->
+    <div style="padding:0 20px 36px;display:flex;flex-direction:column;gap:8px;flex-shrink:0;">
+      <button class="cco-confirm-btn" onclick="doFinalizeOrder()">✓ &nbsp;CONFIRMAR PEDIDO</button>
+      <button onclick="closeMod('customer-confirm-modal')" style="width:100%;padding:11px;background:transparent;color:var(--g400);border:none;font-size:.82rem;cursor:pointer;font-weight:600;">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── ASIGNAR HORARIO MODAL ── -->
+<div class="moverlay" id="ci-schedule-modal">
+  <div class="modal" style="max-width:360px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <h3 style="margin:0;">📅 Asignar horario</h3>
+      <button class="xbtn" onclick="closeMod('ci-schedule-modal')">✕</button>
+    </div>
+    <div class="field" style="margin-bottom:10px;">
+      <label style="font-size:.75rem;font-weight:700;">Empleada</label>
+      <select id="csm-emp" style="width:100%;padding:6px 8px;border:1.5px solid var(--g300);border-radius:7px;font-size:.82rem;"></select>
+    </div>
+    <div class="field" style="margin-bottom:10px;">
+      <label style="font-size:.75rem;font-weight:700;">Fecha</label>
+      <input type="date" id="csm-date" style="width:100%;"/>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+      <div class="field">
+        <label style="font-size:.75rem;font-weight:700;">Entrada</label>
+        <input type="time" id="csm-start" style="width:100%;"/>
+      </div>
+      <div class="field">
+        <label style="font-size:.75rem;font-weight:700;">Salida</label>
+        <input type="time" id="csm-end" style="width:100%;"/>
+      </div>
+    </div>
+    <div class="field" style="margin-bottom:14px;">
+      <label style="font-size:.75rem;font-weight:700;">Notas <span style="font-weight:400;color:var(--g400);">(opcional)</span></label>
+      <input type="text" id="csm-notes" placeholder="Ej: Turno de tarde" style="width:100%;"/>
+    </div>
+    <div class="mfooter" style="display:flex;gap:8px;">
+      <button class="obtn" onclick="closeMod('ci-schedule-modal')">Cancelar</button>
+      <button class="submit" onclick="saveCiSchedule()">💾 Guardar horario</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── AGREGAR PERMISO MODAL ── -->
+<div class="moverlay" id="ci-permiso-modal">
+  <div class="modal" style="max-width:360px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <h3 style="margin:0;">📋 Agregar permiso</h3>
+      <button class="xbtn" onclick="closeMod('ci-permiso-modal')">✕</button>
+    </div>
+    <div class="field" style="margin-bottom:10px;">
+      <label style="font-size:.75rem;font-weight:700;">Empleada</label>
+      <select id="cpm-emp" style="width:100%;padding:6px 8px;border:1.5px solid var(--g300);border-radius:7px;font-size:.82rem;"></select>
+    </div>
+    <div class="field" style="margin-bottom:10px;">
+      <label style="font-size:.75rem;font-weight:700;">Fecha</label>
+      <input type="date" id="cpm-date" style="width:100%;"/>
+    </div>
+    <!-- Type toggle -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px;">
+      <button id="cpm-btn-completo" onclick="setCiPermisoType('completo')" class="enviar-method-btn active">☀️ Día completo</button>
+      <button id="cpm-btn-parcial"  onclick="setCiPermisoType('parcial')"  class="enviar-method-btn">⏰ Horario específico</button>
+    </div>
+    <!-- Time range (only shown for parcial) -->
+    <div id="cpm-time-range" style="display:none;display:grid;grid-template-columns:1fr 12px 1fr;align-items:center;gap:6px;margin-bottom:12px;">
+      <div class="field"><label style="font-size:.72rem;font-weight:700;">De</label><input type="time" id="cpm-start" value="08:00" style="width:100%;"/></div>
+      <span style="font-size:.75rem;color:var(--g400);text-align:center;margin-top:18px;">–</span>
+      <div class="field"><label style="font-size:.72rem;font-weight:700;">Hasta</label><input type="time" id="cpm-end" value="13:00" style="width:100%;"/></div>
+    </div>
+    <div class="field" style="margin-bottom:12px;">
+      <label style="font-size:.75rem;font-weight:700;">Motivo <span style="font-weight:400;color:var(--g400);">(opcional)</span></label>
+      <input type="text" id="cpm-reason" placeholder="Ej: Cita médica, asunto personal…" style="width:100%;"/>
+    </div>
+    <div id="cpm-existing-perm" style="display:none;background:#ede9fe;border:1.5px solid #c4b5fd;border-radius:8px;padding:8px 12px;font-size:.75rem;color:#5b21b6;margin-bottom:10px;"></div>
+    <div class="mfooter" style="display:flex;gap:8px;">
+      <button class="obtn" onclick="closeMod('ci-permiso-modal')">Cancelar</button>
+      <button class="submit" onclick="saveCiPermiso()">✔ Confirmar permiso</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── CAMBIO DE TURNO MODAL ── -->
+<div class="moverlay" id="ci-cambio-modal">
+  <div class="modal" style="max-width:400px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <h3 style="margin:0;">🔄 Cambio de turno</h3>
+      <button class="xbtn" onclick="closeMod('ci-cambio-modal')">✕</button>
+    </div>
+    <!-- Mode tabs -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:16px;">
+      <button id="ccm-btn-override" onclick="setCiCambioMode('override')" class="enviar-method-btn active">✏️ Cambio de horas</button>
+      <button id="ccm-btn-swap"     onclick="setCiCambioMode('swap')"     class="enviar-method-btn">↔️ Intercambio</button>
+    </div>
+    <div class="field" style="margin-bottom:10px;">
+      <label style="font-size:.75rem;font-weight:700;">Empleada</label>
+      <select id="ccm-emp1" style="width:100%;padding:6px 8px;border:1.5px solid var(--g300);border-radius:7px;font-size:.82rem;" onchange="refreshCambioPreview()"></select>
+    </div>
+    <div class="field" style="margin-bottom:10px;">
+      <label style="font-size:.75rem;font-weight:700;">Fecha</label>
+      <input type="date" id="ccm-date" style="width:100%;" onchange="refreshCambioPreview()"/>
+    </div>
+    <!-- Override mode: new hours -->
+    <div id="ccm-override-section">
+      <div style="display:grid;grid-template-columns:1fr 12px 1fr;align-items:center;gap:6px;margin-bottom:10px;">
+        <div class="field"><label style="font-size:.72rem;font-weight:700;">Nueva entrada</label><input type="time" id="ccm-start" style="width:100%;"/></div>
+        <span style="font-size:.75rem;color:var(--g400);text-align:center;margin-top:18px;">–</span>
+        <div class="field"><label style="font-size:.72rem;font-weight:700;">Nueva salida</label><input type="time" id="ccm-end" style="width:100%;"/></div>
+      </div>
+      <div id="ccm-override-preview" style="background:var(--g50);border-radius:8px;padding:8px 12px;font-size:.75rem;color:var(--g600);margin-bottom:10px;"></div>
+    </div>
+    <!-- Swap mode: second employee -->
+    <div id="ccm-swap-section" style="display:none;">
+      <div class="field" style="margin-bottom:10px;">
+        <label style="font-size:.75rem;font-weight:700;">Intercambiar con</label>
+        <select id="ccm-emp2" style="width:100%;padding:6px 8px;border:1.5px solid var(--g300);border-radius:7px;font-size:.82rem;" onchange="refreshCambioPreview()"></select>
+      </div>
+      <div id="ccm-swap-preview" style="background:var(--g50);border-radius:8px;padding:10px 12px;font-size:.75rem;color:var(--g600);margin-bottom:10px;"></div>
+    </div>
+    <div class="mfooter" style="display:flex;gap:8px;">
+      <button class="obtn" onclick="closeMod('ci-cambio-modal')">Cancelar</button>
+      <button id="ccm-confirm-btn" class="submit" onclick="confirmCiCambio()">✔ Confirmar cambio</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── HORARIO FIJO MODAL ── -->
+<div class="moverlay" id="ci-fixed-sched-modal">
+  <div class="modal" style="max-width:420px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <div>
+        <h3 style="margin:0;">📅 Horario fijo semanal</h3>
+        <div id="cfsm-name" style="font-size:.78rem;color:var(--g500);margin-top:3px;font-weight:700;"></div>
+      </div>
+      <button class="xbtn" onclick="closeMod('ci-fixed-sched-modal')">✕</button>
+    </div>
+    <div style="font-size:.72rem;color:var(--g500);margin-bottom:12px;">Marca los días activos y configura el horario. Se aplica automáticamente cada semana.</div>
+    <div class="field" style="margin-bottom:14px;">
+      <label style="font-size:.75rem;font-weight:700;">Válido desde <span style="font-weight:400;color:var(--g400);">(no afecta días anteriores)</span></label>
+      <input type="date" id="cfsm-start-date" style="width:100%;"/>
+    </div>
+    <div id="cfsm-days" style="display:flex;flex-direction:column;gap:2px;margin-bottom:18px;"></div>
+    <div class="mfooter" style="display:flex;gap:8px;">
+      <button class="obtn" onclick="closeMod('ci-fixed-sched-modal')">Cancelar</button>
+      <button class="submit" onclick="saveFixedSchedule()">💾 Guardar horario fijo</button>
+    </div>
+  </div>
+</div>
+
 <!-- ── CONFIRM DELIVERY MODAL ── -->
 <div class="moverlay" id="confirm-delivery-modal">
   <div class="modal wide" style="max-width:560px;">
@@ -2061,11 +2346,12 @@ let pMode       = '';
 let splits      = {};
 let sidN        = 0;
 let uid         = 0;
-let orders      = [];
-let shifts      = [];
-let cortes      = [];
-let deducciones = [];
-let users       = [];
+let orders          = [];
+let shifts          = [];
+let cortes          = [];
+let deducciones     = [];
+let users           = [];
+let clockinSessions = [];
 let curShift    = 'Apertura';
 let adminMode   = false;
 let mensajeroMode = false;
@@ -2079,6 +2365,8 @@ let discState   = {on:false,type:'percent',value:0};
 let verificaciones = [];
 let breaks = [];
 let schedules = [];
+let permisos        = [];
+let fixedSchedules  = [];
 let _breakTimer = null;
 let workerUrl   = '';
 let rncDB       = null; // Map loaded from rnc.txt
@@ -3031,6 +3319,151 @@ function downloadCierreGeneralImage(d){
   a.click();
 }
 
+// ── HISTORIAL DE CAJA ──
+function openHistorialCaja(){
+  const dates=[...new Set(shifts.map(s=>s.date))].sort((a,b)=>b.localeCompare(a)).slice(0,60);
+  if(!dates.length){
+    document.getElementById('historial-caja-content').innerHTML=
+      `<div style="text-align:center;padding:32px;color:var(--g400);">Sin registros de caja</div>`;
+    openMod('historial-caja-modal');return;
+  }
+  const fmtTs=ts=>new Date(ts).toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'});
+  const fmtMon=v=>'RD$'+(v||0).toLocaleString();
+  const diffTxt=d=>{
+    if(Math.abs(d)<1)return'<span style="color:#16a34a;font-weight:700;">✓ Cuadre</span>';
+    return d>0?`<span style="color:#16a34a;">Sobrante ${fmtMon(d)}</span>`
+              :`<span style="color:#c00;">Faltante ${fmtMon(Math.abs(d))}</span>`;
+  };
+  const html=dates.map(date=>{
+    const sr=getDayRec(date);if(!sr)return'';
+    const dateLabel=new Date(date+'T12:00:00').toLocaleDateString('es',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+    const dayCortes=cortes.filter(c=>c.date===date).sort((a,b)=>a.toTimestamp-b.toTimestamp);
+
+    // Apertura card
+    const ap=sr.aperturaReport||{};
+    const apCard=`<div class="hcaj-card">
+      <span class="hcaj-badge ap">Apertura</span>
+      <div class="hcaj-info">
+        <div class="hcaj-main">${sr.openedBy||'—'}</div>
+        <div class="hcaj-sub">
+          Entrada: ${ap.arrival?formatTime12(ap.arrival):fmtTs(sr.openedAt)} &nbsp;·&nbsp; Caja inicial: ${fmtMon(sr.openCash||0)}<br>
+          ${ap.huella!==undefined?`Huella: ${ap.huella?'✓':'✗'} &nbsp;·&nbsp; Web: ${ap.web?'✓':'✗'}`:''}
+        </div>
+      </div>
+      <button class="hcaj-dl-btn" onclick="downloadAperturaFromRecord('${sr.id}')">⬇ Ficha</button>
+    </div>`;
+
+    // Corte cards
+    const corteCards=dayCortes.map(c=>`<div class="hcaj-card">
+      <span class="hcaj-badge co">Corte</span>
+      <div class="hcaj-info">
+        <div class="hcaj-main">${c.employeeName||'—'} <span style="font-weight:400;color:var(--g500);">${c.shift||''}</span></div>
+        <div class="hcaj-sub">
+          Salida: ${c.horaSalida?formatTime12(c.horaSalida):fmtTs(c.toTimestamp)} &nbsp;·&nbsp; Contado: ${fmtMon(c.cashCounted)}<br>
+          ${diffTxt(c.diff||0)}
+          ${c.notes?` &nbsp;·&nbsp; <em>${c.notes}</em>`:''}
+        </div>
+      </div>
+      <button class="hcaj-dl-btn" onclick="downloadCorteFromRecord('${c.id}')">⬇ Ficha</button>
+    </div>`).join('');
+
+    // Cierre card
+    const cierreCard=sr.closedAt?`<div class="hcaj-card">
+      <span class="hcaj-badge ci">Cierre</span>
+      <div class="hcaj-info">
+        <div class="hcaj-main">${sr.closedBy||'—'}</div>
+        <div class="hcaj-sub">
+          Hora: ${fmtTs(sr.closedAt)} &nbsp;·&nbsp; Efectivo: ${fmtMon(sr.closeCash)}<br>
+          ${diffTxt(sr.closeDiff||0)}
+          ${sr.notes?` &nbsp;·&nbsp; <em>${sr.notes}</em>`:''}
+        </div>
+      </div>
+      <button class="hcaj-dl-btn" onclick="downloadCierreFromRecord('${sr.id}')">⬇ Ficha</button>
+    </div>`:'';
+
+    return`<div class="hcaj-day">
+      <div class="hcaj-date-label">${dateLabel}</div>
+      ${apCard}${corteCards}${cierreCard}
+    </div>`;
+  }).join('');
+
+  document.getElementById('historial-caja-content').innerHTML=html||
+    `<div style="text-align:center;padding:32px;color:var(--g400);">Sin registros</div>`;
+  openMod('historial-caja-modal');
+}
+
+function downloadAperturaFromRecord(shiftId){
+  const sr=shifts.find(s=>String(s.id)===String(shiftId));
+  if(!sr){toast('Registro no encontrado');return;}
+  const ap=sr.aperturaReport||{};
+  downloadAperturaImage({
+    name:sr.openedBy||'—',
+    fecha:new Date(sr.date+'T12:00:00').toLocaleDateString('es',{day:'2-digit',month:'2-digit',year:'numeric'}),
+    hora:ap.arrival?formatTime12(ap.arrival):new Date(sr.openedAt).toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'}),
+    turno:sr.shift||'—',
+    cash:sr.openCash||0,
+    huella:ap.huella||false,
+    web:ap.web||false,
+    display:ap.display||'OK',
+    displayNote:ap.displayNote||'',
+    equipos:ap.equipos||'OK',
+    equiposNote:ap.equiposNote||'',
+    verifone:ap.verifone||'OK',
+    verifoneNote:ap.verifoneNote||'',
+    obs:ap.obs||'Sin notas',
+    pendientes:[]
+  });
+}
+
+function downloadCorteFromRecord(corteId){
+  const c=cortes.find(x=>String(x.id)===String(corteId));
+  if(!c){toast('Registro no encontrado');return;}
+  const calc=calcCashForPeriod(c.date,c.fromTimestamp,c.toTimestamp);
+  downloadCorteImage({
+    name:c.employeeName||'—',
+    fecha:new Date(c.date+'T12:00:00').toLocaleDateString('es',{day:'2-digit',month:'2-digit',year:'numeric'}),
+    hora:c.horaSalida?formatTime12(c.horaSalida):new Date(c.toTimestamp).toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'}),
+    turno:c.shift||'—',
+    efectivo:c.cashCounted||0,
+    ventas:calc.netCash,
+    tarjeta:calc.cardTotal,
+    transferencia:calc.txfrTotal,
+    diff:c.diff||0,
+    novPhoto:null,
+    pedidosList:[]
+  });
+}
+
+function downloadCierreFromRecord(shiftId){
+  const sr=shifts.find(s=>String(s.id)===String(shiftId));
+  if(!sr||!sr.closedAt){toast('Registro no encontrado');return;}
+  const dayOrd=orders.filter(o=>localDateStr(o.id)===sr.date&&o.pay);
+  const dayCalc=calcCashForDay(sr.date);
+  const artVendidos=dayOrd.filter(o=>!SPECIAL_TYPES.includes(o.pay.type))
+    .reduce((s,o)=>s+(o.items||[]).filter(i=>i.pid!=='custom').reduce((si,i)=>si+(i.qty||1),0),0);
+  const cantErrores=dayOrd.filter(o=>o.pay.type==='Error').length;
+  const cantCortesias=dayOrd.filter(o=>o.pay.type==='Cortesia').length;
+  const cantWebWA=dayOrd.filter(o=>o.source==='web'||o.source==='whatsapp').length;
+  const estMap={};
+  dayOrd.filter(o=>!SPECIAL_TYPES.includes(o.pay.type)&&(o.listoBy||o.registeredBy)).forEach(o=>{
+    const emp=o.listoBy||o.registeredBy;
+    estMap[emp]=(estMap[emp]||0)+(o.items||[]).filter(i=>i.pid!=='custom').reduce((si,i)=>si+(i.qty||1),0);
+  });
+  const estList=Object.entries(estMap).map(([n,c])=>`${n}: ${c} artículos`);
+  downloadCierreGeneralImage({
+    fecha:new Date(sr.date+'T12:00:00').toLocaleDateString('es',{day:'2-digit',month:'2-digit',year:'numeric'}),
+    closedBy:sr.closedBy||'—',
+    efectivo:sr.closeCash||0,
+    ventas:dayCalc.netCash,
+    tarjeta:dayCalc.cardTotal,
+    transferencia:dayCalc.txfrTotal,
+    salesTotal:dayCalc.salesTotal,
+    diff:sr.closeDiff||0,
+    artVendidos,cantErrores,cantCortesias,cantWebWA,estList,
+    pendientes:[]
+  });
+}
+
 // ── CLOCK & REPORT HELPERS ──
 function fmtDur(ms){const h=Math.floor(ms/3600000),m=Math.floor((ms%3600000)/60000);return h>0?`${h}h ${m}min`:`${m}min`;}
 function getCurrentUserBreak(){
@@ -3326,7 +3759,7 @@ function renderShifts(){
       const confirmBadge=confirmed
         ?`<span style="font-size:.68rem;background:#f0fdf4;color:#16a34a;border:1px solid #bbf7d0;border-radius:10px;padding:1px 7px;margin-left:6px;">✓ Verificado por ${c.confirmedBy.join(', ')}</span>`
         :`<span style="font-size:.68rem;background:#fff7ed;color:#c2410c;border:1px solid #fed7aa;border-radius:10px;padding:1px 7px;margin-left:6px;">⏳ Pendiente de verificar</span>`;
-      const dlCorteBtn=adminMode?`<button onclick="adminDownloadCorte('${c.id}')" style="margin-left:8px;font-size:.68rem;padding:2px 8px;border:1px solid #d1d5db;border-radius:6px;background:#f9fafb;cursor:pointer;color:#374151;">↓ Corte</button>`:'';
+      const dlCorteBtn=currentUser?`<button onclick="downloadCorteFromRecord('${c.id}')" style="margin-left:8px;font-size:.68rem;padding:2px 8px;border:1px solid #d1d5db;border-radius:6px;background:#f9fafb;cursor:pointer;color:#374151;">⬇ Ficha</button>`:'';
       return `<div class="corte-item"><div class="corte-item-dot ${dc}"></div>
         <div class="corte-info"><span class="corte-emp-name">${c.employeeName}</span>
         <span style="font-size:.7rem;color:var(--g500);margin-left:4px;">(${c.shift||''})</span> — Corte ${ct}
@@ -3354,20 +3787,21 @@ function renderShifts(){
     const dayOrders=orders.filter(o=>localDateStr(o.id)===date);
     const prodSummaryCompact=buildProductSummary(dayOrders,true);
     const notes=dayRec.notes?`<div class="shift-card-notes">📝 ${dayRec.notes}</div>`:'';
-    const adminDlBtns=adminMode?`
+    const dlBtns=currentUser?`
       <div style="display:flex;gap:6px;margin-left:auto;align-items:center;flex-wrap:wrap;">
-        <button onclick="adminDownloadApertura('${date}')" style="font-size:.68rem;padding:3px 9px;border:1px solid #d1d5db;border-radius:6px;background:#f9fafb;cursor:pointer;color:#374151;">↓ Apertura</button>
-        ${!isOpen?`<button onclick="adminDownloadCierre('${date}')" style="font-size:.68rem;padding:3px 9px;border:1px solid #d1d5db;border-radius:6px;background:#f9fafb;cursor:pointer;color:#374151;">↓ Cierre</button>
+        <button onclick="downloadAperturaFromRecord('${dayRec.id}')" style="font-size:.68rem;padding:3px 9px;border:1px solid #d1d5db;border-radius:6px;background:#f9fafb;cursor:pointer;color:#374151;">⬇ Apertura</button>
+        ${!isOpen?`<button onclick="downloadCierreFromRecord('${dayRec.id}')" style="font-size:.68rem;padding:3px 9px;border:1px solid #d1d5db;border-radius:6px;background:#f9fafb;cursor:pointer;color:#374151;">⬇ Cierre</button>`:''}
+        ${adminMode&&!isOpen?`
         <button onclick="adminEditCierre('${date}')" style="font-size:.68rem;padding:3px 9px;border:1px solid #d1d5db;border-radius:6px;background:#f9fafb;cursor:pointer;color:#374151;">✏ Editar cierre</button>
         <button onclick="adminDeleteCierre('${date}')" style="font-size:.68rem;padding:3px 9px;border:1px solid #ef4444;border-radius:6px;background:#fef2f2;cursor:pointer;color:#c00;">🗑 Quitar cierre</button>`:''}
-        <button class="xbtn" onclick="deleteShift(${dayRec.id})" style="color:#c00;">✕ Borrar día</button>
+        ${adminMode?`<button class="xbtn" onclick="deleteShift(${dayRec.id})" style="color:#c00;">✕ Borrar día</button>`:''}
       </div>`:'';
     return `<div class="shift-card">
       <div class="${headClass}">
         <span class="sh-badge">📅 ${dateDisp}</span>
         <span class="sh-date">Apertura ${openTime} · ${dayRec.openedBy||''}</span>
         ${statusHtml}
-        ${adminDlBtns}
+        ${dlBtns}
       </div>
       <div class="shift-card-body">
         <div class="sc-cell"><div class="sc-lbl">Caja inicial</div><div class="sc-val">$${dayRec.openCash.toLocaleString()}</div></div>
@@ -5161,6 +5595,264 @@ function updSplit(){
 }
 
 /* ═══════════════════════════════════════
+   CUSTOMER CONFIRMATION
+═══════════════════════════════════════ */
+let _pendingOrder=null;
+
+function openCustomerConfirm({displayItems,subtotal,disc,tot,pay,name,phone,type,orderRec,splitData,fromAlmacenChk,sourceLabel}){
+  _pendingOrder={type,orderRec,splitData,fromAlmacenChk,sourceLabel};
+
+  // Client name/phone + date
+  const _ccoDate=new Date().toLocaleDateString('es',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  document.getElementById('cco-client').innerHTML=`${name}${phone?' · '+phone:''}<br><span style="font-size:.7rem;opacity:.7;">${_ccoDate}</span>`;
+
+  // Items (no prices shown to customer)
+  document.getElementById('cco-items').innerHTML=displayItems.map((it,idx)=>{
+    const c=it.custom||{};
+    const rows=[
+      ['Artículo', it.name],
+      [IS_COVER.includes(it.pid)?'Modelo':'Accesorio', it.model||null],
+      ['Color',    it.color||null],
+      ['Iniciales',c.iniciales||null],
+      ['Emoji',    c.emoji||null],
+      ['Tamaño',   c.tamano||null],
+      ['Color iniciales', c.colorIni||null],
+      ['Notas adicionales', it.notes||null],
+    ].filter(([,v])=>v);
+    const detailRows=rows.slice(1).map(([l,v])=>`
+      <div style="display:flex;gap:10px;padding:6px 0;border-bottom:1px solid #f0f0f0;">
+        <span style="font-size:1rem;color:#6b7280;min-width:140px;flex-shrink:0;">• ${l}</span>
+        <span style="font-size:1rem;font-weight:700;word-break:break-word;">${v}</span>
+      </div>`).join('');
+    return`<div style="margin-bottom:20px;background:#fafafa;border:1.5px solid #e5e7eb;border-radius:14px;overflow:hidden;">
+      <div style="background:#0a0a0a;padding:12px 18px;">
+        <span style="color:#fff;font-size:1.05rem;font-weight:800;">Artículo ${idx+1}</span>
+      </div>
+      <div style="padding:4px 18px 10px;">${detailRows}</div>
+    </div>`;
+  }).join('');
+
+  // No price totals shown to customer
+  document.getElementById('cco-totals').innerHTML='';
+
+  // Payment pill (type only, no amounts)
+  const pLabels={Efectivo:'💵 Efectivo',Tarjeta:'💳 Tarjeta',Transferencia:'📲 Transferencia',
+    Dividido:'🔀 Pago dividido',Cortesia:'🎁 Cortesía',Garantia:'🛡 Garantía',Error:'⚠ Error'};
+  document.getElementById('cco-pay-pill').textContent=pLabels[pay.type]||pay.type;
+
+  openMod('customer-confirm-modal');
+}
+
+/* ═══════════════════════════════════════
+   REPEAT ORDER (Error / Garantía)
+═══════════════════════════════════════ */
+let _repeatOrderId=null;
+let _repeatType='Error';
+
+function openRepeatOrder(orderId){
+  const o=orders.find(x=>x.id==orderId);
+  if(!o){toast('Orden no encontrada');return;}
+  _repeatOrderId=orderId;
+  _repeatType='Error';
+  document.getElementById('ro-client').textContent=o.name+(o.phone?' · '+o.phone:'');
+  setRepeatType('Error');
+  document.getElementById('ro-items').innerHTML=o.items.map((it,idx)=>renderRepeatItem(it,idx)).join('');
+  openMod('repeat-order-modal');
+}
+
+function setRepeatType(t){
+  _repeatType=t;
+  document.getElementById('ro-btn-error').classList.toggle('active',t==='Error');
+  document.getElementById('ro-btn-garantia').classList.toggle('active',t==='Garantia');
+}
+
+function renderRepeatItem(it,idx){
+  const hasCov=IS_COVER.includes(it.pid||'');
+  const hasIni=HAS_INI.includes(it.pid||'');
+  const c=it.custom||{};
+  const colorSel=`<div class="field" style="margin-bottom:0;"><label class="lbl">Color</label>
+    <select id="ro-color-${idx}">${COLORS.map(x=>`<option${x===it.color?' selected':''}>${x}</option>`).join('')}</select></div>`;
+  const modelSel=hasCov?`<div class="field" style="margin-bottom:0;"><label class="lbl">Modelo</label>
+    <select id="ro-model-${idx}"><option value="">— Modelo —</option>${MODEL_LIST.map(x=>`<option${x===(it.model||'')?' selected':''}>${x}</option>`).join('')}</select></div>`:'';
+  const iniFields=hasIni?`
+    <div class="g2" style="margin-bottom:0;">
+      <div class="field" style="margin-bottom:0;"><label class="lbl">Iniciales</label><input id="ro-ini-${idx}" value="${c.iniciales||''}" placeholder="ej: ABC" maxlength="6"/></div>
+      <div class="field" style="margin-bottom:0;"><label class="lbl">Emoji</label><input id="ro-emoji-${idx}" value="${c.emoji||''}" placeholder="😊"/></div>
+    </div>
+    <div class="g2" style="margin-bottom:0;">
+      <div class="field" style="margin-bottom:0;"><label class="lbl">Tamaño</label><select id="ro-tam-${idx}">${SIZES.map(x=>`<option${x===(c.tamano||SIZES[0])?' selected':''}>${x}</option>`).join('')}</select></div>
+      <div class="field" style="margin-bottom:0;"><label class="lbl">Color inicial</label><select id="ro-colini-${idx}">${INI_COLORS.map(x=>`<option${x===(c.colorIni||INI_COLORS[0])?' selected':''}>${x}</option>`).join('')}</select></div>
+    </div>`:'';
+  return`<div class="ro-item-card" id="ro-card-${idx}">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+      <input type="checkbox" id="ro-chk-${idx}" checked
+        onchange="document.getElementById('ro-card-${idx}').classList.toggle('unchecked',!this.checked)"
+        style="width:18px;height:18px;cursor:pointer;accent-color:#000;flex-shrink:0;"/>
+      <strong style="flex:1;font-size:.88rem;">${it.name}</strong>
+      <div style="display:flex;align-items:center;gap:5px;">
+        <button class="ro-qty-btn" onclick="roChQty(${idx},-1)">−</button>
+        <span id="ro-qty-${idx}" style="min-width:20px;text-align:center;font-weight:800;">${it.qty}</span>
+        <button class="ro-qty-btn" onclick="roChQty(${idx},+1)">+</button>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      ${colorSel}
+      ${modelSel}
+      ${iniFields}
+      <div class="field" style="margin-bottom:0;"><label class="lbl">Notas adicionales</label>
+        <input id="ro-notes-${idx}" value="${(it.notes||'').replace(/"/g,'&quot;')}" placeholder="Opcional…"/></div>
+    </div>
+  </div>`;
+}
+
+function roChQty(idx,delta){
+  const el=document.getElementById(`ro-qty-${idx}`);
+  if(!el)return;
+  el.textContent=Math.max(1,(parseInt(el.textContent)||1)+delta);
+}
+
+function confirmRepeat(){
+  const o=orders.find(x=>x.id==_repeatOrderId);
+  if(!o){toast('Orden no encontrada');return;}
+  const newItems=[];
+  o.items.forEach((it,idx)=>{
+    const chk=document.getElementById(`ro-chk-${idx}`);
+    if(!chk||!chk.checked)return;
+    const qty=parseInt(document.getElementById(`ro-qty-${idx}`)?.textContent)||1;
+    const color=document.getElementById(`ro-color-${idx}`)?.value||it.color||COLORS[0];
+    const model=document.getElementById(`ro-model-${idx}`)?.value||(it.model||'');
+    const notes=document.getElementById(`ro-notes-${idx}`)?.value||'';
+    const hasIni=HAS_INI.includes(it.pid||'');
+    const c=it.custom||{};
+    const custom=hasIni?{
+      iniciales:document.getElementById(`ro-ini-${idx}`)?.value||c.iniciales||'',
+      emoji:document.getElementById(`ro-emoji-${idx}`)?.value||c.emoji||'',
+      tamano:document.getElementById(`ro-tam-${idx}`)?.value||c.tamano||SIZES[0],
+      colorIni:document.getElementById(`ro-colini-${idx}`)?.value||c.colorIni||INI_COLORS[0],
+    }:{...c};
+    const p=PRODS.find(x=>x.id===it.pid);
+    newItems.push({
+      uid:++uid,pid:it.pid,
+      name:it.name,
+      price:p?p.price:it.price,
+      qty,color,model,notes,
+      isCustomPrice:p?!!p.custom:it.isCustomPrice,
+      custom
+    });
+  });
+  if(!newItems.length){toast('Selecciona al menos un artículo');return;}
+  // Load into form
+  closeMod('repeat-order-modal');
+  cart=newItems;
+  document.getElementById('fn').value=o.name;
+  document.getElementById('fp').value=o.phone||'';
+  // Set payment type using existing setP logic
+  const chipEl=[...document.querySelectorAll('.pchip')].find(el=>el.textContent.trim()===(_repeatType==='Garantia'?'Garantía':_repeatType));
+  if(chipEl)setP(_repeatType,chipEl);
+  renderCart();
+  showTab(0);
+  // Scroll to top
+  document.querySelector('main')?.scrollTo(0,0);
+  toast(`✓ ${newItems.length} artículo${newItems.length>1?'s':''} cargados · completa los datos requeridos`);
+}
+
+function doFinalizeOrder(){
+  if(!_pendingOrder)return;
+  const{type,orderRec,splitData,fromAlmacenChk,sourceLabel}=_pendingOrder;
+  const _confirmedAt=Date.now();
+  if(type==='split'){
+    const{order1,order2,fromAlmacenChk:fac,sourceLabel:sl}=splitData;
+    order1.confirmedAt=_confirmedAt;
+    order2.confirmedAt=_confirmedAt;
+    saveOrderRec(order1);
+    if(fac)deductAlmacenForOrder(order1.items,order1.name||'#'+order1.id);
+    else deductAgoraForOrder(order1.items,order1.name||'#'+order1.id);
+    saveOrderRec(order2);
+    const rNames=order2.items.map(i=>`${i.name}${i.model?' '+i.model:''}`).join(', ');
+    toast(`${sl} Orden dividida ✓ · ${order1.items.length} producto${order1.items.length>1?'s':''} en producción · Restock: ${rNames}`);
+  } else {
+    orderRec.confirmedAt=_confirmedAt;
+    saveOrderRec(orderRec);
+    if(fromAlmacenChk)deductAlmacenForOrder(orderRec.items,orderRec.name||'#'+orderRec.id);
+    else deductAgoraForOrder(orderRec.items,orderRec.name||'#'+orderRec.id);
+    toast(`${sourceLabel} Orden registrada ✓ — enviada a Producción${fromAlmacenChk?' · Descontado de Almacén':''}`);
+  }
+  closeMod('customer-confirm-modal');
+  resetForm();
+  _pendingOrder=null;
+}
+
+function downloadFicha(orderId){
+  const o=orders.find(x=>x.id==orderId);
+  if(!o){toast('Orden no encontrada');return;}
+  const fmtDate=ts=>new Date(ts).toLocaleDateString('es',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  const fmtTime=ts=>new Date(ts).toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'});
+  const itemsHtml=o.items.map((it,idx)=>{
+    const c=it.custom||{};
+    const rows=[
+      ['Artículo',it.name],
+      [IS_COVER.includes(it.pid)?'Modelo':'Accesorio',it.model||null],
+      ['Color',it.color||null],
+      ['Iniciales',c.iniciales||null],
+      ['Emoji',c.emoji||null],
+      ['Tamaño',c.tamano||null],
+      ['Color iniciales',c.colorIni||null],
+      ['Notas adicionales',it.notes||null],
+    ].filter(([,v])=>v);
+    return`<div style="border:1.5px solid #e5e7eb;border-radius:12px;margin-bottom:14px;overflow:hidden;">
+      <div style="background:#0a0a0a;color:#fff;padding:10px 18px;font-size:1rem;font-weight:800;">Artículo ${idx+1}</div>
+      <table style="width:100%;border-collapse:collapse;">
+        ${rows.map(([l,v])=>`<tr style="border-bottom:1px solid #f3f4f6;">
+          <td style="padding:9px 18px;color:#6b7280;font-size:.92rem;width:42%;">• ${l}</td>
+          <td style="padding:9px 18px;font-weight:700;font-size:.95rem;">${v}</td>
+        </tr>`).join('')}
+      </table>
+    </div>`;
+  }).join('');
+  const payLabel={Efectivo:'💵 Efectivo',Tarjeta:'💳 Tarjeta',Transferencia:'📲 Transferencia',
+    Dividido:'🔀 Pago dividido',Cortesia:'🎁 Cortesía',Garantia:'🛡 Garantía'}[o.pay?.type]||o.pay?.type||'—';
+  const html=`<!DOCTYPE html><html><head><meta charset="UTF-8">
+  <title>Ficha de Confirmación — Singular</title>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{font-family:'Segoe UI',system-ui,sans-serif;background:#fff;color:#111;padding:40px;max-width:580px;margin:0 auto;}
+    .brand{text-align:center;padding:28px 0 20px;}
+    .brand-name{font-size:1.9rem;font-weight:900;letter-spacing:10px;text-transform:uppercase;}
+    .brand-sub{font-size:.6rem;letter-spacing:3px;color:#9ca3af;text-transform:uppercase;margin-top:6px;}
+    hr{border:none;border-top:1.5px solid #e5e7eb;margin:16px 0;}
+    .section-title{font-size:.65rem;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:#9ca3af;margin-bottom:6px;}
+    .client-row{font-size:1rem;font-weight:800;}
+    .meta-row{font-size:.8rem;color:#6b7280;margin-top:4px;}
+    .pay-center{text-align:center;font-size:.82rem;color:#374151;padding:12px 0;}
+    .footer{text-align:center;font-size:.72rem;color:#9ca3af;margin-top:28px;padding-top:16px;border-top:1px solid #e5e7eb;}
+    @media print{body{padding:16px;}}
+  </style>
+</head><body>
+  <div class="brand">
+    <div class="brand-name">Singular</div>
+    <div class="brand-sub">Leather Accessories</div>
+  </div>
+  <hr>
+  <div style="margin-bottom:18px;">
+    <div class="section-title">Cliente</div>
+    <div class="client-row">${o.name}${o.phone?` · <span style="font-weight:400;">${o.phone}</span>`:''}</div>
+    <div class="meta-row">${fmtDate(o.id)} · ${fmtTime(o.id)}${o.confirmedAt?` · <strong>Confirmado ${fmtTime(o.confirmedAt)}</strong>`:''}</div>
+  </div>
+  <div style="margin-bottom:8px;">
+    <div class="section-title">Detalle del pedido</div>
+    ${itemsHtml}
+  </div>
+  <div class="pay-center">${payLabel}</div>
+  <div class="footer">Gracias por tu preferencia · Singular Leather Accessories</div>
+</body></html>`;
+  const w=window.open('','_blank','width=650,height=860');
+  if(!w){toast('Activa las ventanas emergentes para descargar la ficha');return;}
+  w.document.write(html);
+  w.document.close();
+  setTimeout(()=>w.print(),600);
+}
+
+/* ═══════════════════════════════════════
    SUBMIT ORDER
 ═══════════════════════════════════════ */
 function submitOrder(){
@@ -5273,6 +5965,11 @@ function submitOrder(){
       discount:disc2>0?{type:discState.type,value:discState.value,amount:disc2}:null,
       total:tot2,pay:{type:pay.type},splitFrom:now,
       ...(!adminMode?{needsApproval:true}:{})};
+    if(!isOnline){
+      openCustomerConfirm({displayItems:cart.map(_itemToRec),subtotal:sub,disc,tot,pay,name,phone,
+        type:'split',splitData:{order1,order2,fromAlmacenChk,sourceLabel}});
+      return;
+    }
     saveOrderRec(order1);
     if(fromAlmacenChk) deductAlmacenForOrder(order1.items,name||'#'+order1.id);
     else deductAgoraForOrder(order1.items,name||'#'+order1.id);
@@ -5298,6 +5995,13 @@ function submitOrder(){
     resetForm();
     return;
   }
+  // In-store: show customer confirmation modal before saving
+  if(!isOnline){
+    openCustomerConfirm({displayItems:cart.map(_itemToRec),subtotal:sub,disc,tot,pay,name,phone,
+      type:'single',orderRec,fromAlmacenChk,sourceLabel});
+    return;
+  }
+  // Online orders: save directly
   saveOrderRec(orderRec);
   if(fromAlmacenChk) deductAlmacenForOrder(orderRec.items,orderRec.name||'#'+orderRec.id);
   else deductAgoraForOrder(orderRec.items,orderRec.name||'#'+orderRec.id);
@@ -7348,6 +8052,7 @@ function renderProd(){
     const listoHtml=_listoName
       ?`<div style="font-size:.68rem;color:#166534;font-weight:700;margin-top:4px;">${_listoLabel} ${_listoName}${_listoTime?' · '+new Date(_listoTime).toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'}):''}</div>`
       :'';
+    const fichaBtn=`<button onclick="downloadFicha(${o.id})" style="margin-top:7px;padding:4px 10px;font-size:.7rem;background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;cursor:pointer;color:#6b7280;font-weight:600;">📄 Ficha</button>`;
     return`<div class="prod-card ${status==='pendiente_restock'?'pend':status==='ruta_mensajero'?'proc':status==='entregada'?'done':status}">
       <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;flex-wrap:wrap;">
         <span class="prod-source ${src}">${srcIcon[src]||''} ${srcLabel[src]||src}</span>
@@ -7358,6 +8063,7 @@ function renderProd(){
       <div style="margin-top:5px;">${itemsHtml}</div>
       ${addrHtml}${listoHtml}
       ${advBtn}
+      ${fichaBtn}
     </div>`;
   }
 
@@ -7933,6 +8639,604 @@ function printAuditoria(){
   });
 }
 
+/* ═══════════════════════════════════════
+   CLOCK-IN SYSTEM
+═══════════════════════════════════════ */
+const _ciPad=n=>String(n).padStart(2,'0');
+const CI_TL_S=7,CI_TL_E=21,CI_TL_M=(CI_TL_E-CI_TL_S)*60;
+let _ciTick=null;
+let _ciAdminDate='';
+let _ciAdminSearch='';
+
+function ciHMS(ms){const t=Math.floor(Math.abs(ms)/1000);return{h:Math.floor(t/3600),m:Math.floor((t%3600)/60),s:t%60};}
+function ciTPct(ts){const d=new Date(ts);const m=d.getHours()*60+d.getMinutes()+d.getSeconds()/60;return Math.max(0,Math.min(100,(m-CI_TL_S*60)/CI_TL_M*100));}
+
+function ciGetActive(){
+  if(!currentUser)return null;
+  return clockinSessions.find(s=>s.userId===currentUser.name&&!s.clockOut);
+}
+function ciWorkedMs(sess,upTo){
+  const end=upTo||sess.clockOut||Date.now();
+  let w=end-sess.clockIn;
+  (sess.breaks||[]).forEach(b=>{w-=(b.end||(sess.isOnBreak?Date.now():end))-b.start;});
+  return Math.max(0,w);
+}
+function ciWeekMs(name){
+  const d=new Date();d.setDate(d.getDate()-((d.getDay()+6)%7)); // Monday
+  const from=localDateStr(d.getTime());
+  return clockinSessions.filter(s=>s.userId===name&&s.date>=from&&s.date<=todayStr()).reduce((a,s)=>a+ciWorkedMs(s),0);
+}
+function ciWeekGoalMs(name){
+  // Sum scheduled hours for the current week from the Horario tab
+  const mon=new Date();mon.setDate(mon.getDate()-((mon.getDay()+6)%7));
+  let total=0;
+  for(let i=0;i<7;i++){
+    const day=localDateStr(mon.getTime());
+    const sch=getEffectiveSchedule(name,day);
+    if(sch){
+      const[sh,sm]=sch.startTime.split(':').map(Number);
+      const[eh,em]=sch.endTime.split(':').map(Number);
+      const mins=(eh*60+em)-(sh*60+sm);
+      if(mins>0)total+=mins*60000;
+    }
+    mon.setDate(mon.getDate()+1);
+  }
+  return total||44*3600000; // fallback to 44h (semana laboral RD) if no schedule assigned
+}
+
+function ciStart(){
+  if(!currentUser)return;
+  const now=Date.now();
+  const proj=document.getElementById('ci-proj-inp')?.value||'';
+  const sess={id:now,userId:currentUser.name,date:todayStr(),clockIn:now,clockOut:null,breaks:[],isOnBreak:false,project:proj};
+  db.ref('clockin_sessions/'+now).set(sess);
+  toast('⏱ Entrada registrada');
+}
+function ciOut(){
+  const s=ciGetActive();if(!s)return;
+  if(!confirm('¿Confirmar salida?'))return;
+  const now=Date.now();
+  const breaks=[...(s.breaks||[])];
+  if(s.isOnBreak&&breaks.length){const lb=breaks[breaks.length-1];if(!lb.end)lb.end=now;}
+  const proj=document.getElementById('ci-proj-inp')?.value||s.project||'';
+  db.ref('clockin_sessions/'+s.id).update({clockOut:now,isOnBreak:false,breaks,project:proj});
+  toast('✅ Salida registrada · '+new Date(now).toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'}));
+}
+function ciBreak(){
+  const s=ciGetActive();if(!s)return;
+  const now=Date.now();
+  const breaks=[...(s.breaks||[])];
+  if(s.isOnBreak){
+    const lb=breaks[breaks.length-1];if(lb&&!lb.end)lb.end=now;
+    db.ref('clockin_sessions/'+s.id).update({isOnBreak:false,breaks});
+    toast('▶ Pausa terminada');
+  } else {
+    breaks.push({start:now,end:null});
+    db.ref('clockin_sessions/'+s.id).update({isOnBreak:true,breaks});
+    toast('⏸ En pausa');
+  }
+}
+function ciUpdateProj(val){
+  const s=ciGetActive();if(s)db.ref('clockin_sessions/'+s.id+'/project').set(val);
+}
+
+function ciRenderBar(sess){
+  const end=sess.clockOut||Date.now();const segs=[];let ws=sess.clockIn;
+  const brks=[...(sess.breaks||[])].sort((a,b)=>a.start-b.start);
+  for(const b of brks){if(ws<b.start)segs.push({t:'work',s:ws,e:b.start});segs.push({t:'break',s:b.start,e:b.end||Date.now()});ws=b.end||Date.now();}
+  if(ws<end)segs.push({t:'work',s:ws,e:end});
+  const pe=new Date(sess.clockIn);pe.setHours(17,0,0,0);const peMs=pe.getTime();
+  const fin=[];
+  for(const sg of segs){
+    if(sg.t!=='work'){fin.push(sg);continue;}
+    if(sg.s<peMs&&sg.e>peMs){fin.push({t:'work',s:sg.s,e:peMs});fin.push({t:'ot',s:peMs,e:sg.e});}
+    else if(sg.s>=peMs)fin.push({t:'ot',s:sg.s,e:sg.e});
+    else fin.push(sg);
+  }
+  const clr={work:'#6366f1',break:'#22d3ee',ot:'#f59e0b'};
+  let tks='';
+  for(let h=CI_TL_S+1;h<CI_TL_E;h++){
+    const p=(h-CI_TL_S)/(CI_TL_E-CI_TL_S)*100;
+    tks+=`<div style="position:absolute;top:0;bottom:0;left:${p}%;width:1px;background:rgba(0,0,0,.07);pointer-events:none;">${h%2===1?`<div style="position:absolute;top:100%;left:0;font-size:.52rem;color:var(--g400);transform:translateX(-50%);white-space:nowrap;margin-top:2px;">${h}:00</div>`:''}</div>`;
+  }
+  const bars=fin.map(sg=>{const l=ciTPct(sg.s);const w=Math.max(.3,ciTPct(sg.e)-l);return`<div style="position:absolute;top:0;bottom:0;left:${l}%;width:${w}%;background:${clr[sg.t]||'#6366f1'};border-radius:3px;" title="${new Date(sg.s).toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'})}–${new Date(sg.e).toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'})}"></div>`;}).join('');
+  return`<div style="position:relative;height:20px;"><div style="position:absolute;inset:0;background:var(--g100);border-radius:4px;"></div>${tks}${bars}</div>`;
+}
+
+function ciTick(){
+  const s=ciGetActive();if(!s||s.userId!==currentUser?.name)return;
+  const el=ciWorkedMs(s);const{h,m,s:sec}=ciHMS(el);
+  const hm=document.getElementById('ci-hm');const sc=document.getElementById('ci-sc');
+  if(hm)hm.textContent=_ciPad(h)+':'+_ciPad(m);
+  if(sc)sc.textContent=':'+_ciPad(sec);
+}
+
+function renderClockin(){
+  const root=document.getElementById('ci-root');
+  if(!root||!currentUser)return;
+  const u=currentUser;
+  const active=ciGetActive();
+  const isBreak=active&&active.isOnBreak;
+  const todaySess=clockinSessions.filter(s=>s.userId===u.name&&s.date===todayStr()).sort((a,b)=>a.clockIn-b.clockIn);
+  const todayMs=todaySess.reduce((a,s)=>a+ciWorkedMs(s),0);
+  const{h:th,m:tm}=ciHMS(todayMs);
+  const wkMs=ciWeekMs(u.name);
+  const wkGoalMs=ciWeekGoalMs(u.name);
+  const{h:wh,m:wm}=ciHMS(wkMs);
+  const{h:gh}=ciHMS(wkGoalMs);
+  const wkPct=Math.min(100,wkMs/wkGoalMs*100);
+  const el=active?ciWorkedMs(active):0;
+  const{h:eh,m:em,s:es}=ciHMS(el);
+
+  // ── Clock card ──
+  const clockCard=`<div style="background:var(--white);border:1px solid var(--g200);border-radius:12px;padding:18px;">
+    <div style="font-size:.78rem;font-weight:700;color:var(--g500);border-bottom:1px solid var(--g100);padding-bottom:10px;margin-bottom:14px;">⏱ Clock-in</div>
+    ${active?`
+      <div style="font-size:.58rem;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:${isBreak?'#f59e0b':'var(--g400)'};text-align:center;margin-bottom:3px;">${isBreak?'⏸ EN PAUSA':'● ONGOING'}</div>
+      <div style="text-align:center;margin-bottom:14px;line-height:1;">
+        <span id="ci-hm" style="font-size:2.5rem;font-weight:900;font-variant-numeric:tabular-nums;">${_ciPad(eh)}:${_ciPad(em)}</span><span id="ci-sc" style="font-size:1.5rem;font-weight:700;color:var(--g400);font-variant-numeric:tabular-nums;">:${_ciPad(es)}</span>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:center;margin-bottom:14px;">
+        <button onclick="ciBreak()" style="padding:8px 16px;border:1.5px solid ${isBreak?'#fbbf24':'var(--g300)'};border-radius:20px;background:${isBreak?'#fef3c7':'var(--white)'};color:${isBreak?'#92400e':'var(--g700)'};font-size:.8rem;font-weight:700;cursor:pointer;">${isBreak?'▶ Reanudar':'⏸ Break'}</button>
+        <button onclick="ciOut()" style="padding:8px 16px;border:none;border-radius:20px;background:#ef4444;color:#fff;font-size:.8rem;font-weight:700;cursor:pointer;">⏹ Salida</button>
+      </div>`
+    :`
+      <div style="text-align:center;padding:10px 0 16px;">
+        <div style="font-size:.58rem;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--g400);margin-bottom:4px;">SIN SESIÓN</div>
+        <div style="font-size:2.4rem;font-weight:900;color:var(--g200);font-variant-numeric:tabular-nums;">00:00<span style="font-size:1.4rem;">:00</span></div>
+      </div>
+      <button onclick="ciStart()" style="width:100%;padding:11px;border:none;border-radius:10px;background:#6366f1;color:#fff;font-size:.87rem;font-weight:700;cursor:pointer;margin-bottom:14px;">⏱ Marcar entrada</button>`}
+    <div style="border-top:1px solid var(--g100);padding-top:12px;">
+      <div style="font-size:.72rem;font-weight:700;color:var(--g600);margin-bottom:6px;">Proyecto <span style="font-weight:400;color:var(--g400)">(Opcional)</span></div>
+      <input id="ci-proj-inp" style="width:100%;padding:7px 10px;border:1px solid var(--g200);border-radius:8px;font-size:.78rem;background:var(--g50);outline:none;" placeholder="Agregar proyecto…" value="${active?.project||''}" oninput="ciUpdateProj(this.value)"/>
+    </div>
+  </div>`;
+
+  // ── Today card ──
+  const todayCard=`<div style="background:var(--white);border:1px solid var(--g200);border-radius:12px;padding:18px;">
+    <div style="font-size:.78rem;font-weight:700;color:var(--g500);border-bottom:1px solid var(--g100);padding-bottom:10px;margin-bottom:14px;">📅 Hoy · ${new Date().toLocaleDateString('es',{weekday:'short',day:'numeric',month:'short'})}</div>
+    <div style="font-size:.7rem;color:var(--g500);margin-bottom:3px;font-style:italic;">Horas trabajadas</div>
+    <div style="font-size:1.8rem;font-weight:900;margin-bottom:10px;">${th}<span style="font-size:.9rem;font-weight:700;color:var(--g500);">h</span> ${_ciPad(tm)}<span style="font-size:.9rem;font-weight:700;color:var(--g500);">m</span></div>
+    ${active?`<div style="font-size:.7rem;background:#f0fdf4;color:#166534;border-radius:6px;padding:5px 10px;font-weight:700;display:inline-block;">● Desde las ${new Date(active.clockIn).toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'})}</div>`
+    :`<div style="font-size:.75rem;color:var(--g400);">Sin sesión activa</div>`}
+    ${(active?.breaks||[]).length?`<div style="font-size:.68rem;color:var(--g400);margin-top:6px;">☕ ${active.breaks.length} pausa${active.breaks.length>1?'s':''}</div>`:''}
+  </div>`;
+
+  // ── Week card ──
+  const weekCard=`<div style="background:var(--white);border:1px solid var(--g200);border-radius:12px;padding:18px;">
+    <div style="font-size:.78rem;font-weight:700;color:var(--g500);border-bottom:1px solid var(--g100);padding-bottom:10px;margin-bottom:14px;">📊 Esta semana</div>
+    <div style="font-size:.7rem;color:var(--g500);margin-bottom:3px;font-style:italic;">Total horas</div>
+    <div style="font-size:1.8rem;font-weight:900;margin-bottom:10px;">${wh}<span style="font-size:.9rem;font-weight:700;color:var(--g500);">h</span> ${_ciPad(wm)}<span style="font-size:.9rem;font-weight:700;color:var(--g500);">m</span></div>
+    <div style="height:6px;background:var(--g100);border-radius:3px;margin-bottom:6px;overflow:hidden;"><div style="height:100%;width:${wkPct}%;background:#6366f1;border-radius:3px;transition:width .4s;"></div></div>
+    <div style="font-size:.68rem;color:var(--g400);">Meta: ${gh}h · ${Math.round(wkPct)}% completado${!fixedSchedules.find(s=>s.employeeName===u.name)&&!schedules.find(s=>s.employeeName===u.name)?'<span style="color:#f59e0b;margin-left:4px;">⚠ sin horario asignado</span>':''}</div>
+  </div>`;
+
+  // ── Admin attendance section placeholder ──
+  const adminSection=adminMode?`<div id="ci-admin-tbl" style="margin-top:14px;"></div>`:'';
+
+  // ── Timeline ──
+  let tlHtml='';
+  if(todaySess.length){
+    const rows=todaySess.map(sess=>{
+      const ci=new Date(sess.clockIn).toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'});
+      const co=sess.clockOut?new Date(sess.clockOut).toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'}):'ETC';
+      const{h:dh,m:dm}=ciHMS(ciWorkedMs(sess));
+      return`<div style="display:grid;grid-template-columns:60px 1fr 56px;align-items:center;gap:8px;margin-bottom:10px;">
+        <div style="font-size:.68rem;color:var(--g500);font-weight:600;"><div style="font-size:.57rem;color:var(--g400);">Entrada</div>${ci}</div>
+        ${ciRenderBar(sess)}
+        <div style="font-size:.68rem;color:var(--g500);font-weight:600;text-align:right;"><div style="font-size:.57rem;color:var(--g400);">Salida</div>${co}</div>
+      </div>
+      ${sess.project?`<div style="font-size:.68rem;color:#6366f1;font-weight:600;margin-bottom:8px;margin-left:68px;">📁 ${sess.project}</div>`:''}`;
+    }).join('');
+    tlHtml=`<div style="background:var(--white);border:1px solid var(--g200);border-radius:12px;padding:18px;margin-top:12px;">
+      <div style="font-size:.78rem;font-weight:700;color:var(--g500);border-bottom:1px solid var(--g100);padding-bottom:10px;margin-bottom:14px;">📋 Mi horario hoy</div>
+      <div style="display:flex;gap:14px;margin-bottom:14px;flex-wrap:wrap;">
+        ${[['#6366f1','Trabajo'],['#22d3ee','Break'],['#f59e0b','Extra']].map(([c,l])=>`<div style="display:flex;align-items:center;gap:5px;font-size:.7rem;color:var(--g600);"><div style="width:9px;height:9px;border-radius:2px;background:${c};"></div>${l}</div>`).join('')}
+      </div>
+      <div style="padding-top:2px;">${rows}</div>
+    </div>`;
+  }
+
+  root.innerHTML=`<div style="margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+    <div><div style="font-weight:800;font-size:1rem;">⏱ Control de Asistencia</div><div style="font-size:.75rem;color:var(--g500);margin-top:2px;">Registro de entrada y salida</div></div>
+    ${adminMode?`<button class="dbtn" onclick="ciExport()" style="font-size:.75rem;">📋 Exportar CSV</button>`:''}
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">${clockCard}${todayCard}${weekCard}</div>
+  ${adminSection}${tlHtml}
+  <div style="margin-top:22px;padding-top:18px;border-top:2px solid var(--g100);"></div>`;
+
+  if(adminMode){if(!_ciAdminDate)_ciAdminDate=todayStr();renderCiAdminTable();}
+
+  // Tick interval
+  if(!_ciTick) _ciTick=setInterval(ciTick,1000);
+}
+
+function ciExport(){
+  if(!adminMode)return;
+  const rows=[['Nombre','Fecha','Entrada','Salida','Horas trabajadas','Pausas','Proyecto']];
+  clockinSessions.sort((a,b)=>a.clockIn-b.clockIn).forEach(s=>{
+    const{h,m}=ciHMS(ciWorkedMs(s));
+    rows.push([s.userId,s.date,new Date(s.clockIn).toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'}),
+      s.clockOut?new Date(s.clockOut).toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'}):'—',
+      `${h}h ${m}m`,(s.breaks||[]).length,s.project||'']);
+  });
+  const csv=rows.map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\n');
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+  a.download=`asistencia_singular_${todayStr()}.csv`;a.click();
+}
+
+/* ═══ ADMIN ATTENDANCE TABLE ═══════════════════════════════════════════ */
+const _DIAS_KEY=['domingo','lunes','martes','miercoles','jueves','viernes','sabado'];
+function getEffectiveSchedule(name,dateStr){
+  // Per-day override first
+  const ov=schedules.find(s=>s.employeeName===name&&s.date===dateStr);
+  if(ov)return ov;
+  // Fall back to fixed weekly schedule
+  const fixed=fixedSchedules.find(s=>s.employeeName===name);
+  if(!fixed)return null;
+  if(fixed.startDate&&dateStr<fixed.startDate)return null;
+  const dow=_DIAS_KEY[new Date(dateStr+'T12:00:00').getDay()];
+  const conf=fixed[dow];
+  if(!conf||!conf.active)return null;
+  return{employeeName:name,date:dateStr,startTime:conf.startTime,endTime:conf.endTime};
+}
+
+function ciGetEmpStatus(name,dateStr){
+  const perm=permisos.find(p=>p.employeeName===name&&p.date===dateStr);
+  if(perm&&perm.type!=='parcial') return [{l:'Permiso',c:'#7c3aed',bg:'#ede9fe'}];
+  const sess=clockinSessions.filter(s=>s.userId===name&&s.date===dateStr);
+  const sch=getEffectiveSchedule(name,dateStr);
+  if(!sess.length){
+    if(!sch) return [{l:'—',c:'#9ca3af',bg:'#f3f4f6'}];
+    // Only mark absent once the shift start time has passed (for today)
+    if(dateStr===todayStr()){
+      const now=new Date();
+      const nowMin=now.getHours()*60+now.getMinutes();
+      const[sh,sm]=sch.startTime.split(':').map(Number);
+      if(nowMin<sh*60+sm) return [{l:'—',c:'#9ca3af',bg:'#f3f4f6'}];
+    }
+    return [{l:'Ausente',c:'#dc2626',bg:'#fee2e2'}];
+  }
+  const hasActive=sess.some(s=>!s.clockOut);
+  const totalMs=sess.reduce((a,s)=>a+ciWorkedMs(s),0);
+  const out=[hasActive?{l:'Activo',c:'#16a34a',bg:'#dcfce7'}:{l:'Completado',c:'#374151',bg:'#f3f4f6'}];
+  if(sch){
+    const[sh,sm]=sch.startTime.split(':').map(Number);
+    const[eh,em]=sch.endTime.split(':').map(Number);
+    const plannedMs=((eh*60+em)-(sh*60+sm))*60000;
+    const ci=new Date(sess[0].clockIn);
+    const ciMin=ci.getHours()*60+ci.getMinutes();
+    if(ciMin>sh*60+sm+5) out.push({l:'Tarde',c:'#dc2626',bg:'#fee2e2'});
+    if(totalMs>plannedMs+15*60000) out.push({l:'Overtime',c:'#d97706',bg:'#fef3c7'});
+    else if(!hasActive&&totalMs<plannedMs-15*60000) out.push({l:'Incompleto',c:'#d97706',bg:'#fff7ed'});
+  }
+  if(perm&&perm.type==='parcial') out.push({l:`Permiso ${perm.startTime||''}–${perm.endTime||''}`,c:'#7c3aed',bg:'#ede9fe'});
+  return out;
+}
+
+function renderCiAdminTable(){
+  const tbl=document.getElementById('ci-admin-tbl');
+  if(!tbl)return;
+  const d=_ciAdminDate||todayStr();
+  const q=(_ciAdminSearch||'').toLowerCase();
+  const allVend=users.filter(u=>u.role==='vendedora');
+  // KPIs
+  let present=0,late=0,permCount=0,absent=0;
+  allVend.forEach(emp=>{
+    const b=ciGetEmpStatus(emp.name,d);
+    if(b.some(x=>x.l==='Permiso'))permCount++;
+    else if(b.some(x=>x.l==='Ausente'))absent++;
+    else if(b.some(x=>x.l!=='—')){present++;if(b.some(x=>x.l==='Tarde'))late++;}
+  });
+  const emps=allVend.filter(u=>!q||u.name.toLowerCase().includes(q));
+  const rows=emps.map(emp=>{
+    const daySess=clockinSessions.filter(s=>s.userId===emp.name&&s.date===d);
+    const sch=getEffectiveSchedule(emp.name,d);
+    const badges=ciGetEmpStatus(emp.name,d);
+    const ci=daySess.length?new Date(daySess[0].clockIn).toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'}):'—';
+    const last=daySess[daySess.length-1];
+    const co=last?(last.clockOut?new Date(last.clockOut).toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'}):'ETC'):'—';
+    const totalMs=daySess.reduce((a,s)=>a+ciWorkedMs(s),0);
+    const{h,m}=ciHMS(totalMs);
+    const schLabel=sch?sch.startTime+' – '+sch.endTime:`<span style="color:var(--g400);font-style:italic;">Sin horario</span>`;
+    const badgeHtml=badges.map(b=>`<span style="background:${b.bg};color:${b.c};font-size:.6rem;font-weight:700;padding:2px 7px;border-radius:20px;white-space:nowrap;">${b.l}</span>`).join(' ');
+    const av=`<div style="width:32px;height:32px;border-radius:50%;background:${emp.color||'#6366f1'};color:#fff;display:flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:800;flex-shrink:0;">${emp.name[0]}</div>`;
+    const sn=emp.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    const permForDay=permisos.find(p=>p.employeeName===emp.name&&p.date===d);
+    const permLabel=permForDay?(permForDay.type==='parcial'?`✕ Permiso ${permForDay.startTime||''}–${permForDay.endTime||''}`:'✕ Permiso'):'📋 Permiso';
+    const permStyle=permForDay?'border:1.5px solid #c4b5fd;background:#ede9fe;color:#7c3aed;':'border:1.5px solid var(--g200);background:var(--white);color:var(--g600);';
+    const permAction=permForDay?`deleteCiPermiso('${permForDay.id}')`:`openCiPermisoModal('${sn}','${d}')`;
+    return`<tr onclick="openCiEmpDetail('${sn}')" style="cursor:pointer;" class="ci-emp-row">
+      <td style="padding:10px 8px;"><div style="display:flex;align-items:center;gap:10px;">${av}<div><div style="font-size:.82rem;font-weight:700;">${emp.name}</div><div style="font-size:.63rem;color:var(--g500);margin-top:1px;">${schLabel}</div></div></div></td>
+      <td style="padding:10px 8px;font-size:.75rem;white-space:nowrap;">${daySess.length?`<span style="font-weight:700;">${ci}</span><span style="color:var(--g400);margin:0 4px;">→</span><span style="font-weight:700;">${co}</span><div style="font-size:.63rem;color:var(--g400);margin-top:2px;">${totalMs?h+'h '+_ciPad(m)+'m':''}</div>`:'<span style="color:var(--g400);">—</span>'}</td>
+      <td style="padding:10px 8px;">${badgeHtml}</td>
+      <td onclick="event.stopPropagation()" style="padding:10px 8px;white-space:nowrap;display:flex;flex-direction:column;gap:4px;">
+        <button onclick="openFixedScheduleModal('${sn}')" style="padding:3px 7px;border:1.5px solid var(--g200);background:var(--white);color:var(--g600);border-radius:6px;font-size:.65rem;font-weight:700;cursor:pointer;">📅 Horario</button>
+        <button onclick="openCiCambioModal('${sn}','${d}')" style="padding:3px 7px;border:1.5px solid var(--g200);background:var(--white);color:var(--g600);border-radius:6px;font-size:.65rem;font-weight:700;cursor:pointer;">🔄 Cambio</button>
+        <button onclick="${permAction}" style="padding:3px 7px;${permStyle}border-radius:6px;font-size:.65rem;font-weight:700;cursor:pointer;">${permLabel}</button>
+      </td>
+    </tr>`;
+  }).join('');
+  tbl.innerHTML=`<div style="border:1px solid var(--g200);border-radius:12px;background:var(--white);overflow:hidden;">
+    <div style="padding:12px 16px;border-bottom:1px solid var(--g100);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+      <div style="font-size:.82rem;font-weight:800;">👥 Asistencia</div>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+        <button onclick="_ciAdminDate=todayStr();renderCiAdminTable()" class="obtn" style="font-size:.7rem;padding:5px 10px;">Hoy</button>
+        <input type="date" value="${d}" onchange="_ciAdminDate=this.value;renderCiAdminTable()" style="border:1.5px solid var(--g200);border-radius:7px;padding:4px 8px;font-size:.75rem;"/>
+        <input placeholder="Buscar…" oninput="_ciAdminSearch=this.value;renderCiAdminTable()" value="${q}" style="border:1.5px solid var(--g200);border-radius:7px;padding:4px 10px;font-size:.75rem;width:120px;"/>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);">
+      ${[['✅ Presente',present,'#16a34a','#f0fdf4'],['⏰ Tarde',late,'#dc2626','#fef2f2'],['📋 Permiso',permCount,'#7c3aed','#f5f3ff'],['❌ Ausente',absent,'#6b7280','#f9fafb']].map(([l,n,c,bg],i)=>`<div style="padding:12px 14px;background:${bg};${i<3?'border-right:1px solid var(--g100);':''}border-bottom:1px solid var(--g100);"><div style="font-size:.62rem;color:${c};font-weight:700;margin-bottom:2px;">${l}</div><div style="font-size:1.5rem;font-weight:900;color:${c};">${n}</div></div>`).join('')}
+    </div>
+    ${rows?`<table style="width:100%;border-collapse:collapse;">
+      <thead><tr style="background:var(--g50);">${['Empleada','Registro','Estado','Acciones'].map(h=>`<th style="padding:7px 8px;font-size:.68rem;font-weight:700;color:var(--g500);text-align:left;border-bottom:1px solid var(--g100);">${h}</th>`).join('')}</tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`:`<div style="padding:24px;text-align:center;font-size:.78rem;color:var(--g400);">${q?`Sin resultados para "${q}"`:'Sin vendedoras registradas'}</div>`}
+  </div>`;
+}
+
+function openCiEmpDetail(name){
+  const emp=users.find(u=>u.name===name);
+  if(!emp)return;
+  // Build last-7-days array
+  const days=[];
+  for(let i=6;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);days.push(localDateStr(d.getTime()));}
+  // Stats
+  let dayOff=0,tardanzas=0,earlyOut=0,pending=0,otDays=0;
+  days.forEach(day=>{
+    const sch=getEffectiveSchedule(name,day);
+    const sess=clockinSessions.filter(s=>s.userId===name&&s.date===day);
+    if(!sess.length){if(sch)dayOff++;return;}
+    const ci=new Date(sess[0].clockIn);
+    const ciMin=ci.getHours()*60+ci.getMinutes();
+    const last=sess[sess.length-1];
+    if(sch){
+      const[sh,sm]=sch.startTime.split(':').map(Number);
+      const[eh,em]=sch.endTime.split(':').map(Number);
+      const plannedMs=((eh*60+em)-(sh*60+sm))*60000;
+      const totalMs=sess.reduce((a,s)=>a+ciWorkedMs(s),0);
+      if(ciMin>sh*60+sm+5)tardanzas++;
+      if(last.clockOut&&totalMs>plannedMs+15*60000)otDays++;
+      else if(last.clockOut&&totalMs<plannedMs-15*60000)earlyOut++;
+      else if(!last.clockOut)pending++;
+    } else {if(!last.clockOut)pending++;}
+  });
+  // Timeline rows
+  const tlRows=days.map(day=>{
+    const sch=getEffectiveSchedule(name,day);
+    const sess=clockinSessions.filter(s=>s.userId===name&&s.date===day);
+    const dayD=new Date(day+'T12:00:00');
+    const dayLabel=dayD.toLocaleDateString('es',{weekday:'short',day:'numeric',month:'short'});
+    if(!sess.length){
+      return`<div style="padding:10px 0;border-bottom:1px solid var(--g100);">
+        <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+          <span style="font-size:.75rem;font-weight:700;text-transform:capitalize;">${dayLabel}</span>
+          <span style="font-size:.63rem;background:${sch?'#fee2e2':'#f3f4f6'};color:${sch?'#dc2626':'#6b7280'};padding:2px 8px;border-radius:20px;font-weight:700;">${sch?'Ausente':'Sin turno'}</span>
+        </div>
+        <div style="height:14px;background:var(--g100);border-radius:4px;"></div>
+      </div>`;
+    }
+    const totalMs=sess.reduce((a,s)=>a+ciWorkedMs(s),0);
+    const{h,m}=ciHMS(totalMs);
+    const badges=ciGetEmpStatus(name,day);
+    const badgeHtml=badges.map(b=>`<span style="background:${b.bg};color:${b.c};font-size:.6rem;font-weight:700;padding:2px 7px;border-radius:20px;">${b.l}</span>`).join(' ');
+    const ciStr=new Date(sess[0].clockIn).toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'});
+    const last=sess[sess.length-1];
+    const coStr=last.clockOut?new Date(last.clockOut).toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'}):'ETC';
+    return`<div style="padding:10px 0;border-bottom:1px solid var(--g100);">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <span style="font-size:.75rem;font-weight:700;text-transform:capitalize;">${dayLabel}</span>
+        <div style="display:flex;align-items:center;gap:6px;">${badgeHtml}<span style="font-size:.68rem;color:var(--g500);">${h}h ${_ciPad(m)}m</span></div>
+      </div>
+      <div style="display:grid;grid-template-columns:48px 1fr 48px;align-items:center;gap:6px;">
+        <span style="font-size:.63rem;color:var(--g500);">${ciStr}</span>
+        ${sess.map(s=>ciRenderBar(s)).join('')}
+        <span style="font-size:.63rem;color:var(--g500);text-align:right;">${coStr}</span>
+      </div>
+    </div>`;
+  }).join('');
+  // Populate modal
+  document.getElementById('ced-avatar').textContent=name[0];
+  document.getElementById('ced-avatar').style.background=emp.color||'#6366f1';
+  document.getElementById('ced-name').textContent=name;
+  document.getElementById('ced-stats').innerHTML=
+    [['Ausencias',dayOff,'#6b7280'],['Tardanzas',tardanzas,'#dc2626'],['Salida temprana',earlyOut,'#d97706'],['Pend. salida',pending,'#f59e0b'],['Overtime',otDays,'#16a34a']].map(([l,n,c])=>
+      `<div style="text-align:center;padding:8px 4px;border-radius:8px;background:var(--g50);"><div style="font-size:1.3rem;font-weight:900;color:${c};">${n}</div><div style="font-size:.58rem;color:var(--g500);margin-top:2px;line-height:1.2;">${l}</div></div>`
+    ).join('');
+  document.getElementById('ced-timeline').innerHTML=tlRows;
+  openMod('ci-emp-detail-modal');
+}
+
+const _DIAS_LABEL=['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
+const _DIAS_KEYS =['lunes','martes','miercoles','jueves','viernes','sabado','domingo'];
+let _fixedSchedEmp='';
+
+function openFixedScheduleModal(name){
+  if(!adminMode)return;
+  _fixedSchedEmp=name;
+  document.getElementById('cfsm-name').textContent=name;
+  const fixed=fixedSchedules.find(s=>s.employeeName===name);
+  document.getElementById('cfsm-start-date').value=fixed?fixed.startDate||todayStr():todayStr();
+  document.getElementById('cfsm-days').innerHTML=_DIAS_KEYS.map((dia,i)=>{
+    const conf=fixed?(fixed[dia]||{}):{};
+    const on=conf.active||false;
+    const st=conf.startTime||'09:00';
+    const en=conf.endTime||'17:00';
+    return`<div style="display:grid;grid-template-columns:120px 1fr 12px 1fr;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--g100);">
+      <label style="display:flex;align-items:center;gap:7px;font-size:.82rem;font-weight:700;cursor:pointer;">
+        <input type="checkbox" id="cfsm-on-${dia}" ${on?'checked':''} onchange="ciToggleDay('${dia}')">
+        ${_DIAS_LABEL[i]}
+      </label>
+      <input type="time" id="cfsm-s-${dia}" value="${st}" ${!on?'disabled':''} style="width:100%;${!on?'opacity:.35;':''}">
+      <span style="font-size:.7rem;color:var(--g400);text-align:center;">–</span>
+      <input type="time" id="cfsm-e-${dia}" value="${en}" ${!on?'disabled':''} style="width:100%;${!on?'opacity:.35;':''}">
+    </div>`;
+  }).join('');
+  openMod('ci-fixed-sched-modal');
+}
+function ciToggleDay(dia){
+  const on=document.getElementById('cfsm-on-'+dia).checked;
+  ['cfsm-s-'+dia,'cfsm-e-'+dia].forEach(id=>{
+    const el=document.getElementById(id);
+    el.disabled=!on; el.style.opacity=on?'1':'.35';
+  });
+}
+async function saveFixedSchedule(){
+  const name=_fixedSchedEmp;if(!name)return;
+  const data={employeeName:name};
+  _DIAS_KEYS.forEach(dia=>{
+    data[dia]={
+      active:document.getElementById('cfsm-on-'+dia).checked,
+      startTime:document.getElementById('cfsm-s-'+dia).value||'09:00',
+      endTime:document.getElementById('cfsm-e-'+dia).value||'17:00',
+    };
+  });
+  data.startDate=document.getElementById('cfsm-start-date').value||todayStr();
+  const key=name.replace(/[^a-zA-Z0-9_]/g,'_');
+  await db.ref('horarios_fijos/'+key).set(data);
+  closeMod('ci-fixed-sched-modal');
+}
+
+function openCiScheduleModal(name,date){
+  if(!adminMode)return;
+  const vend=users.filter(u=>u.role==='vendedora');
+  document.getElementById('csm-emp').innerHTML=vend.map(u=>`<option value="${u.name}"${u.name===name?' selected':''}>${u.name}</option>`).join('');
+  const d=date||_ciAdminDate||todayStr();
+  document.getElementById('csm-date').value=d;
+  const sch=schedules.find(s=>s.employeeName===name&&s.date===d);
+  document.getElementById('csm-start').value=sch?sch.startTime:'09:00';
+  document.getElementById('csm-end').value=sch?sch.endTime:'17:00';
+  document.getElementById('csm-notes').value=sch?(sch.notes||''):'';
+  openMod('ci-schedule-modal');
+}
+async function saveCiSchedule(){
+  const emp=document.getElementById('csm-emp').value;
+  const date=document.getElementById('csm-date').value;
+  const start=document.getElementById('csm-start').value;
+  const end=document.getElementById('csm-end').value;
+  const notes=document.getElementById('csm-notes').value.trim();
+  if(!emp||!date||!start||!end){alert('Completa todos los campos.');return;}
+  const existing=schedules.find(s=>s.employeeName===emp&&s.date===date);
+  const id=existing?existing.id:Date.now();
+  await db.ref('schedules/'+id).set({id,employeeName:emp,date,startTime:start,endTime:end,notes});
+  closeMod('ci-schedule-modal');
+}
+let _ciPermisoType='completo';
+function setCiPermisoType(type){
+  _ciPermisoType=type;
+  document.getElementById('cpm-btn-completo').classList.toggle('active',type==='completo');
+  document.getElementById('cpm-btn-parcial').classList.toggle('active',type==='parcial');
+  document.getElementById('cpm-time-range').style.display=type==='parcial'?'grid':'none';
+}
+function openCiPermisoModal(name,date){
+  if(!adminMode)return;
+  const vend=users.filter(u=>u.role==='vendedora');
+  document.getElementById('cpm-emp').innerHTML=vend.map(u=>`<option value="${u.name}"${u.name===name?' selected':''}>${u.name}</option>`).join('');
+  const d=date||_ciAdminDate||todayStr();
+  document.getElementById('cpm-date').value=d;
+  document.getElementById('cpm-reason').value='';
+  setCiPermisoType('completo');
+  const existing=permisos.find(p=>p.employeeName===name&&p.date===d);
+  const exDiv=document.getElementById('cpm-existing-perm');
+  if(existing){
+    exDiv.style.display='';
+    exDiv.textContent='Ya tiene permiso este día'+(existing.type==='parcial'?` (${existing.startTime}–${existing.endTime})`:'')+': '+(existing.reason||'sin motivo');
+  } else exDiv.style.display='none';
+  openMod('ci-permiso-modal');
+}
+async function saveCiPermiso(){
+  const emp=document.getElementById('cpm-emp').value;
+  const date=document.getElementById('cpm-date').value;
+  const reason=document.getElementById('cpm-reason').value.trim();
+  if(!emp||!date){alert('Selecciona empleada y fecha.');return;}
+  const id=Date.now();
+  const data={id,employeeName:emp,date,type:_ciPermisoType,reason,createdBy:currentUser.name};
+  if(_ciPermisoType==='parcial'){
+    data.startTime=document.getElementById('cpm-start').value;
+    data.endTime=document.getElementById('cpm-end').value;
+  }
+  await db.ref('permisos/'+id).set(data);
+  closeMod('ci-permiso-modal');
+}
+async function deleteCiPermiso(id){
+  if(!adminMode)return;
+  if(!confirm('¿Quitar este permiso?'))return;
+  await db.ref('permisos/'+id).remove();
+}
+
+/* ── CAMBIO DE TURNO ── */
+let _ciCambioMode='override';
+function setCiCambioMode(mode){
+  _ciCambioMode=mode;
+  document.getElementById('ccm-btn-override').classList.toggle('active',mode==='override');
+  document.getElementById('ccm-btn-swap').classList.toggle('active',mode==='swap');
+  document.getElementById('ccm-override-section').style.display=mode==='override'?'':'none';
+  document.getElementById('ccm-swap-section').style.display=mode==='swap'?'':'none';
+  refreshCambioPreview();
+}
+function openCiCambioModal(name,date){
+  if(!adminMode)return;
+  const vend=users.filter(u=>u.role==='vendedora');
+  const opts=vend.map(u=>`<option value="${u.name}"${u.name===name?' selected':''}>${u.name}</option>`).join('');
+  document.getElementById('ccm-emp1').innerHTML=opts;
+  document.getElementById('ccm-emp2').innerHTML=vend.filter(u=>u.name!==name).map(u=>`<option value="${u.name}">${u.name}</option>`).join('');
+  const d=date||_ciAdminDate||todayStr();
+  document.getElementById('ccm-date').value=d;
+  // Pre-fill current hours
+  const sch=getEffectiveSchedule(name,d);
+  document.getElementById('ccm-start').value=sch?sch.startTime:'09:00';
+  document.getElementById('ccm-end').value=sch?sch.endTime:'17:00';
+  setCiCambioMode('override');
+  openMod('ci-cambio-modal');
+}
+function refreshCambioPreview(){
+  const date=document.getElementById('ccm-date').value;
+  const emp1=document.getElementById('ccm-emp1').value;
+  if(_ciCambioMode==='override'){
+    const sch=date&&emp1?getEffectiveSchedule(emp1,date):null;
+    document.getElementById('ccm-override-preview').innerHTML=sch
+      ?`Horario actual de ${emp1}: <strong>${sch.startTime} – ${sch.endTime}</strong>`
+      :`${emp1} no tiene horario asignado para esta fecha`;
+  } else {
+    const emp2El=document.getElementById('ccm-emp2');
+    const emp2=emp2El?emp2El.value:'';
+    if(!date||!emp1||!emp2){document.getElementById('ccm-swap-preview').innerHTML='';return;}
+    const s1=getEffectiveSchedule(emp1,date);
+    const s2=getEffectiveSchedule(emp2,date);
+    document.getElementById('ccm-swap-preview').innerHTML=
+      `<div style="margin-bottom:4px;"><strong>${emp1}</strong>: ${s1?s1.startTime+' – '+s1.endTime:'sin horario'} → tomará horario de <strong>${emp2}</strong></div>`+
+      `<div><strong>${emp2}</strong>: ${s2?s2.startTime+' – '+s2.endTime:'sin horario'} → tomará horario de <strong>${emp1}</strong></div>`;
+  }
+}
+async function confirmCiCambio(){
+  const date=document.getElementById('ccm-date').value;
+  const emp1=document.getElementById('ccm-emp1').value;
+  if(!date||!emp1){alert('Completa los campos.');return;}
+  if(_ciCambioMode==='override'){
+    const start=document.getElementById('ccm-start').value;
+    const end=document.getElementById('ccm-end').value;
+    if(!start||!end){alert('Ingresa la nueva entrada y salida.');return;}
+    const existing=schedules.find(s=>s.employeeName===emp1&&s.date===date);
+    const id=existing?existing.id:Date.now();
+    await db.ref('schedules/'+id).set({id,employeeName:emp1,date,startTime:start,endTime:end,notes:'Cambio puntual'});
+  } else {
+    const emp2=document.getElementById('ccm-emp2').value;
+    if(!emp2){alert('Selecciona la segunda empleada.');return;}
+    const s1=getEffectiveSchedule(emp1,date);
+    const s2=getEffectiveSchedule(emp2,date);
+    if(!s1&&!s2){alert('Ninguna de las dos tiene horario asignado para esa fecha.');return;}
+    const now=Date.now();
+    const ex1=schedules.find(s=>s.employeeName===emp1&&s.date===date);
+    const ex2=schedules.find(s=>s.employeeName===emp2&&s.date===date);
+    await db.ref('schedules/'+(ex1?ex1.id:now)).set({id:ex1?ex1.id:now,employeeName:emp1,date,
+      startTime:s2?s2.startTime:'09:00',endTime:s2?s2.endTime:'17:00',notes:`Intercambio con ${emp2}`});
+    await db.ref('schedules/'+(ex2?ex2.id:now+1)).set({id:ex2?ex2.id:now+1,employeeName:emp2,date,
+      startTime:s1?s1.startTime:'09:00',endTime:s1?s1.endTime:'17:00',notes:`Intercambio con ${emp1}`});
+  }
+  closeMod('ci-cambio-modal');
+}
+
 function renderReportes(){
   if(!adminMode)return;
   const fromStr=document.getElementById('rep-from').value;
@@ -8132,7 +9436,21 @@ function renderReportes(){
 
   // ── BUILD HTML ─────────────────────────────────────────
   const fmt$=n=>`$${n.toLocaleString()}`;
-  wrap.innerHTML=`
+  const repSt=ss(allOrd);
+  const repStripHtml=`<div class="sstrip" style="margin-bottom:16px;">
+    <div class="scard" style="grid-column:1/-1;text-align:left;padding:8px 13px 4px;border:none;background:transparent;">
+      <span style="font-size:.66rem;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:var(--g500);">Resumen del período</span>
+    </div>
+    <div class="scard"><div class="sv2">${repSt.count}</div><div class="sl2">Ventas</div></div>
+    <div class="scard"><div class="sv2">${fmt$(repSt.tot)}</div><div class="sl2">Total</div></div>
+    <div class="scard"><div class="sv2">${fmt$(repSt.card)}</div><div class="sl2">Tarjeta</div></div>
+    <div class="scard"><div class="sv2">${fmt$(repSt.cash)}</div><div class="sl2">Efectivo</div></div>
+    <div class="scard"><div class="sv2">${fmt$(repSt.txfr)}</div><div class="sl2">Transferencia</div></div>
+    ${repSt.cortesia>0?`<div class="scard sp"><div class="sv2">${repSt.cortesia}</div><div class="sl2">Cortesías</div></div>`:''}
+    ${repSt.error>0?`<div class="scard sp"><div class="sv2">${repSt.error}</div><div class="sl2">Errores</div></div>`:''}
+    ${repSt.garantia>0?`<div class="scard sp"><div class="sv2">${repSt.garantia}</div><div class="sl2">Garantías</div></div>`:''}
+  </div>`;
+  wrap.innerHTML=repStripHtml+`
     <!-- Ventas x Canal -->
     <div class="rep-section">
       <div class="rep-title">📡 Ventas por Canal</div>
@@ -8636,6 +9954,7 @@ function showTab(n){
     const rd=document.getElementById('report-date');
     if(adminMode){rf.style.display='block';if(!rd.value)rd.value=todayStr();}
     else rf.style.display='none';
+    renderClockin();
     renderShifts();
   }
   if(n===3){
@@ -8670,10 +9989,67 @@ function showTab(n){
 /* ═══════════════════════════════════════
    TRANSACTIONS
 ═══════════════════════════════════════ */
-function goToday(){document.getElementById('td').value=todayStr();renderT();}
-function shiftDate(d){
-  const el=document.getElementById('td'),dt=new Date(el.value+'T12:00:00');
-  dt.setDate(dt.getDate()+d);el.value=localDateStr(dt.getTime());renderT();
+// ── Transaction filter state ──
+let _tMode='day'; // 'day' | 'range'
+const _tChannels=new Set(['tienda','web','whatsapp']);
+
+// Preset date shortcuts — all use from/to model
+function setTPreset(p){
+  const today=new Date();
+  const pad=n=>String(n).padStart(2,'0');
+  const fmt=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+  const t=fmt(today);
+  const setRange=(f,to)=>{
+    document.getElementById('td-from').value=f;
+    document.getElementById('td-to').value=to;
+    renderT();
+  };
+  if(p==='today'){setRange(t,t);}
+  else if(p==='all'){setRange('','');}
+  else if(p==='week'){
+    const mon=new Date(today);
+    const dow=today.getDay();
+    mon.setDate(today.getDate()-(dow===0?6:dow-1));
+    setRange(fmt(mon),t);
+  } else if(p==='month'){
+    setRange(`${today.getFullYear()}-${pad(today.getMonth()+1)}-01`,t);
+  } else if(p==='lastmonth'){
+    const f=new Date(today.getFullYear(),today.getMonth()-1,1);
+    const lm=new Date(today.getFullYear(),today.getMonth(),0);
+    setRange(fmt(f),fmt(lm));
+  }
+}
+// Navigate by one day (moves both from and to)
+function shiftTDate(d){
+  const fEl=document.getElementById('td-from');
+  const tEl=document.getElementById('td-to');
+  const base=fEl.value||todayStr();
+  const dt=new Date(base+'T12:00:00');
+  dt.setDate(dt.getDate()+d);
+  const nv=localDateStr(dt.getTime());
+  fEl.value=nv; tEl.value=nv;
+  renderT();
+}
+function goToday(){
+  const t=todayStr();
+  document.getElementById('td-from').value=t;
+  document.getElementById('td-to').value=t;
+  renderT();
+}
+// Keep legacy aliases safe
+function setTMode(m){_tMode=m;renderT();}
+function shiftDate(d){shiftTDate(d);}
+function setTRangeToday(){goToday();}
+function toggleTChannel(ch){
+  if(_tChannels.has(ch)){
+    if(_tChannels.size>1)_tChannels.delete(ch);
+    else{_tChannels.add('tienda');_tChannels.add('web');_tChannels.add('whatsapp');}
+  } else {
+    _tChannels.add(ch);
+  }
+  ['tienda','web','whatsapp'].forEach(c=>
+    document.getElementById('tch-'+c).classList.toggle('on',_tChannels.has(c)));
+  renderT();
 }
 function ss(arr){
   let count=0,tot=0,card=0,cash=0,txfr=0,cortesia=0,error=0,garantia=0,errorItems=0;
@@ -8758,11 +10134,16 @@ function fmtCustom(item){
   return parts.join(' · ');
 }
 function renderT(){
-  const dv=document.getElementById('td').value;
+  const fv=document.getElementById('td-from').value;
+  const tv=document.getElementById('td-to').value;
+  const fromMs=fv?new Date(fv+'T00:00:00').getTime():null;
+  const toMs=tv?new Date(tv+'T23:59:59').getTime():null;
   const srch=document.getElementById('tsrch').value.toLowerCase();
   const shiftF=document.getElementById('t-shift').value;
   const dayAll=orders.filter(o=>{
-    if(dv&&localDateStr(o.id)!==dv)return false;
+    if(fromMs&&o.id<fromMs)return false;
+    if(toMs&&o.id>toMs)return false;
+    if(!_tChannels.has(o.source||'tienda'))return false;
     if(srch&&!o.name.toLowerCase().includes(srch)&&!(o.phone||'').includes(srch))return false;
     return true;
   });
@@ -8830,13 +10211,15 @@ function renderT(){
     const adminBtns=adminMode
       ?`<button class="edit-btn" onclick="editOrder(${o.id})">✏</button><button class="xbtn" onclick="delOrder(${o.id})">✕</button>`
       :`<button class="xbtn" onclick="noAdmin()" style="opacity:.25;cursor:not-allowed;">✕</button>`;
+    const fichaBtn=`<button onclick="downloadFicha(${o.id})" title="Descargar ficha" style="padding:3px 8px;font-size:.7rem;background:#f9fafb;border:1px solid #e5e7eb;border-radius:5px;cursor:pointer;color:#6b7280;">📄</button>`;
+    const repeatBtn=`<button onclick="openRepeatOrder(${o.id})" title="Crear reposición (Error / Garantía)" style="padding:3px 8px;font-size:.7rem;background:#eff6ff;border:1px solid #bfdbfe;border-radius:5px;cursor:pointer;color:#1d4ed8;font-weight:700;">🔄</button>`;
     return `<tr>
-      <td style="color:var(--g500);font-size:.79rem;white-space:nowrap;">${time}<br><span style="font-size:.68rem;">${shb}</span>${o.registeredBy?`<br><span style="font-size:.66rem;color:var(--g300);">${o.registeredBy}</span>`:''}</td>
+      <td style="color:var(--g500);font-size:.79rem;white-space:nowrap;">${time}<br><span style="font-size:.68rem;">${shb}</span>${o.confirmedAt?`<br><span style="font-size:.65rem;color:#7c3aed;" title="Confirmado por el cliente">✓ ${new Date(o.confirmedAt).toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'})}</span>`:''}${o.registeredBy?`<br><span style="font-size:.66rem;color:var(--g300);">${o.registeredBy}</span>`:''}</td>
       <td><strong>${o.name}</strong>${o.phone?`<br><span style="font-size:.75rem;color:var(--g500);">${o.phone}</span>`:''}${o.comprobante?`<br><span style="font-size:.68rem;background:#eff6ff;color:#1d4ed8;padding:1px 6px;border-radius:4px;font-weight:700;">📄 ${o.comprobante.tipo} · ${o.comprobante.rnc}</span>`:''}${o.comprobante&&o.comprobante.nombre?`<br><span style="font-size:.67rem;color:var(--g500);">${o.comprobante.nombre}</span>`:''}${o.comprobante&&o.comprobante.email?`<br><span style="font-size:.67rem;color:var(--g500);">✉ ${o.comprobante.email}</span>`:''}</td>
       <td><div class="itlist">${items}</div></td>
       <td>${totDisp}${discInfo}</td>
       <td><span class="badge ${bc}">${bl}</span>${payd}</td>
-      <td style="white-space:nowrap;">${adminBtns}</td></tr>`;
+      <td style="white-space:nowrap;">${repeatBtn}${fichaBtn}${adminBtns}</td></tr>`;
   }).join('');
 
   wrap.innerHTML=`<table class="ttable">
@@ -9016,7 +10399,7 @@ const db=firebase.database();
 const auth=firebase.auth();
 
 // Track which collections have loaded for the first time
-const _fbInit={orders:false,shifts:false,cortes:false,users:false,deducciones:false,verificaciones:false,breaks:false,schedules:false,viajes:false};
+const _fbInit={orders:false,shifts:false,cortes:false,users:false,deducciones:false,verificaciones:false,breaks:false,schedules:false,viajes:false,clockin:false};
 function _fbCheckReady(){
   if(Object.values(_fbInit).every(v=>v)){
     clearTimeout(_fbTimeout);
@@ -9097,6 +10480,22 @@ db.ref('viajes').on('value',snap=>{
     else if(adminMode&&document.getElementById('tb2').classList.contains('active'))renderShifts();
   }
 },err=>console.warn('viajes: '+err.message));
+
+db.ref('clockin_sessions').on('value',snap=>{
+  clockinSessions=Object.values(snap.val()||{}).sort((a,b)=>a.clockIn-b.clockIn);
+  if(!_fbInit.clockin){_fbInit.clockin=true;_fbCheckReady();}
+  else if(currentUser&&document.getElementById('tb2').classList.contains('active'))renderClockin();
+},err=>console.warn('clockin_sessions: '+err.message));
+
+db.ref('permisos').on('value',snap=>{
+  permisos=Object.values(snap.val()||{});
+  if(currentUser&&adminMode&&document.getElementById('ci-admin-tbl'))renderCiAdminTable();
+},err=>console.warn('permisos: '+err.message));
+
+db.ref('horarios_fijos').on('value',snap=>{
+  fixedSchedules=Object.values(snap.val()||{});
+  if(currentUser&&adminMode&&document.getElementById('ci-admin-tbl'))renderCiAdminTable();
+},err=>console.warn('horarios_fijos: '+err.message));
 
 db.ref('config').on('value',snap=>{
   const cfg=snap.val()||{};
