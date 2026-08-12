@@ -7,6 +7,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
 :root{
@@ -821,7 +822,7 @@ input.err{border-color:#c00!important;}
     <span class="ss-text" id="ss-text">—</span>
     <button class="ss-action" id="ss-corte-btn" onclick="openCorte()" style="display:none;">⏹ Hacer Corte</button>
     <button class="ss-action" id="ss-ponchar-btn" onclick="openPoncharEntrada()" style="display:none;background:#f0fdf4;color:#16a34a;border-color:#bbf7d0;">▶ Ponchar Entrada</button>
-    <button class="ss-action" id="ss-break-btn" onclick="startBreak()" style="display:none;">☕ Break</button>
+    <!-- ss-break-btn removed: breaks only via Turnos tab -->
     <button class="ss-action" id="ss-del-turno-btn" onclick="adminDeleteTodayShift()" style="display:none;background:#fff0f0;color:#c00;border-color:#fca5a5;" title="Eliminar turno de hoy">🗑 Eliminar turno</button>
     <button class="ss-action" onclick="openHistorialCaja()" title="Historial de Apertura, Cortes y Cierre" style="font-size:.72rem;padding:4px 10px;">📋</button>
     <button class="ss-action primary" id="ss-btn" onclick="ssAction()">—</button>
@@ -1190,6 +1191,7 @@ input.err{border-color:#c00!important;}
       <button class="dbtn" onclick="setRepRange('month')">Este Mes</button>
       <button class="dbtn" onclick="setRepRange('lastmonth')">Mes Anterior</button>
       <button class="dbtn dark" onclick="renderReportes()">🔄</button>
+      <button class="dbtn" onclick="openBonusCalc()" style="background:#0a0a0a;color:#fff;border-color:#0a0a0a;font-weight:800;">💰 Bonificación</button>
     </div>
   </div>
   <!-- Date range -->
@@ -1262,6 +1264,7 @@ input.err{border-color:#c00!important;}
   <div class="settings-layout">
     <div class="settings-sidenav">
       <div class="settings-sidenav-item active" onclick="switchSettings(this,'s-general')">General</div>
+      <div class="settings-sidenav-item" onclick="switchSettings(this,'s-precios')">Precios</div>
       <div class="settings-sidenav-item" onclick="switchSettings(this,'s-restock')">Reglas de Restock</div>
     </div>
     <div class="settings-content">
@@ -1275,6 +1278,38 @@ input.err{border-color:#c00!important;}
           <div style="font-size:.82rem;color:#374151;line-height:1.6;">Para activar búsqueda automática de RNC, sube el archivo <strong>rnc.txt</strong> junto al <strong>index.html</strong>.</div>
           <div id="cfg-rnc-status2" style="margin-top:8px;font-size:.78rem;color:#6b7280;"></div>
           <button class="dbtn" onclick="rncDB=null;toast('Base RNC descargada — se recargará en la próxima búsqueda');" style="margin-top:12px;font-size:.78rem;">🔄 Recargar base RNC</button>
+        </div>
+      </div>
+
+      <!-- PRECIOS -->
+      <div class="settings-sec" id="s-precios">
+        <div class="settings-sec-title">Precios del catálogo</div>
+        <div class="settings-sec-sub">Las ventas ya registradas no se ven afectadas — cada orden guarda el precio del momento.</div>
+
+        <!-- Edición de precios -->
+        <div class="settings-card">
+          <div class="settings-card-title">Establecer nuevos precios</div>
+          <div id="precios-list" style="display:flex;flex-direction:column;gap:2px;"></div>
+          <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--g100);display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;">
+            <div style="display:flex;flex-direction:column;gap:5px;flex:1;min-width:160px;">
+              <label class="lbl">📅 Vigente desde</label>
+              <input type="date" id="precio-fecha" style="max-width:200px;" oninput="_precioFechaHint()"/>
+              <span id="precio-fecha-hint" style="font-size:.69rem;color:#9ca3af;"></span>
+            </div>
+            <button onclick="savePrecios()" class="submit" style="margin:0;flex:1;min-width:160px;max-width:220px;">💾 Guardar precios</button>
+          </div>
+        </div>
+
+        <!-- Cambios programados (futuros) -->
+        <div class="settings-card" id="precios-prog-card" style="display:none;">
+          <div class="settings-card-title">⏳ Cambios programados</div>
+          <div id="precios-prog-list"></div>
+        </div>
+
+        <!-- Historial de cambios -->
+        <div class="settings-card">
+          <div class="settings-card-title">📋 Historial de cambios de precio</div>
+          <div id="precios-hist-list" style="color:var(--g500);font-size:.8rem;">—</div>
         </div>
       </div>
 
@@ -1514,6 +1549,228 @@ input.err{border-color:#c00!important;}
     <div id="ro-items" style="overflow-y:auto;flex:1;min-height:0;padding-right:2px;"></div>
     <div style="flex-shrink:0;padding-top:12px;border-top:1px solid var(--g100);margin-top:8px;">
       <button onclick="confirmRepeat()" style="width:100%;padding:14px;background:#0a0a0a;color:#fff;border:none;border-radius:12px;font-size:.9rem;font-weight:800;cursor:pointer;letter-spacing:1px;">Cargar en formulario →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── BONIFICACIÓN MODAL ── -->
+<div class="moverlay" id="bonus-calc-modal">
+  <div class="modal" style="max-width:600px;width:96%;max-height:94vh;display:flex;flex-direction:column;overflow:hidden;">
+    <!-- Header -->
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-shrink:0;margin-bottom:12px;">
+      <div>
+        <h3 style="margin:0;font-size:1rem;">💰 Informe de Bonificación</h3>
+        <div style="font-size:.72rem;color:var(--g500);margin-top:2px;">SINGULAR · Agora Mall · Uso Interno</div>
+      </div>
+      <button onclick="closeMod('bonus-calc-modal')" style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--g500);">✕</button>
+    </div>
+    <!-- Scrollable body -->
+    <div style="overflow-y:auto;flex:1;padding-right:4px;">
+      <!-- Employee + period selectors -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
+        <div>
+          <div style="font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--g500);margin-bottom:4px;">Colaboradora</div>
+          <select id="bc-emp" onchange="refreshBonusCalc()" style="width:100%;font-size:.85rem;"></select>
+        </div>
+        <div>
+          <div style="font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--g500);margin-bottom:4px;">Período</div>
+          <div style="display:flex;gap:5px;align-items:center;">
+            <input type="date" id="bc-from" onchange="refreshBonusCalc()" style="flex:1;font-size:.8rem;"/>
+            <span style="color:var(--g500);">→</span>
+            <input type="date" id="bc-to" onchange="refreshBonusCalc()" style="flex:1;font-size:.8rem;"/>
+          </div>
+        </div>
+      </div>
+
+      <!-- Meta del período -->
+      <div id="bc-meta-bar" style="display:flex;align-items:center;gap:10px;padding:11px 14px;background:#f0f9ff;border:1.5px solid #bae6fd;border-radius:10px;margin-bottom:10px;">
+        <div style="flex:1;">
+          <div style="font-size:.65rem;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:#0369a1;margin-bottom:4px;">🎯 Meta de ventas del período</div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="font-size:.8rem;color:#374151;font-weight:600;">RD$</span>
+            <input type="number" id="bc-meta" min="0" step="1000" placeholder="0" onchange="calcBonusResult()" oninput="calcBonusResult()"
+              style="width:130px;font-size:.9rem;font-weight:800;border:1.5px solid #7dd3fc;border-radius:6px;padding:5px 8px;color:#0c4a6e;"/>
+            <span style="font-size:.72rem;color:#64748b;">(dejar en 0 si no aplica meta este período)</span>
+          </div>
+        </div>
+        <div style="text-align:center;min-width:70px;">
+          <div style="font-size:.62rem;color:#0369a1;font-weight:700;margin-bottom:2px;">Cumplimiento</div>
+          <div id="bc-metapct" style="font-size:1.05rem;font-weight:800;color:#0369a1;">—</div>
+        </div>
+      </div>
+      <div id="bc-meta-warn" style="display:none;padding:9px 12px;background:#fff5f5;border:1.5px solid #fca5a5;border-radius:8px;margin-bottom:10px;font-size:.8rem;color:#dc2626;font-weight:700;">
+        ⛔ Meta no alcanzada — el bono no aplica este período
+      </div>
+
+      <!-- Auto-pulled stats (read-only) -->
+      <div style="background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:10px;padding:12px 14px;margin-bottom:14px;">
+        <div style="font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:#64748b;margin-bottom:10px;">📊 Datos del sistema — auto-calculados</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px;">
+          <div style="background:#fff;border:1px solid #e2e8f0;border-radius:7px;padding:8px 10px;">
+            <div style="font-size:.65rem;color:#64748b;font-weight:700;margin-bottom:2px;">Ventas brutas</div>
+            <div id="bc-ventas" style="font-size:.95rem;font-weight:800;">—</div>
+            <div id="bc-ventas-prop" style="font-size:.62rem;color:#94a3b8;margin-top:1px;"></div>
+          </div>
+          <div style="background:#fff;border:1px solid #e2e8f0;border-radius:7px;padding:8px 10px;">
+            <div style="font-size:.65rem;color:#64748b;font-weight:700;margin-bottom:2px;">Órdenes totales</div>
+            <div id="bc-ordenes" style="font-size:.95rem;font-weight:800;">—</div>
+          </div>
+          <div style="background:#fff;border:1px solid #e2e8f0;border-radius:7px;padding:8px 10px;">
+            <div style="font-size:.65rem;color:#64748b;font-weight:700;margin-bottom:2px;">Bono base (1%)</div>
+            <div id="bc-base" style="font-size:.95rem;font-weight:800;color:#15803d;">—</div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr;gap:8px;">
+          <div style="background:#fff;border:1px solid #e2e8f0;border-radius:7px;padding:8px 10px;">
+            <div style="font-size:.65rem;color:#64748b;font-weight:700;margin-bottom:2px;">Errores</div>
+            <div id="bc-errores" style="font-size:.9rem;font-weight:800;">—</div>
+          </div>
+          <div style="background:#fff;border:1px solid #e2e8f0;border-radius:7px;padding:8px 10px;">
+            <div style="font-size:.65rem;color:#64748b;font-weight:700;margin-bottom:2px;">% Error</div>
+            <div id="bc-errorpct" style="font-size:.9rem;font-weight:800;">—</div>
+          </div>
+          <div style="background:#fff;border:1px solid #e2e8f0;border-radius:7px;padding:8px 10px;">
+            <div style="font-size:.65rem;color:#64748b;font-weight:700;margin-bottom:2px;">Tardanzas</div>
+            <div id="bc-tard" style="font-size:.9rem;font-weight:800;">—</div>
+          </div>
+          <div style="background:#fff;border:1px solid #e2e8f0;border-radius:7px;padding:8px 10px;">
+            <div style="font-size:.65rem;color:#64748b;font-weight:700;margin-bottom:2px;">Breaks exc.</div>
+            <div id="bc-breaks" style="font-size:.9rem;font-weight:800;">—</div>
+          </div>
+          <div style="background:#fff;border:1px solid #e2e8f0;border-radius:7px;padding:8px 10px;">
+            <div style="font-size:.65rem;color:#64748b;font-weight:700;margin-bottom:2px;">Ausencias</div>
+            <div id="bc-ause" style="font-size:.9rem;font-weight:800;">—</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Error order review (per-case) -->
+      <div id="bc-err-section" style="display:none;margin-bottom:14px;">
+        <div style="font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:#dc2626;margin-bottom:8px;">⚠ Errores del período — marcar los que aplican descuento (RD$1,000 c/u)</div>
+        <div id="bc-err-list" style="display:flex;flex-direction:column;gap:6px;"></div>
+      </div>
+
+      <!-- Tardanza review (per-case) -->
+      <div id="bc-tard-section" style="display:none;margin-bottom:14px;">
+        <div style="font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:#d97706;margin-bottom:8px;">⏰ Tardanzas del período — marcar las que aplican (suma al conteo)</div>
+        <div id="bc-tard-list" style="display:flex;flex-direction:column;gap:6px;"></div>
+      </div>
+
+      <!-- Break excedido review (per-case) -->
+      <div id="bc-break-section" style="display:none;margin-bottom:14px;">
+        <div style="font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:#92400e;margin-bottom:8px;">☕ Breaks excedidos — marcar los que aplican (suman al conteo; 3+ → bono al 50%)</div>
+        <div id="bc-break-list" style="display:flex;flex-direction:column;gap:6px;"></div>
+      </div>
+
+      <!-- Manual inputs -->
+      <div style="margin-bottom:14px;">
+        <div style="font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:#64748b;margin-bottom:10px;">✏ Ingresar manualmente</div>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <!-- Falta injustificada -->
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;background:#fff5f5;border:1.5px solid #fecaca;border-radius:8px;">
+            <div>
+              <div style="font-size:.82rem;font-weight:700;color:#dc2626;">Falta injustificada</div>
+              <div style="font-size:.69rem;color:#9ca3af;">→ Bono = RD$0 (cancela todo)</div>
+            </div>
+            <label style="display:flex;align-items:center;gap:7px;cursor:pointer;">
+              <input type="checkbox" id="bc-faltainj" onchange="calcBonusResult()" style="width:18px;height:18px;accent-color:#dc2626;cursor:pointer;"/>
+              <span style="font-size:.78rem;font-weight:700;color:#dc2626;">Sí</span>
+            </label>
+          </div>
+          <!-- Falta disciplinaria -->
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;background:#fff7ed;border:1.5px solid #fed7aa;border-radius:8px;">
+            <div>
+              <div style="font-size:.82rem;font-weight:700;color:#c2410c;">Falta Disciplinaria</div>
+              <div style="font-size:.69rem;color:#9ca3af;">→ Bono reducido al 50%</div>
+            </div>
+            <label style="display:flex;align-items:center;gap:7px;cursor:pointer;">
+              <input type="checkbox" id="bc-faltadisc" onchange="calcBonusResult()" style="width:18px;height:18px;accent-color:#c2410c;cursor:pointer;"/>
+              <span style="font-size:.78rem;font-weight:700;color:#c2410c;">Sí</span>
+            </label>
+          </div>
+          <!-- Excepción administrativa (meta no cumplida) -->
+          <div id="bc-excepcion-row" style="display:none;background:#f0fdf4;border:1.5px solid #86efac;border-radius:8px;overflow:hidden;">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;">
+              <div>
+                <div style="font-size:.82rem;font-weight:700;color:#15803d;">Excepción administrativa</div>
+                <div style="font-size:.69rem;color:#9ca3af;">→ Otorgar bono aunque no se cumplió la meta</div>
+              </div>
+              <label style="display:flex;align-items:center;gap:7px;cursor:pointer;">
+                <input type="checkbox" id="bc-excepcion" onchange="calcBonusResult()" style="width:18px;height:18px;accent-color:#15803d;cursor:pointer;"/>
+                <span style="font-size:.78rem;font-weight:700;color:#15803d;">Sí</span>
+              </label>
+            </div>
+            <div id="bc-excepcion-pct-row" style="display:none;padding:0 12px 10px 12px;align-items:center;gap:8px;">
+              <span style="font-size:.75rem;color:#15803d;font-weight:700;">% del bono a otorgar:</span>
+              <input type="number" id="bc-excepcion-pct" min="1" max="100" value="100" oninput="calcBonusResult()"
+                style="width:65px;font-size:.88rem;font-weight:800;text-align:center;border:1.5px solid #86efac;border-radius:6px;padding:3px 6px;"/>
+              <span style="font-size:.75rem;color:#15803d;font-weight:700;">%</span>
+            </div>
+          </div>
+          <!-- Tardanzas manuales -->
+          <div style="background:#fffbeb;border:1.5px solid #fcd34d;border-radius:8px;padding:10px 12px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+              <div>
+                <div style="font-size:.82rem;font-weight:700;color:#d97706;">Tardanzas adicionales</div>
+                <div style="font-size:.69rem;color:#9ca3af;">No registradas en el sistema → suman al conteo</div>
+              </div>
+              <button onclick="addManualTardanza()" style="background:#d97706;color:#fff;border:none;border-radius:6px;padding:5px 11px;font-size:.78rem;font-weight:700;cursor:pointer;">+ Agregar</button>
+            </div>
+            <div id="bc-tardmanual-list" style="display:flex;flex-direction:column;gap:6px;"></div>
+          </div>
+          <div style="background:#fff;border:1.5px solid #e5e7eb;border-radius:8px;padding:10px 12px;">
+            <div style="font-size:.7rem;font-weight:800;color:#374151;margin-bottom:8px;">Descuentos adicionales (RD$)</div>
+            <div style="display:flex;flex-direction:column;gap:7px;">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+                <div style="flex:1;font-size:.78rem;color:#374151;">Errores no reportados <span style="color:#9ca3af;">(RD$500 c/u)</span></div>
+                <input type="number" id="bc-nrep" min="0" value="0" oninput="calcBonusResult()" style="width:60px;text-align:center;font-weight:700;font-size:.85rem;"/>
+              </div>
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+                <div style="flex:1;font-size:.78rem;color:#374151;">Incumplimiento de protocolo <span style="color:#9ca3af;">(RD$500 c/u)</span></div>
+                <input type="number" id="bc-incump" min="0" value="0" oninput="calcBonusResult()" style="width:60px;text-align:center;font-weight:700;font-size:.85rem;"/>
+              </div>
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+                <div style="flex:1;font-size:.78rem;color:#374151;">Artículos faltantes inventario <span style="color:#9ca3af;">(RD$500 ÷ colaboradoras)</span></div>
+                <input type="number" id="bc-faltainv" min="0" value="0" oninput="calcBonusResult()" style="width:60px;text-align:center;font-weight:700;font-size:.85rem;"/>
+              </div>
+            </div>
+          </div>
+          <!-- Observaciones -->
+          <div>
+            <div style="font-size:.7rem;font-weight:700;color:#374151;margin-bottom:4px;">Observaciones</div>
+            <textarea id="bc-obs" placeholder="Notas adicionales sobre el período..." style="width:100%;height:56px;font-size:.8rem;border:1.5px solid #e5e7eb;border-radius:8px;padding:8px;resize:none;"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- Result card -->
+      <div id="bc-result" style="border-radius:12px;padding:14px 16px;margin-bottom:14px;background:#f0fdf4;border:2px solid #86efac;">
+        <div style="font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:#15803d;margin-bottom:10px;">💰 Resultado</div>
+        <div style="display:grid;grid-template-columns:1fr 1px 1fr 1px 1fr;gap:0;align-items:center;">
+          <div style="text-align:center;">
+            <div style="font-size:.65rem;color:#64748b;font-weight:700;margin-bottom:2px;">Bono base</div>
+            <div id="bc-res-base" style="font-size:1rem;font-weight:800;">RD$0</div>
+          </div>
+          <div style="background:#d1fae5;width:1px;height:32px;margin:0 auto;"></div>
+          <div style="text-align:center;">
+            <div style="font-size:.65rem;color:#64748b;font-weight:700;margin-bottom:2px;">Total descuentos</div>
+            <div id="bc-res-desc" style="font-size:1rem;font-weight:800;color:#dc2626;">−RD$0</div>
+          </div>
+          <div style="background:#d1fae5;width:1px;height:32px;margin:0 auto;"></div>
+          <div style="text-align:center;">
+            <div style="font-size:.65rem;color:#15803d;font-weight:800;margin-bottom:2px;">Bono final</div>
+            <div id="bc-res-final" style="font-size:1.2rem;font-weight:900;color:#15803d;">RD$0</div>
+          </div>
+        </div>
+        <div id="bc-res-note" style="margin-top:8px;font-size:.72rem;color:#374151;display:none;"></div>
+      </div>
+    </div>
+
+    <!-- Footer buttons -->
+    <div style="display:flex;gap:8px;padding-top:12px;border-top:1px solid var(--g100);flex-shrink:0;flex-wrap:wrap;">
+      <button onclick="closeMod('bonus-calc-modal')" class="obtn" style="flex:1;">Cancelar</button>
+      <button onclick="downloadBonusReport()" class="obtn" style="flex:1.5;background:#f0fdf4;color:#15803d;border-color:#86efac;font-weight:800;">📄 Descargar PDF</button>
+      <button onclick="saveBonusRecord()" class="submit" style="flex:1.5;background:#0a0a0a;border-color:#0a0a0a;">💾 Guardar</button>
     </div>
   </div>
 </div>
@@ -2488,6 +2745,7 @@ function initApp(){
   const mobtb9=document.getElementById('mob-tb9');
   if(mobtb9)mobtb9.style.display=adminMode?'flex':'none';
   buildProds();updHdr();updateShiftStatus();renderPendingApprovals();
+  if(adminMode)checkScheduledPrices();
   // Restore break timer if this employee was on break before reload
   if(currentUser.role!=='admin') restoreBreakTimer();
   // Verificaciones al entrar — se muestran después de un pequeño delay para que cargue el DOM
@@ -2580,7 +2838,6 @@ function updateShiftStatus(){
   const corteBtn=document.getElementById('ss-corte-btn');
   const rec=getDayRec(); // shared day-level caja
 
-  const breakBtn=document.getElementById('ss-break-btn');
   const delBtn=document.getElementById('ss-del-turno-btn');
   if(!rec){
     bar.className='shift-status sin';
@@ -2588,7 +2845,6 @@ function updateShiftStatus(){
     btn.textContent='Abrir Caja';btn.className='ss-action primary';
     banner.style.display='block';
     corteBtn.style.display='none';
-    breakBtn.style.display='none';
     document.getElementById('ss-ponchar-btn').style.display='none';
     if(delBtn)delBtn.style.display='none';
   } else if(!rec.closedAt){
@@ -2614,22 +2870,6 @@ function updateShiftStatus(){
     }
     // Admin delete-turno button
     if(delBtn)delBtn.style.display=adminMode?'inline-flex':'none';
-    // Break button — para todos los usuarios cuando la caja está abierta
-    if(currentUser){
-      const activeBreak=getCurrentUserBreak();
-      if(activeBreak){
-        const bmin=Math.floor((Date.now()-activeBreak.startTs)/60000);
-        breakBtn.textContent=`☕ En break (${bmin}min) — Regresar`;
-        breakBtn.onclick=()=>endBreak(false);
-        breakBtn.style.cssText='display:inline-flex;background:#fffbea;color:#92710a;border-color:#fde68a;';
-      } else {
-        breakBtn.textContent='☕ Break';
-        breakBtn.onclick=startBreak;
-        breakBtn.style.cssText='display:inline-flex;';
-      }
-    } else {
-      breakBtn.style.display='none';
-    }
   } else {
     const t=new Date(rec.closedAt).toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'});
     bar.className='shift-status closed';
@@ -2638,7 +2878,6 @@ function updateShiftStatus(){
     else{btn.textContent='Ver Cierre';btn.className='ss-action';}
     banner.style.display='none';
     corteBtn.style.display='none';
-    breakBtn.style.display='none';
     document.getElementById('ss-ponchar-btn').style.display='none';
     if(delBtn)delBtn.style.display=adminMode?'inline-flex':'none';
   }
@@ -5439,9 +5678,15 @@ function chCustomPrice(u,val){
   const i=cart.find(x=>x.uid===u);if(!i)return;
   const v=parseFloat(val)||0;
   i.price=v;
-  // update displayed subtotal without full re-render
   const subEl=document.querySelector(`[data-uid="${u}"] .ci-sub`);
   if(subEl)subEl.textContent='$'+v.toLocaleString();
+  renderCartTotals();
+}
+function chAdminPrice(u,val){
+  const i=cart.find(x=>x.uid===u);if(!i)return;
+  i.price=parseFloat(val)||0;
+  const subEl=document.querySelector(`[data-uid="${u}"] .ci-sub`);
+  if(subEl)subEl.textContent='$'+((i.price+getEmojiSurcharge(i))*i.qty).toLocaleString();
   renderCartTotals();
 }
 function removeItem(u){cart=cart.filter(i=>i.uid!==u);renderCart();}
@@ -5517,6 +5762,14 @@ function renderCart(){
       <label class="lbl">📝 Notas de producción <span style="font-size:.7rem;color:var(--g400);">(opcional)</span></label>
       <textarea rows="2" placeholder="Ej: grabado especial, empaque regalo, instrucción adicional…" style="width:100%;resize:vertical;font-size:.85rem;padding:8px 10px;border:1.5px solid var(--g200);border-radius:6px;font-family:inherit;" oninput="chF(${i.uid},'notes',this.value)">${i.notes||''}</textarea>
     </div>`;
+    const adminPriceBlock=adminMode&&!i.isCustomPrice?`
+    <div class="field" style="margin-top:8px;padding-top:8px;border-top:1px dashed #e9d5ff;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <label class="lbl" style="color:#7c3aed;margin:0;">💜 Precio:</label>
+      <input type="number" min="0" step="1" value="${i.price}"
+        style="font-size:.92rem;font-weight:700;max-width:130px;border:1.5px solid #c4b5fd;border-radius:6px;padding:3px 8px;text-align:center;"
+        oninput="chAdminPrice(${i.uid},this.value)"/>
+      <span style="font-size:.7rem;color:#9ca3af;">normal: $${(PRODS.find(p=>p.id===i.pid)?.price||0).toLocaleString()}</span>
+    </div>`:'';
     return `<div class="ci" data-uid="${i.uid}">
       <div class="ci-head">
         <span class="ci-name">${i.name}</span>
@@ -5528,7 +5781,7 @@ function renderCart(){
         <span class="ci-sub">$${sub.toLocaleString()}</span>
         <button class="xbtn" onclick="removeItem(${i.uid})">✕</button>
       </div>
-      <div class="ci-body">${body}${notesBlock}</div>
+      <div class="ci-body">${body}${adminPriceBlock}${notesBlock}</div>
     </div>`;
   }).join('');
   document.getElementById('cart-items').innerHTML=html;
@@ -6360,10 +6613,6 @@ function renderHorarioEmployee(panel){
         <div style="font-size:.65rem;font-weight:800;color:var(--g500);text-transform:uppercase;letter-spacing:.7px;margin-bottom:4px;">En turno</div>
         <div style="font-size:.85rem;">Entrada: <strong>${inT}</strong></div>
         ${breakSummary}
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
-        <button onclick="startBreak('permiso');setTimeout(renderHorario,300)" style="padding:11px 6px;background:#fff;border:1.5px solid #d1fae5;border-radius:10px;font-size:.82rem;font-weight:700;color:#059669;cursor:pointer;">⚡ Permiso<br><span style="font-size:.7rem;font-weight:400;">10 min</span></button>
-        <button onclick="startBreak('break');setTimeout(renderHorario,300)" style="padding:11px 6px;background:#fff;border:1.5px solid #fde68a;border-radius:10px;font-size:.82rem;font-weight:700;color:#92710a;cursor:pointer;">☕ Break<br><span style="font-size:.7rem;font-weight:400;">30 min</span></button>
       </div>
       <button onclick="punchOut()" style="width:100%;padding:12px;background:#111;color:#fff;border:none;border-radius:10px;font-size:.9rem;font-weight:700;cursor:pointer;">⏹ Ponchar Salida</button>`;
     }
@@ -7380,6 +7629,44 @@ function deleteRestock(key){
     if(document.getElementById('tb6').classList.contains('active'))renderReportes();
   });
 }
+function openDeliveryModalForKey(key){
+  if(!adminMode)return;
+  const rec=restocksData[key];
+  if(!rec){toast('Restock no encontrado');return;}
+  _confirmRestockId=key;
+  _confirmRestockItems=rec.items.map(i=>({...i}));
+  const d=new Date(rec.createdAt||0);
+  const ds=`${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}`;
+  const isIssue=rec.status==='issue';
+  document.getElementById('cdm-title').textContent=isIssue?`⚠ Resolver Problema — Restock del ${ds}`:`✏ Ajustar Restock del ${ds}`;
+  document.getElementById('cdm-meta').textContent=isIssue
+    ?`Reportado por ${rec.issueBy||'—'}: "${rec.issueNotes||''}"`
+    :`Solicitado por ${rec.createdBy||'—'} · ${_confirmRestockItems.length} SKUs`;
+  const bar=document.getElementById('cdm-info-bar');
+  if(isIssue){
+    bar.style.background='#fff7ed';bar.style.borderColor='#fed7aa';bar.style.color='#c2410c';
+    bar.innerHTML=`⚠ <strong>${rec.issueBy||'—'}</strong> reportó un problema. Ajustá las cantidades y confirmá.`;
+  } else {
+    bar.style.background='#f0fdf4';bar.style.borderColor='#86efac';bar.style.color='#15803d';
+    bar.innerHTML='✅ Ajustá las cantidades y confirmá. Se sumará a Agora.';
+  }
+  document.getElementById('cdm-rows').innerHTML=_confirmRestockItems.map((item,idx)=>{
+    const pid=skuPid(item.sku);
+    const label=IS_COVER.includes(pid)?`Cover ${skuModel(item.sku)} / ${skuColor(item.sku)}`:`${ACC_PID_MAP[pid]||pid} / ${skuColor(item.sku)}`;
+    return `<div class="rs-row">
+      <div style="flex:1;font-size:.78rem;">${label}</div>
+      <div style="font-size:.7rem;color:var(--g500);min-width:60px;">Agora actual: ${(inventarioData[item.sku]||{}).agora||0}</div>
+      <input type="number" min="0" value="${item.qty}" style="width:60px;text-align:center;font-weight:700;font-size:.85rem;"
+        oninput="_confirmRestockItems[${idx}].qty=parseInt(this.value)||0"/>
+    </div>`;
+  }).join('');
+  document.getElementById('cdm-problem-section').style.display='none';
+  document.getElementById('cdm-confirm-btn').textContent='✓ Confirmar con estas cantidades → Agora';
+  document.getElementById('cdm-confirm-btn').style.background='#16a34a';
+  document.getElementById('cdm-confirm-btn').style.borderColor='#16a34a';
+  _deliveryHasProblem=false;
+  openMod('confirm-delivery-modal');
+}
 function openDeliveryModal(){
   // Admin: check issues first
   const issues=Object.entries(restocksData).filter(([,v])=>v.status==='issue');
@@ -8274,6 +8561,1029 @@ function generateRutaReport(){
 /* ═══════════════════════════════════════
    REPORTES
 ═══════════════════════════════════════ */
+
+/* ── BONIFICACIÓN ── */
+let bonusesData={};
+let _bcStats={ventasBrutas:0,totalOrdenes:0,errores:0,errorPct:0,tardanzas:0,ausencias:0,bonoBase:0,errOrds:[],tardOrds:[],breakOrds:[]};
+let _editingBonusId=null;
+const BREAK_LIMIT=30*60*1000;   // 30 min
+const PERMISO_LIMIT=10*60*1000; // 10 min
+
+function openBonusCalc(){
+  if(!adminMode){toast('Solo disponible para admin');return;}
+  // Fill employee dropdown
+  const sel=document.getElementById('bc-emp');
+  sel.innerHTML=users.filter(u=>u.role==='vendedora').map(u=>`<option value="${u.name}">${u.name}</option>`).join('');
+  // Default period = last full month
+  const today=new Date();
+  const pad=n=>String(n).padStart(2,'0');
+  const fmt=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+  const f=new Date(today.getFullYear(),today.getMonth()-1,1);
+  const t=new Date(today.getFullYear(),today.getMonth(),0);
+  document.getElementById('bc-from').value=fmt(f);
+  document.getElementById('bc-to').value=fmt(t);
+  document.getElementById('bc-meta').value='';
+  document.getElementById('bc-faltainj').checked=false;
+  document.getElementById('bc-faltadisc').checked=false;
+  document.getElementById('bc-excepcion').checked=false;
+  document.getElementById('bc-excepcion-pct').value=100;
+  document.getElementById('bc-excepcion-pct-row').style.display='none';
+  document.getElementById('bc-excepcion-row').style.display='none';
+  document.getElementById('bc-meta-warn').style.display='none';
+  document.getElementById('bc-tardmanual-list').innerHTML='';
+  document.getElementById('bc-nrep').value=0;
+  document.getElementById('bc-incump').value=0;
+  document.getElementById('bc-faltainv').value=0;
+  document.getElementById('bc-obs').value='';
+  _editingBonusId=null;
+  refreshBonusCalc();
+  openMod('bonus-calc-modal');
+}
+
+function refreshBonusCalc(){
+  const empName=document.getElementById('bc-emp').value;
+  const fromVal=document.getElementById('bc-from').value;
+  const toVal=document.getElementById('bc-to').value;
+  if(!empName||!fromVal||!toVal)return;
+
+  const fromMs=new Date(fromVal+'T00:00:00').getTime();
+  const toMs=new Date(toVal+'T23:59:59').getTime();
+
+  // ── Sales from orders ──
+  const periodOrders=orders.filter(o=>o.id>=fromMs&&o.id<=toMs&&(o.source||'tienda')==='tienda');
+  const byEmp=o=>(o.registeredBy||'')=== empName;
+  // Ventas brutas = total tienda (base del bono)
+  const allSaleOrds=periodOrders.filter(o=>!['Cortesia','Error','Garantia'].includes((o.pay||{}).type));
+  const ventasBrutas=allSaleOrds.reduce((s,o)=>s+(o.total||0),0);
+  // Órdenes individuales (métricas por colaboradora)
+  const saleOrds=periodOrders.filter(o=>byEmp(o)&&!['Cortesia','Error','Garantia'].includes((o.pay||{}).type));
+  const errOrds=periodOrders.filter(o=>byEmp(o)&&(o.pay||{}).type==='Error');
+  const cortOrds=periodOrders.filter(o=>byEmp(o)&&(o.pay||{}).type==='Cortesia');
+  const totalOrdenes=saleOrds.length+errOrds.length+cortOrds.length;
+  const errorPct=totalOrdenes>0?+(errOrds.length/totalOrdenes*100).toFixed(1):0;
+  const bonoBase=Math.round(ventasBrutas*0.01);
+
+  // ── Attendance from clock-in data ──
+  let ausencias=0;
+  const d=new Date(fromVal+'T12:00:00');
+  const end=new Date(toVal+'T12:00:00');
+  while(d<=end){
+    const ds=localDateStr(d.getTime());
+    const badges=ciGetEmpStatus(empName,ds);
+    if(badges.some(b=>b.l==='Ausente'))ausencias++;
+    d.setDate(d.getDate()+1);
+  }
+  // Collect individual late sessions for per-case review
+  const fromMs2=new Date(fromVal+'T00:00:00').getTime();
+  const toMs2=new Date(toVal+'T23:59:59').getTime();
+  const tardOrds=clockinSessions.filter(s=>{
+    if(s.userId!==empName)return false;
+    if(s.clockIn<fromMs2||s.clockIn>toMs2)return false;
+    const sch=getEffectiveSchedule(empName,localDateStr(s.clockIn));
+    if(!sch)return false;
+    const[sh,sm]=sch.startTime.split(':').map(Number);
+    const ci=new Date(s.clockIn);
+    return(ci.getHours()*60+ci.getMinutes())>(sh*60+sm+5);
+  }).sort((a,b)=>a.clockIn-b.clockIn);
+  const tardanzas=tardOrds.length;
+
+  // ── Breaks excedidos ──
+  // Group breaks by date, sum per tipo, flag if > limit (break=30min, permiso=10min)
+  const empBreaksPeriod=breaks.filter(b=>{
+    if(b.employeeName!==empName)return false;
+    const bts=b.startTs||b.id;
+    return bts>=fromMs2&&bts<=toMs2;
+  });
+  // Aggregate by date
+  const breakByDate={};
+  empBreaksPeriod.forEach(b=>{
+    const dateKey=b.date||localDateStr(b.startTs||b.id);
+    if(!breakByDate[dateKey])breakByDate[dateKey]={date:dateKey,breakMs:0,permisoMs:0,breaks:[]};
+    const dur=b.duration||(b.endTs&&b.startTs?b.endTs-b.startTs:0);
+    if(b.tipo==='permiso')breakByDate[dateKey].permisoMs+=dur;
+    else breakByDate[dateKey].breakMs+=dur;
+    breakByDate[dateKey].breaks.push(b);
+  });
+  const breakOrds=Object.values(breakByDate).filter(bd=>{
+    return bd.breakMs>BREAK_LIMIT||bd.permisoMs>PERMISO_LIMIT;
+  }).sort((a,b)=>a.date.localeCompare(b.date));
+
+  _bcStats={ventasBrutas,totalOrdenes,errores:errOrds.length,errorPct,tardanzas,ausencias,bonoBase,errOrds,tardOrds,breakOrds};
+
+  // ── Update display ──
+  const ventasEl=document.getElementById('bc-ventas');
+  ventasEl.textContent=`RD$${ventasBrutas.toLocaleString()}`;
+  const ventasPropEl=document.getElementById('bc-ventas-prop');
+  if(ventasPropEl)ventasPropEl.textContent=`${saleOrds.length} ventas registradas`;
+  document.getElementById('bc-ordenes').textContent=totalOrdenes;
+  document.getElementById('bc-base').textContent=`RD$${bonoBase.toLocaleString()}`;
+  const epEl=document.getElementById('bc-errorpct');
+  epEl.textContent=`${errorPct}%`;
+  epEl.style.color=errorPct>=3?'#dc2626':'#16a34a';
+  document.getElementById('bc-errores').textContent=errOrds.length;
+  const tardEl=document.getElementById('bc-tard');
+  tardEl.textContent=tardanzas;
+  tardEl.style.color=tardanzas>=3?'#dc2626':tardanzas>0?'#d97706':'#16a34a';
+  const brkEl=document.getElementById('bc-breaks');
+  brkEl.textContent=breakOrds.length;
+  brkEl.style.color=breakOrds.length>0?'#92400e':'#16a34a';
+  const auseEl=document.getElementById('bc-ause');
+  auseEl.textContent=ausencias;
+  auseEl.style.color=ausencias>0?'#dc2626':'#16a34a';
+
+  // ── Save existing checklist state before re-rendering (keyed by unique ID) ──
+  const _prevErrState={};
+  (_bcStats.errOrds||[]).forEach((o,i)=>{
+    const chk=document.getElementById(`bc-errchk-${i}`);
+    if(chk)_prevErrState[o.id]={checked:chk.checked};
+  });
+  const _prevTardState={};
+  (_bcStats.tardOrds||[]).forEach((s,i)=>{
+    const chk=document.getElementById(`bc-tardchk-${i}`);
+    const note=document.getElementById(`bc-tardnote-${i}`);
+    if(chk)_prevTardState[s.clockIn]={checked:chk.checked,note:note?.value||''};
+  });
+  const _prevBrkState={};
+  (_bcStats.breakOrds||[]).forEach((bd,i)=>{
+    const chk=document.getElementById(`bc-brkchk-${i}`);
+    const note=document.getElementById(`bc-brknote-${i}`);
+    if(chk)_prevBrkState[bd.date]={checked:chk.checked,note:note?.value||''};
+  });
+
+  // ── Render per-error checklist ──
+  const errSec=document.getElementById('bc-err-section');
+  const errList=document.getElementById('bc-err-list');
+  if(errOrds.length>0){
+    errSec.style.display='block';
+    errList.innerHTML=errOrds.map((o,i)=>{
+      const dt=new Date(o.id);
+      const ds=`${dt.getDate()}/${dt.getMonth()+1} ${String(dt.getHours()).padStart(2,'0')}:${String(dt.getMinutes()).padStart(2,'0')}`;
+      const items=(o.items||[]).map(it=>`${it.qty}× ${it.name}${it.model?' '+it.model:''}${it.color?' / '+it.color:''}`).join(', ');
+      const notes=(o.items||[]).map(it=>it.notes).filter(Boolean).join(' · ');
+      return`<label style="display:flex;align-items:flex-start;gap:10px;padding:9px 12px;background:#fff;border:1.5px solid #e5e7eb;border-radius:8px;cursor:pointer;transition:border-color .15s;"
+        onmouseover="this.style.borderColor='#fca5a5'" onmouseout="this.style.borderColor=document.getElementById('bc-errchk-${i}').checked?'#dc2626':'#e5e7eb'">
+        <input type="checkbox" id="bc-errchk-${i}" onchange="calcBonusResult();this.closest('label').style.borderColor=this.checked?'#dc2626':'#e5e7eb'"
+          style="width:16px;height:16px;accent-color:#dc2626;margin-top:2px;flex-shrink:0;cursor:pointer;"/>
+        <div style="flex:1;min-width:0;">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;flex-wrap:wrap;">
+            <span style="font-size:.78rem;font-weight:700;">${o.name}</span>
+            <span style="font-size:.69rem;color:var(--g500);">${ds}</span>
+          </div>
+          <div style="font-size:.74rem;color:#374151;margin-top:2px;">${items}</div>
+          ${notes?`<div style="font-size:.69rem;color:#9333ea;margin-top:2px;">📝 ${notes}</div>`:''}
+        </div>
+        <span style="font-size:.72rem;font-weight:800;color:#dc2626;white-space:nowrap;flex-shrink:0;">−RD$1,000</span>
+      </label>`;
+    }).join('');
+    // Restore error checkbox states
+    errOrds.forEach((o,i)=>{
+      const prev=_prevErrState[o.id];
+      if(prev?.checked){
+        const chk=document.getElementById(`bc-errchk-${i}`);
+        const lbl=chk?.closest('label');
+        if(chk){chk.checked=true;if(lbl)lbl.style.borderColor='#dc2626';}
+      }
+    });
+  } else {
+    errSec.style.display='none';
+    errList.innerHTML='';
+  }
+
+  // ── Render per-tardanza checklist ──
+  const tardSec=document.getElementById('bc-tard-section');
+  const tardList=document.getElementById('bc-tard-list');
+  if(tardOrds.length>0){
+    tardSec.style.display='block';
+    tardList.innerHTML=tardOrds.map((s,i)=>{
+      const dt=new Date(s.clockIn);
+      const ds=dt.toLocaleDateString('es',{weekday:'short',day:'numeric',month:'short'});
+      const ciHr=`${String(dt.getHours()).padStart(2,'0')}:${String(dt.getMinutes()).padStart(2,'0')}`;
+      const sch=getEffectiveSchedule(empName,localDateStr(s.clockIn));
+      const schHr=sch?sch.startTime:'—';
+      const[sh2,sm2]=(sch?sch.startTime:'00:00').split(':').map(Number);
+      const minLate=(dt.getHours()*60+dt.getMinutes())-(sh2*60+sm2);
+      return`<div id="bc-tardrow-${i}" style="background:#fff;border:1.5px solid #e5e7eb;border-radius:8px;overflow:hidden;transition:border-color .15s;">
+        <label style="display:flex;align-items:flex-start;gap:10px;padding:9px 12px;cursor:pointer;"
+          onmouseover="document.getElementById('bc-tardrow-${i}').style.borderColor='#fcd34d'"
+          onmouseout="document.getElementById('bc-tardrow-${i}').style.borderColor=document.getElementById('bc-tardchk-${i}').checked?'#d97706':'#e5e7eb'">
+          <input type="checkbox" id="bc-tardchk-${i}" onchange="calcBonusResult();document.getElementById('bc-tardrow-${i}').style.borderColor=this.checked?'#d97706':'#e5e7eb'"
+            style="width:16px;height:16px;accent-color:#d97706;margin-top:2px;flex-shrink:0;cursor:pointer;"/>
+          <div style="flex:1;min-width:0;">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;flex-wrap:wrap;">
+              <span style="font-size:.78rem;font-weight:700;text-transform:capitalize;">${ds}</span>
+              <span style="font-size:.69rem;color:var(--g500);">Hora entrada: ${ciHr}</span>
+            </div>
+            <div style="font-size:.74rem;color:#374151;margin-top:2px;">Horario: ${schHr} · <span style="color:#d97706;font-weight:700;">+${minLate} min tarde</span></div>
+          </div>
+          <span style="font-size:.72rem;font-weight:700;color:#d97706;white-space:nowrap;flex-shrink:0;">Contar</span>
+        </label>
+        <div style="padding:0 12px 10px 38px;">
+          <input type="text" id="bc-tardnote-${i}" placeholder="Detalle / motivo de la tardanza..."
+            onclick="event.stopPropagation()"
+            style="width:100%;font-size:.75rem;border:1px solid #e5e7eb;border-radius:6px;padding:5px 9px;color:#374151;background:#fafafa;"/>
+        </div>
+      </div>`;
+    }).join('');
+    // Restore tardanza states
+    tardOrds.forEach((s,i)=>{
+      const prev=_prevTardState[s.clockIn];
+      if(prev){
+        const chk=document.getElementById(`bc-tardchk-${i}`);
+        const noteEl=document.getElementById(`bc-tardnote-${i}`);
+        const row=document.getElementById(`bc-tardrow-${i}`);
+        if(chk&&prev.checked){chk.checked=true;if(row)row.style.borderColor='#d97706';}
+        if(noteEl&&prev.note)noteEl.value=prev.note;
+      }
+    });
+  } else {
+    tardSec.style.display='none';
+    tardList.innerHTML='';
+  }
+
+  // ── Render per-break checklist ──
+  const fmtMs=ms=>{const m=Math.round(ms/60000);return m>=60?`${Math.floor(m/60)}h ${m%60}min`:`${m} min`;};
+  const brkSec=document.getElementById('bc-break-section');
+  const brkList=document.getElementById('bc-break-list');
+  if(breakOrds.length>0){
+    brkSec.style.display='block';
+    brkList.innerHTML=breakOrds.map((bd,i)=>{
+      const dt=new Date(bd.date+'T12:00:00');
+      const ds=dt.toLocaleDateString('es',{weekday:'short',day:'numeric',month:'short'});
+      const lines=[];
+      if(bd.breakMs>BREAK_LIMIT){
+        const over=bd.breakMs-BREAK_LIMIT;
+        lines.push(`☕ Break: ${fmtMs(bd.breakMs)} tomado (límite 30 min · <span style="color:#92400e;font-weight:700;">+${fmtMs(over)} excedido</span>)`);
+      }
+      if(bd.permisoMs>PERMISO_LIMIT){
+        const over=bd.permisoMs-PERMISO_LIMIT;
+        lines.push(`⚡ Permiso: ${fmtMs(bd.permisoMs)} tomado (límite 10 min · <span style="color:#92400e;font-weight:700;">+${fmtMs(over)} excedido</span>)`);
+      }
+      return`<div id="bc-brkrow-${i}" style="background:#fff;border:1.5px solid #e5e7eb;border-radius:8px;overflow:hidden;transition:border-color .15s;">
+        <label style="display:flex;align-items:flex-start;gap:10px;padding:9px 12px;cursor:pointer;"
+          onmouseover="document.getElementById('bc-brkrow-${i}').style.borderColor='#d97706'"
+          onmouseout="document.getElementById('bc-brkrow-${i}').style.borderColor=document.getElementById('bc-brkchk-${i}').checked?'#92400e':'#e5e7eb'">
+          <input type="checkbox" id="bc-brkchk-${i}" onchange="calcBonusResult();document.getElementById('bc-brkrow-${i}').style.borderColor=this.checked?'#92400e':'#e5e7eb'"
+            style="width:16px;height:16px;accent-color:#92400e;margin-top:2px;flex-shrink:0;cursor:pointer;"/>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:.78rem;font-weight:700;text-transform:capitalize;margin-bottom:3px;">${ds}</div>
+            <div style="font-size:.74rem;color:#374151;line-height:1.5;">${lines.join('<br>')}</div>
+          </div>
+          <span style="font-size:.72rem;font-weight:700;color:#92400e;white-space:nowrap;flex-shrink:0;">Contar</span>
+        </label>
+        <div style="padding:0 12px 9px 38px;">
+          <input type="text" id="bc-brknote-${i}" placeholder="Detalle / contexto..."
+            onclick="event.stopPropagation()"
+            style="width:100%;font-size:.75rem;border:1px solid #e5e7eb;border-radius:6px;padding:5px 9px;color:#374151;background:#fafafa;"/>
+        </div>
+      </div>`;
+    }).join('');
+    // Restore break states
+    breakOrds.forEach((bd,i)=>{
+      const prev=_prevBrkState[bd.date];
+      if(prev){
+        const chk=document.getElementById(`bc-brkchk-${i}`);
+        const noteEl=document.getElementById(`bc-brknote-${i}`);
+        const row=document.getElementById(`bc-brkrow-${i}`);
+        if(chk&&prev.checked){chk.checked=true;if(row)row.style.borderColor='#92400e';}
+        if(noteEl&&prev.note)noteEl.value=prev.note;
+      }
+    });
+  } else {
+    brkSec.style.display='none';
+    brkList.innerHTML='';
+  }
+
+  calcBonusResult();
+}
+
+let _bcManualTardIdx=0;
+function addManualTardanza(noFocus=false){
+  const list=document.getElementById('bc-tardmanual-list');
+  const idx=_bcManualTardIdx++;
+  const empName=document.getElementById('bc-emp').value;
+  const row=document.createElement('div');
+  row.id=`bc-tardmanrow-${idx}`;
+  row.style.cssText='background:#fff;border:1.5px solid #fcd34d;border-radius:8px;overflow:hidden;';
+  row.innerHTML=`
+    <div style="display:flex;align-items:center;gap:8px;padding:9px 12px 6px 12px;flex-wrap:wrap;">
+      <div style="display:flex;flex-direction:column;gap:2px;min-width:120px;flex:1;">
+        <span style="font-size:.62rem;font-weight:700;color:#92400e;text-transform:uppercase;letter-spacing:.4px;">Fecha</span>
+        <input type="date" id="bc-tardmandate-${idx}"
+          onchange="bcTardManFill(${idx})"
+          style="font-size:.8rem;border:1px solid #fcd34d;border-radius:5px;padding:4px 6px;width:100%;"/>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:2px;min-width:90px;flex:1;">
+        <span style="font-size:.62rem;font-weight:700;color:#92400e;text-transform:uppercase;letter-spacing:.4px;">Hora entrada</span>
+        <input type="time" id="bc-tardmanentrada-${idx}"
+          onchange="bcTardManCalc(${idx})"
+          style="font-size:.8rem;border:1px solid #fcd34d;border-radius:5px;padding:4px 6px;width:100%;"/>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:2px;min-width:90px;flex:1;">
+        <span style="font-size:.62rem;font-weight:700;color:#92400e;text-transform:uppercase;letter-spacing:.4px;">Horario</span>
+        <input type="time" id="bc-tardmanhorario-${idx}"
+          onchange="bcTardManCalc(${idx})"
+          style="font-size:.8rem;border:1px solid #fcd34d;border-radius:5px;padding:4px 6px;width:100%;"/>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:2px;min-width:60px;align-items:center;">
+        <span style="font-size:.62rem;font-weight:700;color:#92400e;text-transform:uppercase;letter-spacing:.4px;">Min tarde</span>
+        <span id="bc-tardmanlate-${idx}" style="font-size:.88rem;font-weight:800;color:#d97706;">—</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:2px;align-items:center;">
+        <span style="font-size:.62rem;font-weight:700;color:#92400e;text-transform:uppercase;letter-spacing:.4px;">Contar</span>
+        <input type="checkbox" id="bc-tardmanchk-${idx}" onchange="calcBonusResult();document.getElementById('bc-tardmanrow-${idx}').style.borderColor=this.checked?'#d97706':'#fcd34d'"
+          style="width:17px;height:17px;accent-color:#d97706;cursor:pointer;"/>
+      </div>
+      <button onclick="document.getElementById('bc-tardmanrow-${idx}').remove();calcBonusResult()"
+        style="background:none;border:none;color:#9ca3af;font-size:1.1rem;cursor:pointer;padding:2px 4px;align-self:flex-start;">✕</button>
+    </div>
+    <div style="padding:0 12px 9px 12px;">
+      <input type="text" id="bc-tardmannote-${idx}" placeholder="Detalle / motivo..."
+        oninput="calcBonusResult()"
+        style="width:100%;font-size:.75rem;border:1px solid #e5e7eb;border-radius:6px;padding:5px 9px;color:#374151;background:#fafafa;box-sizing:border-box;"/>
+    </div>`;
+  list.appendChild(row);
+  if(!noFocus)document.getElementById(`bc-tardmandate-${idx}`).focus();
+  calcBonusResult();
+}
+function bcTardManFill(idx){
+  // Auto-fill horario from schedule when date changes
+  const empName=document.getElementById('bc-emp').value;
+  const dateVal=document.getElementById(`bc-tardmandate-${idx}`).value;
+  if(empName&&dateVal){
+    const sch=getEffectiveSchedule(empName,dateVal);
+    if(sch)document.getElementById(`bc-tardmanhorario-${idx}`).value=sch.startTime;
+  }
+  bcTardManCalc(idx);
+}
+function bcTardManCalc(idx){
+  const entrada=document.getElementById(`bc-tardmanentrada-${idx}`).value;
+  const horario=document.getElementById(`bc-tardmanhorario-${idx}`).value;
+  const lateEl=document.getElementById(`bc-tardmanlate-${idx}`);
+  if(entrada&&horario){
+    const[eh,em]=entrada.split(':').map(Number);
+    const[sh,sm]=horario.split(':').map(Number);
+    const diff=(eh*60+em)-(sh*60+sm);
+    if(diff>0){lateEl.textContent=`+${diff} min`;lateEl.style.color='#d97706';}
+    else{lateEl.textContent='A tiempo';lateEl.style.color='#16a34a';}
+  } else {
+    lateEl.textContent='—';lateEl.style.color='#d97706';
+  }
+  calcBonusResult();
+}
+function getManualTardanzas(){
+  const list=document.getElementById('bc-tardmanual-list');
+  if(!list)return[];
+  const rows=list.querySelectorAll('[id^="bc-tardmanrow-"]');
+  return Array.from(rows).map(row=>{
+    const idx=row.id.replace('bc-tardmanrow-','');
+    const fecha=document.getElementById(`bc-tardmandate-${idx}`)?.value||'';
+    const entrada=document.getElementById(`bc-tardmanentrada-${idx}`)?.value||'';
+    const horario=document.getElementById(`bc-tardmanhorario-${idx}`)?.value||'';
+    const note=(document.getElementById(`bc-tardmannote-${idx}`)?.value||'').trim();
+    const counted=document.getElementById(`bc-tardmanchk-${idx}`)?.checked||false;
+    let minLate=0;
+    if(entrada&&horario){
+      const[eh,em]=entrada.split(':').map(Number);
+      const[sh,sm]=horario.split(':').map(Number);
+      minLate=(eh*60+em)-(sh*60+sm);
+    }
+    return{fecha,entrada,horario,minLate,note,counted};
+  });
+}
+
+function calcBonusResult(){
+  const {ventasBrutas,totalOrdenes,errores,errorPct,bonoBase}=_bcStats;
+  const faltaInj=document.getElementById('bc-faltainj').checked;
+  const faltaDisc=document.getElementById('bc-faltadisc').checked;
+  const meta=parseInt(document.getElementById('bc-meta').value)||0;
+  const excepcion=document.getElementById('bc-excepcion').checked;
+  const pctRow=document.getElementById('bc-excepcion-pct-row');
+  if(pctRow)pctRow.style.display=excepcion?'flex':'none';
+  const excepcionPct=excepcion?(parseInt(document.getElementById('bc-excepcion-pct').value)||100):100;
+
+  const nrep=parseInt(document.getElementById('bc-nrep').value)||0;
+  const incump=parseInt(document.getElementById('bc-incump').value)||0;
+  const faltaInv=parseInt(document.getElementById('bc-faltainv').value)||0;
+  const numColabs=Math.max(1,users.filter(u=>u.role==='vendedora').length);
+
+  const noteEl=document.getElementById('bc-res-note');
+  const resEl=document.getElementById('bc-result');
+
+  // ── Meta del período ──
+  const metaWarnEl=document.getElementById('bc-meta-warn');
+  const excepcionRow=document.getElementById('bc-excepcion-row');
+  const metaPctEl=document.getElementById('bc-metapct');
+  const metaNotMet=meta>0&&ventasBrutas<meta&&!excepcion;
+  if(meta>0){
+    const pct=Math.round(ventasBrutas/meta*100);
+    metaPctEl.textContent=`${pct}%`;
+    metaPctEl.style.color=pct>=100?'#15803d':pct>=80?'#d97706':'#dc2626';
+    metaWarnEl.style.display=metaNotMet?'block':'none';
+    excepcionRow.style.display=(meta>0&&ventasBrutas<meta)?'flex':'none';
+  } else {
+    metaPctEl.textContent='—';
+    metaWarnEl.style.display='none';
+    excepcionRow.style.display='none';
+  }
+
+  if(faltaInj||metaNotMet){
+    document.getElementById('bc-res-base').textContent=`RD$${bonoBase.toLocaleString()}`;
+    document.getElementById('bc-res-desc').textContent='—';
+    document.getElementById('bc-res-final').textContent='RD$0';
+    resEl.style.background='#fff5f5';resEl.style.borderColor='#fca5a5';
+    document.getElementById('bc-res-final').style.color='#dc2626';
+    noteEl.style.display='block';
+    noteEl.textContent=faltaInj?'⛔ Falta injustificada — bono cancelado completamente.':'⛔ Meta de ventas no alcanzada — bono no aplica este período.';
+    return;
+  }
+
+  // Apply 50% reduction?
+  const tardChecked=(_bcStats.tardOrds||[]).filter((_,i)=>{
+    const chk=document.getElementById(`bc-tardchk-${i}`);
+    return chk&&chk.checked;
+  }).length;
+  const brkChecked=(_bcStats.breakOrds||[]).filter((_,i)=>{
+    const chk=document.getElementById(`bc-brkchk-${i}`);
+    return chk&&chk.checked;
+  }).length;
+  const tardManual=getManualTardanzas().filter(t=>t.counted).length;
+  const tardCount=tardChecked+brkChecked+tardManual;
+  const apply50=(tardCount>=3||faltaDisc);
+  const bonoTrabajado=apply50?Math.round(bonoBase*0.5):bonoBase;
+
+  // Error deductions — count only manually checked errors
+  const errCount=(_bcStats.errOrds||[]).filter((_,i)=>{
+    const chk=document.getElementById(`bc-errchk-${i}`);
+    return chk&&chk.checked;
+  }).length;
+  const descError=errCount*1000;
+  const descNrep=nrep*500;
+  const descIncump=incump*500;
+  const descInv=faltaInv>0?Math.round(500/numColabs)*faltaInv:0;
+  const totalDesc=descError+descNrep+descIncump+descInv;
+
+  // Exception: X% of bonoBase is the starting point, then deductions still apply
+  const bonoAnteDesc=excepcion?Math.round(bonoBase*excepcionPct/100):bonoTrabajado;
+  const bonoFinal=Math.max(0,bonoAnteDesc-totalDesc);
+
+  document.getElementById('bc-res-base').textContent=excepcion
+    ?`RD$${bonoAnteDesc.toLocaleString()} (exc. ${excepcionPct}%)`
+    :`RD$${bonoTrabajado.toLocaleString()}${apply50?' (×50%)':''}`;
+  document.getElementById('bc-res-desc').textContent=`−RD$${totalDesc.toLocaleString()}`;
+  document.getElementById('bc-res-final').textContent=`RD$${bonoFinal.toLocaleString()}`;
+  document.getElementById('bc-res-final').style.color=bonoFinal>0?'#15803d':'#dc2626';
+  resEl.style.background=bonoFinal>0?'#f0fdf4':'#fff5f5';
+  resEl.style.borderColor=bonoFinal>0?'#86efac':'#fca5a5';
+
+  let notes=[];
+  if(excepcion)notes.push(excepcionPct<100?`Excepción administrativa al ${excepcionPct}% del bono base`:'Excepción administrativa otorgada');
+  if(!excepcion&&apply50)notes.push(faltaDisc?'Falta disciplinaria → bono al 50%':`${tardCount} tardanzas contadas → bono al 50%`);
+  if(errCount>0)notes.push(`${errCount} error${errCount>1?'es':''} con descuento → −RD$${descError.toLocaleString()}`);
+  if(descNrep)notes.push(`${nrep} error${nrep>1?'es':''} no reportado${nrep>1?'s':''} → −RD$${descNrep.toLocaleString()}`);
+  if(descIncump)notes.push(`${incump} incumplimiento${incump>1?'s':''} → −RD$${descIncump.toLocaleString()}`);
+  if(descInv)notes.push(`${faltaInv} ítem${faltaInv>1?'s':''} faltante${faltaInv>1?'s':''} → −RD$${descInv.toLocaleString()}`);
+  noteEl.style.display=notes.length?'block':'none';
+  noteEl.textContent=notes.join(' · ');
+}
+
+function saveBonusRecord(){
+  const empName=document.getElementById('bc-emp').value;
+  const fromVal=document.getElementById('bc-from').value;
+  const toVal=document.getElementById('bc-to').value;
+  if(!empName||!fromVal||!toVal){toast('Completa colaboradora y período');return;}
+  const {ventasBrutas,totalOrdenes,errores,errorPct,tardanzas,ausencias,bonoBase,tardOrds:saveTardOrds=[]}=_bcStats;
+  const faltaInj=document.getElementById('bc-faltainj').checked;
+  const faltaDisc=document.getElementById('bc-faltadisc').checked;
+  const meta=parseInt(document.getElementById('bc-meta').value)||0;
+  const excepcion=document.getElementById('bc-excepcion').checked;
+  const excepcionPct=excepcion?(parseInt(document.getElementById('bc-excepcion-pct').value)||100):100;
+  const nrep=parseInt(document.getElementById('bc-nrep').value)||0;
+  const incump=parseInt(document.getElementById('bc-incump').value)||0;
+  const faltaInv=parseInt(document.getElementById('bc-faltainv').value)||0;
+  const obs=document.getElementById('bc-obs').value.trim();
+  const bonoFinalText=document.getElementById('bc-res-final').textContent.replace(/[^0-9]/g,'')||'0';
+  const tardanzasContadas=saveTardOrds.filter((_,i)=>{const c=document.getElementById(`bc-tardchk-${i}`);return c&&c.checked;}).length;
+  const tardanzasManualesArr=getManualTardanzas();
+  const tardanzasManuales=tardanzasManualesArr.length;
+  const recId=_editingBonusId||Date.now();
+  const rec={
+    id:recId,empName,from:fromVal,to:toVal,
+    ventasBrutas,totalOrdenes,errores,errorPct,tardanzas,tardanzasContadas,tardanzasManuales,ausencias,bonoBase,
+    meta,excepcion,excepcionPct,faltaInj,faltaDisc,tardanzasManualesNotas:tardanzasManualesArr,nrep,incump,faltaInv,obs,
+    bonoFinal:parseInt(bonoFinalText),
+    savedBy:currentUser?currentUser.name:'Admin',savedAt:Date.now()
+  };
+  db.ref('bonuses/'+recId).set(rec).then(()=>{
+    _editingBonusId=recId; // keep same ID for subsequent saves
+    toast(`✓ Informe de ${empName} ${_editingBonusId?'actualizado':'guardado'}`);
+    if(document.getElementById('tb6').classList.contains('active'))renderReportes();
+  });
+}
+
+function editBonusRecord(id){
+  const b=bonusesData[id];
+  if(!b){toast('Registro no encontrado');return;}
+  // Open modal with defaults first
+  openBonusCalc();
+  // Override employee & period
+  const empSel=document.getElementById('bc-emp');
+  if([...empSel.options].some(o=>o.value===b.empName))empSel.value=b.empName;
+  document.getElementById('bc-from').value=b.from;
+  document.getElementById('bc-to').value=b.to;
+  // Recalculate with actual data
+  refreshBonusCalc();
+  // Restore form fields (after refresh)
+  document.getElementById('bc-faltainj').checked=b.faltaInj||false;
+  document.getElementById('bc-faltadisc').checked=b.faltaDisc||false;
+  document.getElementById('bc-meta').value=b.meta||'';
+  document.getElementById('bc-nrep').value=b.nrep||0;
+  document.getElementById('bc-incump').value=b.incump||0;
+  document.getElementById('bc-faltainv').value=b.faltaInv||0;
+  document.getElementById('bc-obs').value=b.obs||'';
+  document.getElementById('bc-excepcion').checked=b.excepcion||false;
+  // Restore manual tardanzas
+  if(b.tardanzasManualesNotas&&b.tardanzasManualesNotas.length){
+    b.tardanzasManualesNotas.forEach(t=>{
+      addManualTardanza(true);
+      const idx=_bcManualTardIdx-1;
+      if(t.fecha)document.getElementById(`bc-tardmandate-${idx}`).value=t.fecha;
+      if(t.entrada)document.getElementById(`bc-tardmanentrada-${idx}`).value=t.entrada;
+      if(t.horario)document.getElementById(`bc-tardmanhorario-${idx}`).value=t.horario;
+      if(t.note)document.getElementById(`bc-tardmannote-${idx}`).value=t.note;
+      if(t.counted){
+        const chk=document.getElementById(`bc-tardmanchk-${idx}`);
+        if(chk){chk.checked=true;document.getElementById(`bc-tardmanrow-${idx}`).style.borderColor='#d97706';}
+      }
+      bcTardManCalc(idx);
+    });
+  }
+  // Mark as editing this record
+  _editingBonusId=id;
+  calcBonusResult();
+  // After calcBonusResult restores excepcion-row visibility, set the pct
+  if(b.excepcion){
+    const pctRow=document.getElementById('bc-excepcion-pct-row');
+    if(pctRow)pctRow.style.display='flex';
+    document.getElementById('bc-excepcion-pct').value=b.excepcionPct||100;
+    calcBonusResult();
+  }
+}
+
+function downloadBonusReport(){
+  const empName=document.getElementById('bc-emp').value||'—';
+  const fromVal=document.getElementById('bc-from').value||'';
+  const toVal=document.getElementById('bc-to').value||'';
+  const {ventasBrutas,totalOrdenes,errores,errorPct,tardanzas,ausencias,bonoBase,errOrds=[],tardOrds=[],breakOrds=[]}=_bcStats;
+  const faltaInj=document.getElementById('bc-faltainj').checked;
+  const faltaDisc=document.getElementById('bc-faltadisc').checked;
+  const meta=parseInt(document.getElementById('bc-meta').value)||0;
+  const excepcion=document.getElementById('bc-excepcion').checked;
+  const excepcionPct=excepcion?(parseInt(document.getElementById('bc-excepcion-pct').value)||100):100;
+  const metaNotMet=meta>0&&ventasBrutas<meta&&!excepcion;
+
+  const nrep=parseInt(document.getElementById('bc-nrep').value)||0;
+  const incump=parseInt(document.getElementById('bc-incump').value)||0;
+  const faltaInv=parseInt(document.getElementById('bc-faltainv').value)||0;
+  const obs=document.getElementById('bc-obs').value.trim()||'—';
+  const numColabs=Math.max(1,users.filter(u=>u.role==='vendedora').length);
+
+  // Collect checked error orders
+  const errConDesc=errOrds.filter((_,i)=>{const c=document.getElementById(`bc-errchk-${i}`);return c&&c.checked;});
+  // Collect checked tardanzas
+  const tardConDesc=tardOrds.filter((_,i)=>{const c=document.getElementById(`bc-tardchk-${i}`);return c&&c.checked;});
+  const brkConDesc=breakOrds.filter((_,i)=>{const c=document.getElementById(`bc-brkchk-${i}`);return c&&c.checked;});
+  const tardManualNotesDl=getManualTardanzas();
+  const tardManualDl=tardManualNotesDl.filter(t=>t.counted).length;
+  const apply50=(tardConDesc.length+brkConDesc.length+tardManualDl>=3||faltaDisc);
+  const bonoTrabajado=(faltaInj||metaNotMet)?bonoBase:apply50?Math.round(bonoBase*0.5):bonoBase;
+  const descError=errConDesc.length*1000;
+  const descNrep=nrep*500;
+  const descIncump=incump*500;
+  const descInv=faltaInv>0?Math.round(500/numColabs)*faltaInv:0;
+  const totalDesc=(faltaInj||metaNotMet)?0:descError+descNrep+descIncump+descInv;
+  let bonoFinal;
+  if(faltaInj||metaNotMet) bonoFinal=0;
+  else if(excepcion) bonoFinal=Math.max(0,Math.round(bonoBase*excepcionPct/100)-totalDesc);
+  else bonoFinal=Math.max(0,bonoTrabajado-totalDesc);
+
+  const fmt=n=>`RD$${Number(n).toLocaleString()}`;
+  const periodo=fromVal&&toVal?`${fromVal} → ${toVal}`:'—';
+
+  const SC=2;
+  const W=860, PAD=52;
+  const SANS=`"Helvetica Neue",Helvetica,Arial,sans-serif`;
+  const RED='#e53e3e', GREEN='#276749', DARK='#1a202c', GRAY='#718096', LIGHT='#f7fafc', MID='#edf2f7';
+
+  // ── helper to measure canvas height ──
+  let measH=0;
+  const sec=(label,color='#2d3748')=>{measH+=38;};
+  const row=(h=40)=>{measH+=h;};
+  const gap=(h=12)=>{measH+=h;};
+
+  // header
+  measH+=110;
+  // info boxes row
+  measH+=64;
+  gap(10);
+  // ganancias row
+  measH+=64;
+  gap(16);
+  // INDICADORES section
+  sec('INDICADORES');
+  measH+=38; // thead
+  measH+=38*(5+(meta>0?1:0)); // 5 base rows + meta row if applicable
+  gap(18);
+  // ERRORES section
+  if(errOrds.length){
+    sec('ERRORES');
+    measH+=38; // thead
+    measH+=Math.max(errOrds.length,1)*38;
+    gap(18);
+  }
+  // TARDANZAS section
+  sec('TARDANZAS');
+  measH+=38;
+  const _allTardManual=getManualTardanzas();
+  measH+=Math.max(tardanzas+_allTardManual.length,1)*40;
+  // Breaks section
+  if(breakOrds.length>0){
+    measH+=38+38; // header + thead
+    breakOrds.forEach((_,bi)=>{
+      const bRows=[];
+      if(_.breakMs>BREAK_LIMIT)bRows.push(1);
+      if(_.permisoMs>PERMISO_LIMIT)bRows.push(1);
+      measH+=bRows.length*38;
+      if((document.getElementById(`bc-brknote-${bi}`)?.value||'').trim())measH+=26;
+    });
+    measH+=16;
+  }
+  // Extra height for tardanza notes (auto)
+  (_bcStats.tardOrds||[]).forEach((_,i)=>{if((document.getElementById(`bc-tardnote-${i}`)?.value||'').trim())measH+=28;});
+  // Extra height for manual tardanza notes
+  _allTardManual.forEach(t=>{if((t.note||t).toString().trim())measH+=28;});
+  gap(18);
+  // DESCUENTOS section
+  sec('DESCUENTOS');
+  measH+=38;
+  measH+=40*5; // 5 deduction rows
+  measH+=44; // total row
+  gap(18);
+  // CÁLCULO FINAL section
+  sec('CALCULO');
+  measH+=72;
+  gap(14);
+  // OBS
+  measH+=70;
+  gap(14);
+  // Signatures
+  measH+=100;
+  // footer
+  measH+=44;
+
+  const H=measH+20;
+  const canvas=document.createElement('canvas');
+  canvas.width=W*SC; canvas.height=H*SC;
+  const ctx=canvas.getContext('2d');
+  ctx.scale(SC,SC);
+
+  // Background
+  ctx.fillStyle='#ffffff';
+  ctx.fillRect(0,0,W,H);
+
+  // ── helper fns ──
+  const txt=(t,x,y,opts={})=>{
+    ctx.font=`${opts.italic?'italic ':''}${opts.weight||'normal'} ${opts.size||12}px ${SANS}`;
+    ctx.fillStyle=opts.color||DARK;
+    ctx.textAlign=opts.align||'left';
+    ctx.fillText(String(t),x,y);
+    ctx.textAlign='left';
+  };
+  const line=(x1,y1,x2,y2,color='#e2e8f0',lw=1)=>{
+    ctx.strokeStyle=color;ctx.lineWidth=lw;
+    ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();
+  };
+  const rect=(x,y,w,h,fill='#f7fafc',stroke='#e2e8f0')=>{
+    ctx.fillStyle=fill;ctx.fillRect(x,y,w,h);
+    if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=1;ctx.strokeRect(x,y,w,h);}
+  };
+  const secHeader=(label,y,color='#2d3748')=>{
+    rect(PAD,y,W-PAD*2,28,color,'none');
+    txt(label,PAD+10,y+19,{weight:'800',size:10,color:'#fff'});
+    return y+28;
+  };
+  const tableHead=(cols,y,bg=MID)=>{
+    const colW=(W-PAD*2)/cols.length;
+    cols.forEach((c,i)=>{
+      rect(PAD+i*colW,y,colW,32,bg,'#e2e8f0');
+      txt(c,PAD+i*colW+(i===cols.length-1?colW-8:8),y+21,{weight:'800',size:10,color:DARK,align:i===cols.length-1?'right':'left'});
+    });
+    return y+32;
+  };
+  const tableRow=(cols,y,bg='#ffffff',textColor=DARK,h=38)=>{
+    const colW=(W-PAD*2)/cols.length;
+    cols.forEach((c,i)=>{
+      rect(PAD+i*colW,y,colW,h,bg,'#e2e8f0');
+      const align=i===cols.length-1?'right':'left';
+      txt(c,PAD+i*colW+(align==='right'?colW-8:8),y+h/2+5,{size:11,color:textColor,align});
+    });
+    return y+h;
+  };
+
+  let y=0;
+
+  // ── HEADER ──
+  ctx.fillStyle='#000';
+  ctx.font=`bold 28px ${SANS}`;
+  ctx.letterSpacing='5px';
+  ctx.fillText('SINGULAR',PAD,52);
+  ctx.letterSpacing='0px';
+  line(PAD,58,PAD+120,58,RED,2);
+  txt('Estructura de Bonificación · Agora Mall',PAD,76,{size:10,color:GRAY,italic:true});
+  txt('INFORME INDIVIDUAL DE BONIFICACIÓN',W-PAD,44,{weight:'800',size:13,color:DARK,align:'right'});
+  txt('Confidencial · Uso Interno',W-PAD,62,{size:9,color:GRAY,align:'right'});
+  line(PAD,92,W-PAD,92,'#e2e8f0',1);
+  y=102;
+
+  // ── INFO BOXES ROW 1: Colaboradora + Período ──
+  const bw=(W-PAD*2-12)/2;
+  rect(PAD,y,bw,52,LIGHT,'#e2e8f0');
+  txt('COLABORADORA',PAD+10,y+16,{size:8,color:GRAY,weight:'700'});
+  txt(empName,PAD+10,y+38,{size:14,weight:'800',color:DARK});
+  rect(PAD+bw+12,y,bw,52,LIGHT,'#e2e8f0');
+  txt('MES / PERÍODO',PAD+bw+22,y+16,{size:8,color:GRAY,weight:'700'});
+  txt(periodo,PAD+bw+22,y+38,{size:13,weight:'700',color:DARK});
+  y+=62;
+
+  // ── INFO BOXES ROW 2: Ventas brutas + Bono base ──
+  rect(PAD,y,bw,52,LIGHT,'#e2e8f0');
+  txt('GANANCIAS BRUTAS DEL MES',PAD+10,y+16,{size:8,color:GRAY,weight:'700'});
+  txt(fmt(ventasBrutas),PAD+10,y+38,{size:15,weight:'800',color:DARK});
+  rect(PAD+bw+12,y,bw,52,LIGHT,'#e2e8f0');
+  txt('BONO BASE (1% de ganancias)',PAD+bw+22,y+16,{size:8,color:GRAY,weight:'700'});
+  txt(fmt(bonoBase),PAD+bw+22,y+38,{size:15,weight:'800',color:GREEN});
+  y+=66;
+
+  // ── INDICADORES DE DESEMPEÑO ──
+  y=secHeader('INDICADORES DE DESEMPEÑO',y,DARK);
+  y=tableHead(['Indicador','Meta','Resultado','¿Aplica descuento?'],y);
+  const errOk=errorPct<3;
+  const tardTotalContadas=tardConDesc.length+tardManualDl;
+  const tardOk=tardTotalContadas<3&&!faltaInj;
+  const tardResStr=tardManualDl>0
+    ?`${ausencias} aus. / ${tardConDesc.length} auto + ${tardManualDl} manual`
+    :`${ausencias} aus. / ${tardConDesc.length} de ${tardanzas} tard.`;
+  const metaRow=meta>0?[
+    'Meta de ventas del período',
+    `RD$${meta.toLocaleString()}`,
+    `RD$${ventasBrutas.toLocaleString()} (${Math.round(ventasBrutas/meta*100)}%)`,
+    metaNotMet?'No alcanzada ⛔':excepcion?'No alcanzada (excepción adm.)':'Cumplida ✓'
+  ]:null;
+  const indRows=[
+    ...(metaRow?[metaRow]:[]),
+    ['Margen de error','< 3%',`${errorPct}%`,errOk?'No ✓':'Indicador'],
+    ['Órdenes totales del mes','—',String(totalOrdenes),'Indicador'],
+    ['Errores registrados','< 3%',String(errores),errOk?'—':'Revisar'],
+    ['Faltas Disciplinarias','0',faltaDisc?'Sí':'0',faltaDisc?'Sí':'No'],
+    ['Ausencias / Tardanzas contadas','0 – 2',tardResStr,tardOk?'No':'Sí'],
+  ];
+  indRows.forEach(r=>{
+    const isWarn=r[3]!=='No ✓'&&r[3]!=='—'&&r[3]!=='No';
+    y=tableRow(r,y,isWarn?'#fff5f5':'#fff',isWarn?RED:DARK);
+  });
+  y+=16;
+
+  // ── ERRORES DE PRODUCCIÓN ──
+  y=secHeader('DESGLOSE DE ERRORES DE PRODUCCIÓN',y,'#742a2a');
+  y=tableHead(['#','Fecha','Cliente','Artículo(s)','¿Descuento?'],y,'#fff5f5');
+  if(errOrds.length){
+    errOrds.forEach((o,i)=>{
+      const dt=new Date(o.id);
+      const ds=`${dt.getDate()}/${dt.getMonth()+1}/${dt.getFullYear()}`;
+      const items=(o.items||[]).map(it=>`${it.qty}×${it.name}${it.model?' '+it.model:''}`).join(', ');
+      const hasDesc=errConDesc.some(e=>e.id===o.id);
+      const cols=[String(i+1),ds,o.name,items,hasDesc?'−RD$1,000':'Sin descuento'];
+      const colW=(W-PAD*2)/5;
+      [0,1,2,3,4].forEach(ci=>{
+        const bg=hasDesc?'#fff5f5':'#fff';
+        rect(PAD+ci*colW,y,colW,38,bg,'#e2e8f0');
+        const align=ci===4?'right':'left';
+        txt(cols[ci],PAD+ci*colW+(align==='right'?colW-8:8),y+24,{size:10,color:ci===4?(hasDesc?RED:GREEN):DARK,weight:ci===4?'700':'normal',align});
+      });
+      y+=38;
+    });
+  } else {
+    y=tableRow(['—','—','—','Sin errores en el período','—'],y);
+  }
+  y+=16;
+
+  // ── TARDANZAS ──
+  y=secHeader('TARDANZAS REGISTRADAS',y,'#744210');
+  y=tableHead(['#','Fecha','Entrada','Min. tarde','Estado'],y,'#fffbeb');
+  const allTardOrds=_bcStats.tardOrds||[];
+  if(allTardOrds.length){
+    allTardOrds.forEach((s,i)=>{
+      const counted=(()=>{const chk=document.getElementById(`bc-tardchk-${i}`);return chk&&chk.checked;})();
+      const note=(document.getElementById(`bc-tardnote-${i}`)?.value||'').trim();
+      const dt=new Date(s.clockIn);
+      const ds=`${dt.getDate()}/${dt.getMonth()+1}/${dt.getFullYear()}`;
+      const hr=`${String(dt.getHours()).padStart(2,'0')}:${String(dt.getMinutes()).padStart(2,'0')}`;
+      const sch=getEffectiveSchedule(empName,localDateStr(s.clockIn));
+      const[sh2,sm2]=(sch?sch.startTime:'00:00').split(':').map(Number);
+      const minLate=(dt.getHours()*60+dt.getMinutes())-(sh2*60+sm2);
+      const bg=counted?'#fffbeb':'#fff';
+      // Main 5-col row
+      const cols=[String(i+1),ds,hr,`+${minLate} min`,counted?'Contó':'No aplica'];
+      const colWs=[40,100,80,80,W-PAD*2-40-100-80-80];
+      let cx=PAD;
+      cols.forEach((cv,ci)=>{
+        rect(cx,y,colWs[ci],40,bg,'#e2e8f0');
+        const clr=ci===4?(counted?'#d97706':'#9ca3af'):DARK;
+        const wt=ci===4?'700':'normal';
+        txt(cv,cx+(ci===0?colWs[ci]/2:8),y+25,{size:10,color:clr,weight:wt,align:ci===0?'center':'left'});
+        cx+=colWs[ci];
+      });
+      y+=40;
+      // Note sub-row (if filled)
+      if(note){
+        rect(PAD,y,W-PAD*2,28,counted?'#fffde7':'#f9fafb','#e2e8f0');
+        txt(`📝 ${note}`,PAD+12,y+18,{size:9,color:'#78350f',weight:'normal'});
+        y+=28;
+      }
+    });
+  } else if(!tardManualDl){
+    y=tableRow(['—','—','—','—','Sin tardanzas registradas'],y);
+  }
+  // Manual tardanzas rows (show all, mark counted/no aplica)
+  if(tardManualNotesDl.length>0){
+    tardManualNotesDl.forEach((t,mi)=>{
+      const fechaStr=t.fecha||'Manual';
+      const entradaStr=t.entrada||'—';
+      const lateStr=t.minLate>0?`+${t.minLate} min`:'—';
+      const cols=[String((allTardOrds.length||0)+mi+1),fechaStr,entradaStr,lateStr,t.counted?'Contó':'No aplica'];
+      const colWs=[40,100,80,80,W-PAD*2-40-100-80-80];
+      let cx=PAD;
+      const mbg=t.counted?'#fffbeb':'#fff';
+      const mclr4=t.counted?'#d97706':'#9ca3af';
+      cols.forEach((cv,ci)=>{
+        rect(cx,y,colWs[ci],40,mbg,'#e2e8f0');
+        txt(cv,cx+(ci===0?colWs[ci]/2:8),y+25,{size:10,color:ci===4?mclr4:DARK,weight:ci===4?'700':'normal',align:ci===0?'center':'left'});
+        cx+=colWs[ci];
+      });
+      y+=40;
+      if(t.note){
+        rect(PAD,y,W-PAD*2,28,'#fffde7','#e2e8f0');
+        txt(`📝 ${t.note}`,PAD+12,y+18,{size:9,color:'#78350f',weight:'normal'});
+        y+=28;
+      }
+    });
+  }
+  y+=16;
+
+  // ── BREAKS EXCEDIDOS ──
+  if(breakOrds.length>0){
+    const fmtMsPdf=ms=>{const m=Math.round(ms/60000);return m>=60?`${Math.floor(m/60)}h ${m%60}min`:`${m}min`;};
+    y=secHeader('BREAKS EXCEDIDOS',y,'#92400e');
+    y=tableHead(['#','Fecha','Tipo','Tomado','Excedido','Estado'],y,'#fffbeb');
+    breakOrds.forEach((bd,i)=>{
+      const counted=(()=>{const chk=document.getElementById(`bc-brkchk-${i}`);return chk&&chk.checked;})();
+      const note=(document.getElementById(`bc-brknote-${i}`)?.value||'').trim();
+      const brkRows=[];
+      if(bd.breakMs>BREAK_LIMIT)brkRows.push(['Break',bd.breakMs,bd.breakMs-BREAK_LIMIT]);
+      if(bd.permisoMs>PERMISO_LIMIT)brkRows.push(['Permiso',bd.permisoMs,bd.permisoMs-PERMISO_LIMIT]);
+      brkRows.forEach(([tipo,taken,over],ri)=>{
+        const bg=counted?'#fffbeb':'#fff';
+        const cw=(W-PAD*2)/6;
+        [String(i+1),bd.date,tipo,fmtMsPdf(taken),`+${fmtMsPdf(over)}`,counted?'Contó':'No aplica'].forEach((cv,ci)=>{
+          rect(PAD+ci*cw,y,cw,38,bg,'#e2e8f0');
+          const clr=ci===5?(counted?'#92400e':'#9ca3af'):ci===4?'#92400e':DARK;
+          txt(cv,PAD+ci*cw+8,y+24,{size:9,color:clr,weight:ci>=4?'700':'normal'});
+        });
+        y+=38;
+      });
+      if(note){
+        rect(PAD,y,W-PAD*2,26,'#fffde7','#e2e8f0');
+        txt(`📝 ${note}`,PAD+12,y+17,{size:9,color:'#78350f'});
+        y+=26;
+      }
+    });
+    y+=16;
+  }
+
+  // ── DESCUENTOS APLICADOS ──
+  y=secHeader('DESCUENTOS APLICADOS',y,RED);
+  y=tableHead(['Concepto','Cantidad','Monto RD$'],y,'#fff5f5');
+  const dRows3=[
+    ['Errores con descuento (RD$1,000 c/u)',errConDesc.length,errConDesc.length?fmt(descError):'—'],
+    ['Errores / Covers / Cortesías no reportados (RD$500 c/u)',nrep,nrep?fmt(descNrep):'—'],
+    ['Incumplimiento de protocolo / Mala comunicación (RD$500 c/u)',incump,incump?fmt(descIncump):'—'],
+    ['Artículo faltante en inventario (RD$500 ÷ colaboradoras)',faltaInv,faltaInv?fmt(descInv):'—'],
+  ];
+  dRows3.forEach(r=>{
+    const colW=(W-PAD*2)/3;
+    const has=r[1]>0;
+    [0,1,2].forEach(ci=>{
+      rect(PAD+ci*colW,y,colW,40,has?'#fff5f5':'#fff','#e2e8f0');
+      const align=ci>0?'right':'left';
+      txt(String(r[ci]),PAD+ci*colW+(align==='right'?colW-8:8),y+25,{size:10,color:has&&ci===2?RED:DARK,weight:ci===2&&has?'700':'normal',align});
+    });
+    y+=40;
+  });
+  // Total row
+  const colW3=(W-PAD*2)/3;
+  rect(PAD,y,colW3*2,44,'#2d3748','none');
+  rect(PAD+colW3*2,y,colW3,44,RED,'none');
+  txt('TOTAL DESCUENTOS',PAD+10,y+27,{size:11,weight:'800',color:'#fff'});
+  txt(fmt(totalDesc),W-PAD-8,y+27,{size:13,weight:'900',color:'#fff',align:'right'});
+  y+=44+16;
+
+  // ── CÁLCULO FINAL ──
+  y=secHeader('CÁLCULO Y RESULTADO FINAL',y,GREEN);
+  const fw=(W-PAD*2-24)/3;
+  const boxes=[
+    {label:'Bono base',val:fmt(faltaInj?bonoBase:bonoTrabajado)+(apply50&&!faltaInj?' (×50%)':''),bg:LIGHT,vc:DARK},
+    {label:'Total descuentos',val:fmt(totalDesc),bg:'#fff5f5',vc:RED},
+    {label:'BONO FINAL A RECIBIR',val:fmt(bonoFinal),bg:bonoFinal>0?'#f0fff4':'#fff5f5',vc:bonoFinal>0?GREEN:RED},
+  ];
+  boxes.forEach((b,i)=>{
+    rect(PAD+i*(fw+12),y,fw,64,b.bg,'#e2e8f0');
+    txt(b.label,PAD+i*(fw+12)+10,y+18,{size:8,color:GRAY,weight:'700'});
+    txt(b.val,PAD+i*(fw+12)+10,y+46,{size:15,weight:'900',color:b.vc});
+    if(i<2){txt('−',PAD+i*(fw+12)+fw+6,y+42,{size:18,weight:'700',color:GRAY});}
+  });
+  if(faltaInj){
+    txt('⛔ Falta injustificada — bono cancelado completamente',PAD,y+76,{size:10,color:RED,weight:'700'});
+    y+=14;
+  }
+  y+=78;
+
+  // ── OBSERVACIONES ──
+  rect(PAD,y,W-PAD*2,60,LIGHT,'#e2e8f0');
+  txt('OBSERVACIONES',PAD+10,y+16,{size:8,color:GRAY,weight:'700'});
+  // word wrap obs
+  ctx.font=`11px ${SANS}`;ctx.fillStyle=DARK;
+  const words=obs.split(' ');let line2='';let ly=y+34;
+  words.forEach(w=>{
+    const test=line2?line2+' '+w:w;
+    if(ctx.measureText(test).width>W-PAD*2-20&&line2){ctx.fillText(line2,PAD+10,ly);line2=w;ly+=16;}
+    else line2=test;
+  });
+  if(line2)ctx.fillText(line2,PAD+10,ly);
+  y+=74;
+
+  // ── SIGNATURES ──
+  line(PAD,y+40,PAD+220,y+40,'#2d3748',1);
+  txt('Firma de la Colaboradora',PAD,y+52,{size:9,color:GRAY});
+  const today2=new Date();
+  txt(`Fecha: ${today2.getDate()} / ${today2.getMonth()+1} / ${today2.getFullYear()}`,PAD,y+66,{size:9,color:GRAY});
+  line(W-PAD-220,y+40,W-PAD,y+40,'#2d3748',1);
+  txt('Alexia C. Racine Bournigal',W-PAD-220,y+52,{size:9,color:DARK,weight:'700'});
+  txt('Líder de Operaciones — Singular Agora Mall',W-PAD-220,y+66,{size:8,color:GRAY});
+  y+=84;
+
+  // ── FOOTER ──
+  line(PAD,y,W-PAD,y,'#e2e8f0',1);
+  txt('SINGULAR — Agora Mall · Estructura de Bonificación · Confidencial',W/2,y+18,{size:8,color:GRAY,align:'center'});
+
+  // ── DOWNLOAD AS PDF ──
+  const imgData=canvas.toDataURL('image/png');
+  // Page size = canvas logical size in mm (at 96dpi: 1px = 0.264583mm)
+  const pxW=canvas.width/SC;
+  const pxH=canvas.height/SC;
+  const mmW=pxW*0.264583;
+  const mmH=pxH*0.264583;
+  try{
+    const {jsPDF}=window.jspdf;
+    const doc=new jsPDF({orientation:'portrait',unit:'mm',format:[mmW,mmH]});
+    doc.addImage(imgData,'PNG',0,0,mmW,mmH,undefined,'FAST');
+    doc.save(`bono_${empName.replace(/\s+/g,'_')}_${fromVal||'periodo'}.pdf`);
+  }catch(e){
+    // Fallback to PNG if jsPDF not loaded
+    const a=document.createElement('a');
+    a.href=imgData;
+    a.download=`bono_${empName.replace(/\s+/g,'_')}_${fromVal||'periodo'}.png`;
+    a.click();
+  }
+  toast(`📄 PDF descargado — ${empName}`);
+}
+
+function calcOtroTotal(){
+  const data=window._otroOrdData||[];
+  let count=0,total=0;
+  const byEmp={};
+  data.forEach(d=>{
+    const chk=document.getElementById(`otro-chk-${d.id}`);
+    if(chk&&chk.checked){
+      count++;total+=d.mitad;
+      byEmp[d.emp]=(byEmp[d.emp]||0)+d.mitad;
+    }
+  });
+  const countEl=document.getElementById('otro-sel-count');
+  const totalEl=document.getElementById('otro-sel-total');
+  const byEmpEl=document.getElementById('otro-by-emp');
+  if(countEl)countEl.textContent=count;
+  if(totalEl)totalEl.textContent='RD$'+total.toLocaleString();
+  if(byEmpEl)byEmpEl.innerHTML=Object.entries(byEmp).map(([e,v])=>`${e}: <strong>RD$${v.toLocaleString()}</strong>`).join(' &nbsp;·&nbsp; ');
+}
 function setRepRange(range){
   const today=new Date();
   const pad=n=>String(n).padStart(2,'0');
@@ -8702,7 +10012,7 @@ function ciOut(){
   db.ref('clockin_sessions/'+s.id).update({clockOut:now,isOnBreak:false,breaks,project:proj});
   toast('✅ Salida registrada · '+new Date(now).toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'}));
 }
-function ciBreak(){
+function ciBreak(tipo){
   const s=ciGetActive();if(!s)return;
   const now=Date.now();
   const breaks=[...(s.breaks||[])];
@@ -8711,9 +10021,9 @@ function ciBreak(){
     db.ref('clockin_sessions/'+s.id).update({isOnBreak:false,breaks});
     toast('▶ Pausa terminada');
   } else {
-    breaks.push({start:now,end:null});
+    breaks.push({start:now,end:null,tipo:tipo||'break'});
     db.ref('clockin_sessions/'+s.id).update({isOnBreak:true,breaks});
-    toast('⏸ En pausa');
+    toast(tipo==='bano'?'🚻 Permiso de baño iniciado':'⏸ En pausa');
   }
 }
 function ciUpdateProj(val){
@@ -8744,11 +10054,38 @@ function ciRenderBar(sess){
 }
 
 function ciTick(){
-  const s=ciGetActive();if(!s||s.userId!==currentUser?.name)return;
-  const el=ciWorkedMs(s);const{h,m,s:sec}=ciHMS(el);
-  const hm=document.getElementById('ci-hm');const sc=document.getElementById('ci-sc');
-  if(hm)hm.textContent=_ciPad(h)+':'+_ciPad(m);
-  if(sc)sc.textContent=':'+_ciPad(sec);
+  // ── Employee's own timer ──
+  const s=ciGetActive();
+  if(s&&s.userId===currentUser?.name){
+    const el=ciWorkedMs(s);const{h,m,s:sec}=ciHMS(el);
+    const hm=document.getElementById('ci-hm');const sc=document.getElementById('ci-sc');
+    if(hm)hm.textContent=_ciPad(h)+':'+_ciPad(m);
+    if(sc)sc.textContent=':'+_ciPad(sec);
+    // Live break timer for the employee card
+    const brkEl=document.getElementById('ci-break-timer');
+    if(brkEl&&s.isOnBreak){
+      const lb=(s.breaks||[]).slice(-1)[0];
+      if(lb&&lb.start&&!lb.end){
+        const bms=Date.now()-lb.start;
+        const bm=Math.floor(bms/60000);const bs=Math.floor((bms%60000)/1000);
+        brkEl.textContent=_ciPad(bm)+':'+_ciPad(bs);
+      }
+    }
+  }
+  // ── Admin table: live break timers for ALL employees currently on break ──
+  if(adminMode){
+    clockinSessions.forEach(sess=>{
+      if(!sess.isOnBreak||sess.date!==todayStr())return;
+      const el=document.getElementById('ci-brk-'+sess.userId.replace(/\s/g,'_'));
+      if(!el)return;
+      const lb=(sess.breaks||[]).slice(-1)[0];
+      if(lb&&lb.start&&!lb.end){
+        const bms=Date.now()-lb.start;
+        const bm=Math.floor(bms/60000);const bs=Math.floor((bms%60000)/1000);
+        el.textContent=_ciPad(bm)+':'+_ciPad(bs);
+      }
+    });
+  }
 }
 
 function renderClockin(){
@@ -8772,12 +10109,21 @@ function renderClockin(){
   const clockCard=`<div style="background:var(--white);border:1px solid var(--g200);border-radius:12px;padding:18px;">
     <div style="font-size:.78rem;font-weight:700;color:var(--g500);border-bottom:1px solid var(--g100);padding-bottom:10px;margin-bottom:14px;">⏱ Clock-in</div>
     ${active?`
-      <div style="font-size:.58rem;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:${isBreak?'#f59e0b':'var(--g400)'};text-align:center;margin-bottom:3px;">${isBreak?'⏸ EN PAUSA':'● ONGOING'}</div>
-      <div style="text-align:center;margin-bottom:14px;line-height:1;">
+      <div style="font-size:.58rem;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:${isBreak?'#f59e0b':'var(--g400)'};text-align:center;margin-bottom:3px;" id="ci-status-lbl">${isBreak?(()=>{const lb=(active.breaks||[]).filter(b=>b.start).slice(-1)[0];return lb?.tipo==='bano'?'🚻 PERMISO DE BAÑO':'⏸ EN PAUSA';})():'● ONGOING'}</div>
+      <div style="text-align:center;margin-bottom:${isBreak?'4':'14'}px;line-height:1;">
         <span id="ci-hm" style="font-size:2.5rem;font-weight:900;font-variant-numeric:tabular-nums;">${_ciPad(eh)}:${_ciPad(em)}</span><span id="ci-sc" style="font-size:1.5rem;font-weight:700;color:var(--g400);font-variant-numeric:tabular-nums;">:${_ciPad(es)}</span>
       </div>
-      <div style="display:flex;gap:8px;justify-content:center;margin-bottom:14px;">
-        <button onclick="ciBreak()" style="padding:8px 16px;border:1.5px solid ${isBreak?'#fbbf24':'var(--g300)'};border-radius:20px;background:${isBreak?'#fef3c7':'var(--white)'};color:${isBreak?'#92400e':'var(--g700)'};font-size:.8rem;font-weight:700;cursor:pointer;">${isBreak?'▶ Reanudar':'⏸ Break'}</button>
+      ${isBreak?`<div style="text-align:center;margin-bottom:14px;background:#fffbea;border:1.5px solid #fde68a;border-radius:10px;padding:8px 12px;">
+        <div style="font-size:.6rem;font-weight:800;color:#92400e;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px;">${(()=>{const lb=(active.breaks||[]).filter(b=>b.start).slice(-1)[0];return lb?.tipo==='bano'?'🚻 Permiso de baño':'⏸ Break';})()}</div>
+        <div id="ci-break-timer" style="font-size:1.6rem;font-weight:900;font-variant-numeric:tabular-nums;color:#92400e;">00:00</div>
+      </div>`:''}
+
+      <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:14px;">
+        ${isBreak
+          ? `<button onclick="ciBreak()" style="padding:8px 18px;border:1.5px solid #fbbf24;border-radius:20px;background:#fef3c7;color:#92400e;font-size:.8rem;font-weight:700;cursor:pointer;">▶ Reanudar</button>`
+          : `<button onclick="ciBreak('break')" style="padding:8px 14px;border:1.5px solid var(--g300);border-radius:20px;background:var(--white);color:var(--g700);font-size:.8rem;font-weight:700;cursor:pointer;">⏸ Break</button>
+             <button onclick="ciBreak('bano')" style="padding:8px 14px;border:1.5px solid #bae6fd;border-radius:20px;background:#f0f9ff;color:#0369a1;font-size:.8rem;font-weight:700;cursor:pointer;">🚻 Permiso de baño</button>`
+        }
         <button onclick="ciOut()" style="padding:8px 16px;border:none;border-radius:20px;background:#ef4444;color:#fff;font-size:.8rem;font-weight:700;cursor:pointer;">⏹ Salida</button>
       </div>`
     :`
@@ -8946,9 +10292,17 @@ function renderCiAdminTable(){
     const permLabel=permForDay?(permForDay.type==='parcial'?`✕ Permiso ${permForDay.startTime||''}–${permForDay.endTime||''}`:'✕ Permiso'):'📋 Permiso';
     const permStyle=permForDay?'border:1.5px solid #c4b5fd;background:#ede9fe;color:#7c3aed;':'border:1.5px solid var(--g200);background:var(--white);color:var(--g600);';
     const permAction=permForDay?`deleteCiPermiso('${permForDay.id}')`:`openCiPermisoModal('${sn}','${d}')`;
+    // Live break indicator for admin table
+    const activeSess=clockinSessions.find(s=>s.userId===emp.name&&s.date===d&&s.isOnBreak);
+    const brkTipo=activeSess?(()=>{const lb=(activeSess.breaks||[]).slice(-1)[0];return lb?.tipo==='bano'?'🚻 Baño':'⏸ Break';})():'';
+    const safeId='ci-brk-'+emp.name.replace(/\s/g,'_');
+    const brkBadge=activeSess?`<div style="display:inline-flex;align-items:center;gap:5px;background:#fef3c7;border:1.5px solid #fbbf24;border-radius:8px;padding:3px 8px;margin-top:4px;">
+      <span style="font-size:.65rem;font-weight:800;color:#92400e;">${brkTipo}</span>
+      <span id="${safeId}" style="font-size:.75rem;font-weight:900;font-variant-numeric:tabular-nums;color:#92400e;">00:00</span>
+    </div>`:'';
     return`<tr onclick="openCiEmpDetail('${sn}')" style="cursor:pointer;" class="ci-emp-row">
       <td style="padding:10px 8px;"><div style="display:flex;align-items:center;gap:10px;">${av}<div><div style="font-size:.82rem;font-weight:700;">${emp.name}</div><div style="font-size:.63rem;color:var(--g500);margin-top:1px;">${schLabel}</div></div></div></td>
-      <td style="padding:10px 8px;font-size:.75rem;white-space:nowrap;">${daySess.length?`<span style="font-weight:700;">${ci}</span><span style="color:var(--g400);margin:0 4px;">→</span><span style="font-weight:700;">${co}</span><div style="font-size:.63rem;color:var(--g400);margin-top:2px;">${totalMs?h+'h '+_ciPad(m)+'m':''}</div>`:'<span style="color:var(--g400);">—</span>'}</td>
+      <td style="padding:10px 8px;font-size:.75rem;white-space:nowrap;">${daySess.length?`<span style="font-weight:700;">${ci}</span><span style="color:var(--g400);margin:0 4px;">→</span><span style="font-weight:700;">${co}</span><div style="font-size:.63rem;color:var(--g400);margin-top:2px;">${totalMs?h+'h '+_ciPad(m)+'m':''}</div>${brkBadge}`:'<span style="color:var(--g400);">—</span>'}</td>
       <td style="padding:10px 8px;">${badgeHtml}</td>
       <td onclick="event.stopPropagation()" style="padding:10px 8px;white-space:nowrap;display:flex;flex-direction:column;gap:4px;">
         <button onclick="openFixedScheduleModal('${sn}')" style="padding:3px 7px;border:1.5px solid var(--g200);background:var(--white);color:var(--g600);border-radius:6px;font-size:.65rem;font-weight:700;cursor:pointer;">📅 Horario</button>
@@ -9401,6 +10755,11 @@ function renderReportes(){
     const deleteBtn=`<button onclick="deleteRestock('${key}')"
         style="padding:2px 8px;border:1px solid #fca5a5;border-radius:4px;background:#fee2e2;color:#dc2626;font-size:.7rem;font-weight:800;cursor:pointer;white-space:nowrap;">🗑</button>`;
 
+    const canResolve=adminMode&&(r.status==='issue'||r.status==='pending');
+    const resolveBtn=canResolve?`<button onclick="openDeliveryModalForKey('${key}')"
+        style="padding:2px 10px;border:1px solid ${r.status==='issue'?'#fbbf24':'#86efac'};border-radius:4px;background:${r.status==='issue'?'#fef3c7':'#dcfce7'};color:${r.status==='issue'?'#92400e':'#15803d'};font-size:.7rem;font-weight:800;cursor:pointer;white-space:nowrap;">
+        ${r.status==='issue'?'⚠ Resolver':'✏ Ajustar'}</button>`:'';
+
     return `<tr>
       <td style="white-space:nowrap;">${dateStr}</td>
       <td>${r.createdBy||'—'}</td>
@@ -9408,7 +10767,7 @@ function renderReportes(){
       <td class="num" style="font-weight:800;">${totalUnits}</td>
       <td>${statusBadge(r.status)}</td>
       <td style="font-size:.72rem;color:var(--g500);">${r.issueNotes||''}</td>
-      <td>${deleteBtn}</td>
+      <td><div style="display:flex;gap:4px;">${resolveBtn}${deleteBtn}</div></td>
     </tr>
     <tr><td colspan="7" style="padding:0 8px 6px;"><div id="${detailId}" style="display:none;background:var(--g50);border-radius:6px;padding:8px 12px;">${detailHtml}</div></td></tr>`;
   }).join('');
@@ -9651,6 +11010,98 @@ function renderReportes(){
         </tr></tfoot>
       </table></div>`:'<div style="color:var(--g500);font-size:.8rem;">Sin transacciones en este período</div>'}
     </div>
+    <!-- Órdenes "Otro" / Terceros -->
+    ${(()=>{
+      const otroOrds=saleOrd.filter(o=>o.items&&o.items.some(i=>i.pid==='custom')).sort((a,b)=>a.id-b.id);
+      if(!otroOrds.length)return'';
+      window._otroOrdData=otroOrds.map(o=>{
+        const oi=o.items.filter(i=>i.pid==='custom');
+        const precio=oi.reduce((s,i)=>s+(i.price*(i.qty||1)),0);
+        return{id:o.id,precio,mitad:Math.round(precio/2),emp:o.registeredBy||'—'};
+      });
+      const rows=otroOrds.map(o=>{
+        const oi=o.items.filter(i=>i.pid==='custom');
+        const desc=oi.map(i=>(i.notes&&i.notes.trim())||'(sin descripción)').join(' / ');
+        const precio=oi.reduce((s,i)=>s+(i.price*(i.qty||1)),0);
+        const mitad=Math.round(precio/2);
+        const d=new Date(o.id);
+        const ds=`${d.getDate().toString().padStart(2,'0')}/${(d.getMonth()+1).toString().padStart(2,'0')} ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
+        return`<tr>
+          <td style="text-align:center;padding:8px;">
+            <input type="checkbox" id="otro-chk-${o.id}" onchange="calcOtroTotal()"
+              style="width:16px;height:16px;accent-color:#7c3aed;cursor:pointer;"/>
+          </td>
+          <td style="white-space:nowrap;font-size:.75rem;">${ds}</td>
+          <td style="font-weight:700;">${o.registeredBy||'—'}</td>
+          <td style="font-size:.78rem;color:#374151;">${o.name||'—'}</td>
+          <td style="font-size:.78rem;color:#1e1b4b;max-width:220px;">${desc}</td>
+          <td class="num">RD$${precio.toLocaleString()}</td>
+          <td class="num" style="color:#7c3aed;font-weight:800;">RD$${mitad.toLocaleString()}</td>
+        </tr>`;
+      }).join('');
+      return`<div class="rep-section">
+        <div class="rep-title" style="display:flex;justify-content:space-between;align-items:center;">
+          <span>🏷️ Órdenes "Otro" — Terceros (${otroOrds.length})</span>
+          <div style="display:flex;gap:6px;">
+            <button onclick="document.querySelectorAll('[id^=otro-chk-]').forEach(c=>{c.checked=true});calcOtroTotal()"
+              style="font-size:.7rem;font-weight:700;border:1px solid #c4b5fd;background:#f5f3ff;color:#7c3aed;border-radius:5px;padding:3px 10px;cursor:pointer;">Todas</button>
+            <button onclick="document.querySelectorAll('[id^=otro-chk-]').forEach(c=>{c.checked=false});calcOtroTotal()"
+              style="font-size:.7rem;font-weight:700;border:1px solid #e5e7eb;background:#f9fafb;color:#374151;border-radius:5px;padding:3px 10px;cursor:pointer;">Ninguna</button>
+          </div>
+        </div>
+        <div style="font-size:.73rem;color:#6b7280;margin-bottom:10px;">Selecciona las que son de terceros para calcular el 50% a pagar.</div>
+        <div id="otro-total-bar" style="display:flex;gap:16px;flex-wrap:wrap;align-items:center;background:#f5f3ff;border:1.5px solid #c4b5fd;border-radius:8px;padding:10px 14px;margin-bottom:12px;">
+          <span style="font-size:.78rem;color:#6d28d9;">Seleccionadas: <strong id="otro-sel-count">0</strong></span>
+          <span style="font-size:.82rem;color:#6d28d9;font-weight:800;">Total a pagar (50%): <strong id="otro-sel-total">RD$0</strong></span>
+          <div id="otro-by-emp" style="font-size:.72rem;color:#7c3aed;margin-left:auto;"></div>
+        </div>
+        <div style="overflow-x:auto;"><table class="rep-tbl">
+          <thead><tr>
+            <th style="width:32px;text-align:center;">✓</th>
+            <th>Fecha</th><th>Colaboradora</th><th>Cliente</th>
+            <th>Descripción</th>
+            <th style="text-align:right;">Cobrado</th>
+            <th style="text-align:right;">50%</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table></div>
+      </div>`;
+    })()}
+    <!-- Historial de Bonificaciones -->
+    ${(()=>{
+      const bonList=Object.values(bonusesData).sort((a,b)=>b.savedAt-a.savedAt).slice(0,30);
+      if(!bonList.length)return'';
+      const rows=bonList.map(b=>{
+        const d=new Date(b.savedAt);
+        const ds=`${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}`;
+        const statusColor=b.faltaInj?'#dc2626':b.bonoFinal>0?'#15803d':'#d97706';
+        const statusLabel=b.faltaInj?'RD$0 (falta)':b.bonoFinal===0?'RD$0':'RD$'+b.bonoFinal.toLocaleString();
+        return`<tr>
+          <td style="white-space:nowrap;">${ds}</td>
+          <td style="font-weight:700;">${b.empName}</td>
+          <td style="font-size:.73rem;color:var(--g500);">${b.from} → ${b.to}</td>
+          <td class="num">RD$${(b.ventasBrutas||0).toLocaleString()}</td>
+          <td class="num">${b.errores||0} (${b.errorPct||0}%)</td>
+          <td class="num">${b.tardanzas||0}</td>
+          <td style="font-weight:800;color:${statusColor};">${statusLabel}</td>
+          <td style="white-space:nowrap;display:flex;gap:4px;">
+            <button onclick="editBonusRecord('${b.id}')"
+              style="padding:2px 7px;border:1px solid #bfdbfe;border-radius:4px;background:#eff6ff;color:#1d4ed8;font-size:.7rem;cursor:pointer;">✏️</button>
+            <button onclick="db.ref('bonuses/${b.id}').remove().then(()=>{toast('Eliminado');renderReportes()})"
+              style="padding:2px 7px;border:1px solid #fca5a5;border-radius:4px;background:#fee2e2;color:#dc2626;font-size:.7rem;cursor:pointer;">🗑</button></td>
+        </tr>`;
+      }).join('');
+      return`<div class="rep-section">
+        <div class="rep-title" style="display:flex;justify-content:space-between;align-items:center;">
+          <span>💰 Historial de Bonificaciones</span>
+          <button onclick="openBonusCalc()" style="font-size:.72rem;font-weight:700;background:#0a0a0a;color:#fff;border:none;border-radius:6px;padding:4px 12px;cursor:pointer;">+ Nuevo</button>
+        </div>
+        <div style="overflow-x:auto;"><table class="rep-tbl">
+          <thead><tr><th>Guardado</th><th>Colaboradora</th><th>Período</th><th style="text-align:right;">Ventas brutas</th><th style="text-align:right;">Errores</th><th style="text-align:right;">Tardanzas</th><th style="text-align:right;">Bono final</th><th></th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table></div>
+      </div>`;
+    })()}
   `;
   renderRncSection();
 }
@@ -9747,6 +11198,173 @@ function renderRncSection(){
 ═══════════════════════════════════════ */
 let restockRules={};
 
+function renderPreciosList(){
+  const el=document.getElementById('precios-list');
+  if(!el)return;
+  el.innerHTML=PRODS.filter(p=>!p.custom).map(p=>`
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid var(--g100);">
+      <span style="font-size:.88rem;font-weight:700;flex:1;">${p.name}</span>
+      <div style="display:flex;align-items:center;gap:6px;">
+        <span style="font-size:.75rem;color:var(--g500);">RD$</span>
+        <input type="number" id="precio-${p.id}" min="0" step="1" value="${p.price}"
+          style="width:110px;font-size:.92rem;font-weight:800;text-align:right;border:1.5px solid var(--g200);border-radius:6px;padding:4px 8px;"/>
+      </div>
+    </div>`).join('');
+  // Set default date to today
+  const fd=document.getElementById('precio-fecha');
+  if(fd&&!fd.value)fd.value=todayStr();
+  _precioFechaHint();
+  // Load programados and historial
+  _renderPreciosProg();
+  _renderPreciosHist();
+}
+function _precioFechaHint(){
+  const fd=document.getElementById('precio-fecha');
+  const hint=document.getElementById('precio-fecha-hint');
+  if(!fd||!hint)return;
+  const today=todayStr();
+  if(!fd.value||fd.value===today){
+    hint.textContent='Los precios aplican hoy mismo al guardar.';
+    hint.style.color='#16a34a';
+  } else if(fd.value>today){
+    hint.textContent='Los precios quedarán programados y se activarán automáticamente en esa fecha.';
+    hint.style.color='#d97706';
+  } else {
+    hint.textContent='Fecha en el pasado — se aplicará como si fuera hoy.';
+    hint.style.color='#6b7280';
+  }
+}
+function savePrecios(){
+  const fechaEl=document.getElementById('precio-fecha');
+  const today=todayStr();
+  const fecha=fechaEl?.value||today;
+  const isFuture=fecha>today;
+  const precios={};
+  PRODS.filter(p=>!p.custom).forEach(p=>{
+    const el=document.getElementById('precio-'+p.id);
+    const v=parseInt(el?.value)||0;
+    precios[p.id]=v;
+  });
+  const entry={
+    precios,
+    effectiveFrom:fecha,
+    setBy:currentUser?currentUser.name:'Admin',
+    setAt:Date.now()
+  };
+  if(isFuture){
+    // Guardar como cambio programado
+    db.ref('config/precios_programados/'+Date.now()).set(entry).then(()=>{
+      toast('⏳ Precios programados para el '+fecha);
+      _renderPreciosProg();
+    });
+  } else {
+    // Aplicar inmediatamente
+    const prevPrecios={};
+    PRODS.filter(p=>!p.custom).forEach(p=>prevPrecios[p.id]=p.price);
+    entry.prevPrecios=prevPrecios;
+    const histKey=Date.now();
+    const updates={};
+    updates['config/precios']=precios;
+    updates['config/precio_historial/'+histKey]=entry;
+    db.ref().update(updates).then(()=>{
+      PRODS.forEach(p=>{if(precios[p.id]!==undefined)p.price=precios[p.id];});
+      toast('✓ Precios actualizados');
+      renderGrid();
+      _renderPreciosHist();
+    });
+  }
+}
+function _renderPreciosProg(){
+  const card=document.getElementById('precios-prog-card');
+  const list=document.getElementById('precios-prog-list');
+  if(!card||!list)return;
+  db.ref('config/precios_programados').once('value',snap=>{
+    const data=snap.val()||{};
+    const entries=Object.entries(data).sort(([,a],[,b])=>a.effectiveFrom.localeCompare(b.effectiveFrom));
+    if(!entries.length){card.style.display='none';return;}
+    card.style.display='block';
+    list.innerHTML=entries.map(([key,e])=>{
+      const rows=PRODS.filter(p=>!p.custom).map(p=>{
+        const nv=e.precios[p.id];
+        const ov=p.price;
+        const changed=nv!==undefined&&nv!==ov;
+        return `<span style="font-size:.75rem;${changed?'font-weight:800;color:#111827;':'color:#9ca3af;'}">${p.name}: RD$${(nv??ov).toLocaleString()}</span>`;
+      }).join(' &nbsp;·&nbsp; ');
+      return `<div style="padding:10px 0;border-bottom:1px solid var(--g100);display:flex;align-items:flex-start;justify-content:space-between;gap:10px;">
+        <div>
+          <div style="font-size:.82rem;font-weight:800;color:#d97706;margin-bottom:4px;">📅 Vigente el ${e.effectiveFrom} — programado por ${e.setBy||'—'}</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;">${rows}</div>
+        </div>
+        <button onclick="cancelPrecioProg('${key}')"
+          style="padding:3px 10px;font-size:.72rem;font-weight:800;border:1px solid #fca5a5;border-radius:5px;background:#fee2e2;color:#dc2626;cursor:pointer;white-space:nowrap;flex-shrink:0;">
+          ✕ Cancelar
+        </button>
+      </div>`;
+    }).join('');
+  });
+}
+function cancelPrecioProg(key){
+  db.ref('config/precios_programados/'+key).remove().then(()=>{
+    toast('Cambio programado cancelado');
+    _renderPreciosProg();
+  });
+}
+function _renderPreciosHist(){
+  const el=document.getElementById('precios-hist-list');
+  if(!el)return;
+  el.innerHTML='<span style="color:var(--g400);">Cargando…</span>';
+  db.ref('config/precio_historial').orderByChild('setAt').limitToLast(15).once('value',snap=>{
+    const entries=[];
+    snap.forEach(c=>{const v=c.val();if(v)entries.push(v);});
+    entries.sort((a,b)=>b.setAt-a.setAt);
+    if(!entries.length){el.innerHTML='<span style="color:var(--g400);">Sin cambios registrados aún.</span>';return;}
+    el.innerHTML=entries.map(e=>{
+      const dt=new Date(e.setAt);
+      const fmtDate=dt.getDate()+'/'+(dt.getMonth()+1)+'/'+dt.getFullYear()+' '+String(dt.getHours()).padStart(2,'0')+':'+String(dt.getMinutes()).padStart(2,'0');
+      const rows=PRODS.filter(p=>!p.custom).map(p=>{
+        const nv=e.precios?.[p.id];
+        const ov=e.prevPrecios?.[p.id];
+        if(nv===undefined)return '';
+        const changed=ov!==undefined&&nv!==ov;
+        if(changed){
+          const dir=nv>ov?'↑':'↓';
+          const col=nv>ov?'#16a34a':'#dc2626';
+          return `<span style="font-size:.72rem;font-weight:800;color:${col};">${p.name}: ${dir} RD$${nv.toLocaleString()} <span style="font-weight:400;color:#9ca3af;">(antes ${ov.toLocaleString()})</span></span>`;
+        }
+        return `<span style="font-size:.72rem;color:#9ca3af;">${p.name}: ${nv.toLocaleString()}</span>`;
+      }).filter(Boolean).join(' &nbsp;·&nbsp; ');
+      return `<div style="padding:9px 0;border-bottom:1px solid var(--g100);">
+        <div style="font-size:.75rem;font-weight:700;color:#6b7280;margin-bottom:3px;">${fmtDate} — ${e.setBy||'—'} · vigente desde ${e.effectiveFrom||fmtDate.split(' ')[0]}</div>
+        <div style="display:flex;flex-wrap:wrap;gap:5px;">${rows||'<span style="color:var(--g400);">Sin cambios individuales</span>'}</div>
+      </div>`;
+    }).join('');
+  });
+}
+// Chequear y aplicar precios programados cuya fecha ya llegó
+function checkScheduledPrices(){
+  db.ref('config/precios_programados').once('value',snap=>{
+    const data=snap.val()||{};
+    const today=todayStr();
+    const toApply=Object.entries(data).filter(([,e])=>e.effectiveFrom<=today);
+    if(!toApply.length)return;
+    // Ordenar por fecha y tomar el más reciente que ya venció
+    toApply.sort(([,a],[,b])=>a.effectiveFrom.localeCompare(b.effectiveFrom));
+    const [key,entry]=toApply[toApply.length-1];
+    const prevPrecios={};
+    PRODS.filter(p=>!p.custom).forEach(p=>prevPrecios[p.id]=p.price);
+    const histKey=Date.now();
+    const updates={};
+    updates['config/precios']=entry.precios;
+    updates['config/precio_historial/'+histKey]={...entry,prevPrecios,activatedAt:Date.now()};
+    // Remove all that are now active (everything up to today)
+    toApply.forEach(([k])=>{updates['config/precios_programados/'+k]=null;});
+    db.ref().update(updates).then(()=>{
+      PRODS.forEach(p=>{if(entry.precios[p.id]!==undefined)p.price=entry.precios[p.id];});
+      renderGrid();
+      toast('✓ Precios actualizados automáticamente ('+entry.effectiveFrom+')');
+    });
+  });
+}
 function switchSettings(el,sectionId){
   document.querySelectorAll('.settings-sidenav-item').forEach(i=>i.classList.remove('active'));
   el.classList.add('active');
@@ -9948,7 +11566,12 @@ function showTab(n){
   const tt=document.getElementById('topbar-title');
   if(tt)tt.textContent=TAB_TITLES[n]||'';
   if(n===0)renderPendingApprovals();
-  if(n===1)goToday();
+  if(n===1){
+    // Only default to today on first open; preserve user's filter on tab switches
+    const fEl=document.getElementById('td-from');
+    if(fEl&&!fEl.value&&!document.getElementById('td-to').value)goToday();
+    else renderT();
+  }
   if(n===2){
     const rf=document.getElementById('report-filter');
     const rd=document.getElementById('report-date');
@@ -10500,6 +12123,11 @@ db.ref('horarios_fijos').on('value',snap=>{
 db.ref('config').on('value',snap=>{
   const cfg=snap.val()||{};
   workerUrl=cfg.workerUrl||'';
+  if(cfg.precios){
+    PRODS.forEach(p=>{if(cfg.precios[p.id]!==undefined)p.price=cfg.precios[p.id];});
+    renderGrid();
+  }
+  renderPreciosList();
 },err=>console.warn('config: '+err.message));
 
 db.ref('inventario').on('value',snap=>{
@@ -10519,6 +12147,10 @@ db.ref('restocks').on('value',snap=>{
   restocksData=snap.val()||{};
   updateRestockBadge();
 },err=>console.warn('restocks: '+err.message));
+
+db.ref('bonuses').on('value',snap=>{
+  bonusesData=snap.val()||{};
+},err=>console.warn('bonuses: '+err.message));
 
 // Names that are no longer valid and should be removed from Firebase
 const _REMOVED_USERS=['Mensajero'];
