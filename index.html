@@ -12625,7 +12625,11 @@ function _evtRenderOrdenes(id,el){
     </div>
     ${!invItems.length?`<div style="background:#fef9c3;border:1.5px solid #fbbf24;border-radius:8px;padding:10px 14px;font-size:.76rem;color:#854d0e;margin-bottom:10px;">⚠️ Primero toma inventario del almacén (tab Inventario) para poder crear órdenes con ítems.</div>`:''}
     ${ords.length?ords.map(o=>{
-      const itms=(o.items||[]).map(i=>`${i.qty||1}× ${i.name}${i.color?' ('+i.color+')':''}${i.model?' '+i.model:''}`).join(', ');
+      const itms=(o.items||[]).map(i=>{
+        const base=`${i.qty||1}× ${i.name}${i.color?' — '+i.color:''}${i.model?' '+i.model:''}`;
+        const pers=[i.iniciales?'Ini: '+i.iniciales:'',i.emoji||'',i.tamano||'',i.colorIni||'',i.notes?'📝 '+i.notes:''].filter(Boolean).join(' · ');
+        return pers?`${base}<br><span style="color:#7c3aed;font-size:.7rem;">${pers}</span>`:base;
+      }).join('<br>');
       const stColor={pendiente:'#854d0e',en_proceso:'#1e40af',completada:'#166534'}[o.prodStatus||'pendiente']||'#374151';
       const stBg={pendiente:'#fef9c3',en_proceso:'#dbeafe',completada:'#dcfce7'}[o.prodStatus||'pendiente']||'var(--g100)';
       const stLbl={pendiente:'⏳ Pendiente',en_proceso:'🔨 En proceso',completada:'✓ Completada'}[o.prodStatus||'pendiente'];
@@ -12667,10 +12671,20 @@ function _evtRenderProduccion(id,el){
         <div style="background:${col.hbg};color:${col.hc};font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;padding:8px 12px;border-radius:8px 8px 0 0;border-left:4px solid ${col.brd};">${col.l} <span style="opacity:.65;">(${items.length})</span></div>
         <div style="background:var(--g50);border:1.5px solid var(--g200);border-top:none;border-radius:0 0 8px 8px;padding:8px;min-height:80px;display:flex;flex-direction:column;gap:7px;">
           ${items.map(o=>{
-            const itms=(o.items||[]).map(i=>`${i.qty||1}× ${i.name}`).join(', ');
+            const itms=(o.items||[]).map(i=>{
+              const base=`<span style="font-weight:800;">${i.qty||1}× ${i.name}</span>${i.color?' — '+i.color:''}${i.model?' '+i.model:''}`;
+              const pers=[i.iniciales?'Ini: '+i.iniciales:'',i.emoji||'',i.tamano||'',i.colorIni||''].filter(Boolean).join(' · ');
+              const note=i.notes?`<div style="color:#9ca3af;font-size:.67rem;font-style:italic;">📝 ${i.notes}</div>`:'';
+              return`<div style="padding:4px 0;border-bottom:1px dashed var(--g100);last-child:border:none;">
+                <div style="font-size:.72rem;line-height:1.4;">${base}</div>
+                ${pers?`<div style="font-size:.68rem;color:#7c3aed;margin-top:1px;">${pers}</div>`:''}
+                ${note}
+              </div>`;
+            }).join('');
             return`<div style="background:#fff;border:1.5px solid var(--g200);border-radius:8px;padding:10px 12px;border-left:4px solid ${col.brd};">
-              <div style="font-size:.82rem;font-weight:800;margin-bottom:3px;">${o.desc||'Orden'}</div>
-              <div style="font-size:.71rem;color:var(--g500);line-height:1.4;margin-bottom:8px;">${itms||'—'}</div>
+              <div style="font-size:.82rem;font-weight:800;margin-bottom:6px;">${o.desc||'Orden'}</div>
+              <div style="margin-bottom:8px;">${itms||'<span style="font-size:.71rem;color:var(--g400);">Sin ítems</span>'}</div>
+              ${o.notes?`<div style="font-size:.68rem;color:var(--g400);font-style:italic;margin-bottom:6px;">📝 ${o.notes}</div>`:''}
               ${next?`<button onclick="updateEvtProdStatus('${id}','${o.id}','${next}')" style="width:100%;padding:5px;border:none;border-radius:6px;background:${col.hbg};color:${col.hc};font-size:.71rem;font-weight:700;cursor:pointer;">${nextLbl}</button>`:''}
             </div>`;
           }).join('')||`<div style="text-align:center;padding:14px;color:var(--g400);font-size:.74rem;">Vacío</div>`}
