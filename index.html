@@ -1360,7 +1360,7 @@ input.err{border-color:#c00!important;}
       <!-- Product grid — same style as Nueva Orden -->
       <div>
         <div class="ctitle">Productos del evento</div>
-        <div class="pgrid" id="evtord-prod-grid"></div>
+        <div id="evtord-prod-grid"></div>
       </div>
       <!-- Cart — same .ci structure as Nueva Orden -->
       <div id="evtord-cart-section" style="display:none;">
@@ -12906,20 +12906,31 @@ function _renderEvtOrdPicker(eventId){
   const invItems=Object.values(eventosInvData[eventId]||{})
     .filter(r=>(r.qtyTaken||0)-(r.qtyReturned||0)>0);
   if(!invItems.length){
-    el.innerHTML='<div style="grid-column:1/-1;padding:20px;text-align:center;color:var(--g400);font-size:.78rem;">Primero toma inventario del almacén para agregar ítems.</div>';
+    el.innerHTML='<div style="padding:20px;text-align:center;color:var(--g400);font-size:.78rem;">Primero toma inventario del almacén para agregar ítems.</div>';
     return;
   }
-  el.innerHTML=invItems.map(r=>{
-    const pid=skuPid(r.sku);
+  // Group by product type (pid), preserving PRODS order
+  const groups={};
+  invItems.forEach(r=>{const pid=skuPid(r.sku);(groups[pid]=groups[pid]||[]).push(r);});
+  const orderedPids=PRODS.map(p=>p.id).filter(pid=>groups[pid]);
+  el.innerHTML=orderedPids.map(pid=>{
     const prod=PRODS.find(p=>p.id===pid);
-    const color=skuColor(r.sku);
-    const model=skuModel(r.sku);
-    const sub=[color,model].filter(Boolean).join(' · ');
-    return`<div class="pcard">
-      <div class="pname">${prod?prod.name:pid}</div>
-      ${sub?`<div style="font-size:.7rem;color:var(--g500);">${sub}</div>`:''}
-      <div class="pprice">${(prod&&prod.price)?'$'+prod.price.toLocaleString():'—'}</div>
-      <button class="padd" onclick="_evtAddItem('${r.id}','${r.sku}')">+</button>
+    const isCover=IS_COVER.includes(pid);
+    const cards=groups[pid].map(r=>{
+      const color=skuColor(r.sku);
+      const model=skuModel(r.sku);
+      const available=(r.qtyTaken||0)-(r.qtyReturned||0);
+      const label=isCover?`${color} · ${model}`:color;
+      return`<div class="pcard">
+        <div class="pname" style="font-size:.78rem;">${label}</div>
+        <div style="font-size:.68rem;color:#1e40af;font-weight:700;">${available} disp.</div>
+        <div class="pprice">${prod&&prod.price?'$'+prod.price.toLocaleString():'—'}</div>
+        <button class="padd" onclick="_evtAddItem('${r.id}','${r.sku}')">+</button>
+      </div>`;
+    }).join('');
+    return`<div style="margin-bottom:16px;">
+      <div style="font-size:.67rem;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:var(--g500);margin-bottom:8px;">${prod?prod.name:pid}</div>
+      <div class="pgrid">${cards}</div>
     </div>`;
   }).join('');
 }
