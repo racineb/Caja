@@ -769,6 +769,7 @@ input.err{border-color:#c00!important;}
     <div class="nav-item" id="tb6" onclick="showTab(6)" style="display:none;"><span class="nav-icon">📈</span><span>Reportes</span></div>
     <div class="nav-item" id="tb7" onclick="showTab(7)" style="display:none;"><span class="nav-icon">⚙️</span><span>Configuración</span></div>
     <div class="nav-item" id="tb9" onclick="showTab(9)" style="display:none;"><span class="nav-icon">📋</span><span>Auditoría</span></div>
+    <div class="nav-item" id="tb10" onclick="showTab(10)" style="display:none;"><span class="nav-icon">🎪</span><span>Eventos</span></div>
   </nav>
 
   <!-- Admin quick actions -->
@@ -1257,6 +1258,159 @@ input.err{border-color:#c00!important;}
       </div>
     </div>
     <div id="dash-content"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     EVENTOS TAB  (pnl10)
+══════════════════════════════════════════ -->
+<div id="pnl10" style="display:none;">
+  <div style="padding:16px;max-width:860px;margin:0 auto;">
+    <!-- Main list view -->
+    <div id="evt-main-view"></div>
+    <!-- Detail view (drill-in) -->
+    <div id="evt-detail-view" style="display:none;"></div>
+  </div>
+</div>
+
+<!-- ── NUEVO EVENTO MODAL ── -->
+<div class="moverlay" id="nuevo-evento-modal">
+  <div class="modal wide" style="max-width:480px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <h3 id="evt-form-title" style="margin:0;">Nuevo Evento</h3>
+      <button class="xbtn" onclick="closeMod('nuevo-evento-modal')">✕</button>
+    </div>
+    <input type="hidden" id="evtf-id"/>
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <div>
+        <label class="lbl">Nombre del evento *</label>
+        <input id="evtf-nombre" class="inp" placeholder="Ej. Boda García" style="margin-top:4px;"/>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div>
+          <label class="lbl">Cliente *</label>
+          <input id="evtf-cliente" class="inp" placeholder="Nombre del cliente" style="margin-top:4px;"/>
+        </div>
+        <div>
+          <label class="lbl">RNC</label>
+          <input id="evtf-rnc" class="inp" placeholder="000-00000-0" style="margin-top:4px;"/>
+        </div>
+      </div>
+      <div>
+        <label class="lbl">Lugar *</label>
+        <input id="evtf-lugar" class="inp" placeholder="Salón, ciudad…" style="margin-top:4px;"/>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div>
+          <label class="lbl">Fecha del evento *</label>
+          <input id="evtf-fecha" type="date" class="inp" style="margin-top:4px;"/>
+        </div>
+        <div>
+          <label class="lbl">Estado</label>
+          <select id="evtf-status" class="inp" style="margin-top:4px;">
+            <option value="activo">Activo</option>
+            <option value="completado">Completado</option>
+            <option value="cancelado">Cancelado</option>
+          </select>
+        </div>
+      </div>
+      <div>
+        <label class="lbl">🔐 PIN de acceso (opcional)</label>
+        <input id="evtf-pin" type="password" class="inp" placeholder="Dejar en blanco = sin PIN" maxlength="20" style="margin-top:4px;"/>
+      </div>
+    </div>
+    <div class="mfooter" style="gap:8px;margin-top:18px;">
+      <button class="obtn" onclick="closeMod('nuevo-evento-modal')">Cancelar</button>
+      <button class="submit" style="flex:1;margin:0;" onclick="saveEvento()">💾 Guardar evento</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── PIN DE EVENTO MODAL ── -->
+<div class="moverlay" id="evt-pin-modal">
+  <div class="modal" style="max-width:300px;">
+    <div style="text-align:center;padding:6px 0 14px;">
+      <div style="font-size:2rem;margin-bottom:8px;">🔐</div>
+      <h3 id="evt-pin-modal-title" style="margin:0 0 5px;font-size:1rem;">Acceso al evento</h3>
+      <p style="font-size:.78rem;color:var(--g500);margin:0;">Ingresa el PIN para continuar</p>
+    </div>
+    <input type="password" id="evt-pin-input" class="inp" maxlength="20" placeholder="PIN"
+      style="text-align:center;font-size:1.3rem;letter-spacing:.2em;"
+      onkeydown="if(event.key==='Enter')_evtCheckPin()"/>
+    <div class="mfooter" style="margin-top:14px;gap:8px;">
+      <button class="obtn" onclick="closeMod('evt-pin-modal')">Cancelar</button>
+      <button class="submit" style="flex:1;margin:0;" onclick="_evtCheckPin()">✓ Entrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── NUEVA ORDEN DE EVENTO MODAL ── -->
+<div class="moverlay" id="evt-orden-modal">
+  <div class="modal wide" style="max-width:600px;max-height:90vh;overflow-y:auto;display:flex;flex-direction:column;">
+    <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:10px;border-bottom:1px solid var(--g200);margin-bottom:14px;position:sticky;top:0;background:var(--white);z-index:1;">
+      <h3 style="margin:0;">📋 Nueva Orden</h3>
+      <button class="xbtn" onclick="closeMod('evt-orden-modal')">✕</button>
+    </div>
+    <input type="hidden" id="evtord-event-id"/>
+    <div style="display:flex;flex-direction:column;gap:16px;">
+      <div>
+        <label class="lbl">Descripción / cliente de la orden</label>
+        <input id="evtord-desc" class="inp" placeholder="Ej. Mesa principal — novia" style="margin-top:4px;"/>
+      </div>
+      <!-- Product grid — same style as Nueva Orden -->
+      <div>
+        <div class="ctitle">Productos del evento</div>
+        <div class="pgrid" id="evtord-prod-grid"></div>
+      </div>
+      <!-- Cart — same .ci structure as Nueva Orden -->
+      <div id="evtord-cart-section" style="display:none;">
+        <div class="ctitle">Carrito</div>
+        <div id="evtord-cart-items" style="display:flex;flex-direction:column;gap:10px;"></div>
+      </div>
+      <div>
+        <label class="lbl">Notas generales</label>
+        <textarea id="evtord-notes" class="inp" rows="2" placeholder="Instrucciones especiales…" style="margin-top:4px;resize:none;"></textarea>
+      </div>
+    </div>
+    <div class="mfooter" style="gap:8px;margin-top:16px;position:sticky;bottom:0;background:var(--white);padding-top:10px;border-top:1px solid var(--g200);">
+      <button class="obtn" onclick="closeMod('evt-orden-modal')">Cancelar</button>
+      <button class="submit" style="flex:1;margin:0;" onclick="saveEvtOrden()">💾 Guardar orden</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── TOMAR INVENTARIO DEL ALMACÉN (EVENTO) ── -->
+<div class="moverlay" id="evt-inv-modal">
+  <div class="modal wide" style="max-width:520px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+      <h3 style="margin:0;">📦 Tomar del Almacén</h3>
+      <button class="xbtn" onclick="closeMod('evt-inv-modal')">✕</button>
+    </div>
+    <p style="font-size:.75rem;color:var(--g500);margin:0 0 10px;">Indica las cantidades a retirar. El almacén se descuenta al confirmar.</p>
+    <input type="text" id="evtinv-search" class="inp" placeholder="🔍 Filtrar producto…" oninput="_filterEvtInvPicker()" style="margin-bottom:8px;"/>
+    <div id="evtinv-picker" style="max-height:300px;overflow-y:auto;border:1.5px solid var(--g200);border-radius:8px;padding:6px 10px;"></div>
+    <div id="evtinv-summary" style="font-size:.78rem;font-weight:700;color:#1e40af;padding:7px 0 0;min-height:20px;"></div>
+    <div class="mfooter" style="gap:8px;margin-top:6px;">
+      <button class="obtn" onclick="closeMod('evt-inv-modal')">Cancelar</button>
+      <button class="submit" style="flex:1;margin:0;" onclick="takeEvtInventario()">📦 Confirmar salida</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── DEVOLVER INVENTARIO AL ALMACÉN (EVENTO) ── -->
+<div class="moverlay" id="evt-return-modal">
+  <div class="modal wide" style="max-width:480px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+      <h3 style="margin:0;">↩ Devolver al Almacén</h3>
+      <button class="xbtn" onclick="closeMod('evt-return-modal')">✕</button>
+    </div>
+    <p style="font-size:.75rem;color:var(--g500);margin:0 0 12px;">Ingresa cuántas unidades de cada ítem regresas al almacén.</p>
+    <input type="hidden" id="evtret-event-id"/>
+    <div id="evtret-items" style="max-height:340px;overflow-y:auto;"></div>
+    <div class="mfooter" style="gap:8px;margin-top:14px;">
+      <button class="obtn" onclick="closeMod('evt-return-modal')">Cancelar</button>
+      <button class="submit" style="flex:1;margin:0;" onclick="saveEvtReturn()">↩ Devolver al almacén</button>
+    </div>
   </div>
 </div>
 
@@ -2527,9 +2681,10 @@ const PRODS=[
   {id:'bt',   name:'Bag Tag',         price:1900, model:false, custom:false},
   {id:'kt',   name:'Key Tag',         price:1300, model:false, custom:false},
   {id:'cos',  name:'Cosmetic',        price:4500, model:false, custom:false},
+  {id:'cc',   name:'Cigar Case',      price:3500, model:false, custom:false},
   {id:'custom',name:'Otro',           price:0,    model:false, custom:true},
 ];
-const HAS_INI   =['cover','ch','ph','bt','kt'];
+const HAS_INI   =['cover','ch','ph','bt','kt','cc'];
 const IS_COVER  =['cover'];
 const COLORS    =['Black','Dark Blue','Shiraz','Forest','Nude','Cocoa','Golden','Orchid','Caramel','Merlot','Flamingo','Ginger','Emerald','Metal','Blush','Mustard','Ocean','Magenta','Lilac','Sky','Croc'];
 const INI_COLORS=['Gold','Gold Matte','Silver','Silver Matte','Negro','Sin Color'];
@@ -2541,8 +2696,8 @@ const SHIFT_TYPES=['Apertura','Entre Medio','Cierre'];
 // Inventario SKU helpers
 const ACC_COLORS=['Black','Dark Blue','Shiraz','Forest','Nude','Cocoa','Golden','Orchid','Caramel','Merlot','Flamingo','Ginger'];
 const COS_ONLY_BLACK=true; // Cosmetic Bag solo disponible en Black
-const ACC_PID_MAP={'ch':'Card Holder','kt':'Key Tag','bt':'Bag Tag','ph':'Passport Holder','cos':'Cosmetic Bag'};
-const CSV_ACC_MAP={'Card Holder':'ch','Key Tag':'kt','Bag Tag':'bt','Passport Holder':'ph','Cosmetic Bag':'cos'};
+const ACC_PID_MAP={'ch':'Card Holder','kt':'Key Tag','bt':'Bag Tag','ph':'Passport Holder','cos':'Cosmetic Bag','cc':'Cigar Case'};
+const CSV_ACC_MAP={'Card Holder':'ch','Key Tag':'kt','Bag Tag':'bt','Passport Holder':'ph','Cosmetic Bag':'cos','Cigar Case':'cc'};
 function makeCoverSku(model,color){return `cover__${model}__${color}`;}
 // Colores válidos por modelo (Samsung S25 Ultra solo Black por ahora)
 const MODEL_COLORS={'Samsung S25 Ultra':['Black']};
@@ -2611,6 +2766,17 @@ let users           = [];
 let clockinSessions = [];
 let curShift    = 'Apertura';
 let adminMode   = false;
+// ── Eventos state ──
+let eventosData        = {};
+let eventosOrdenesData = {};
+let eventosInvData     = {};
+let _curEvtId          = null;
+let _evtTab            = 'ordenes';
+let _evtCart           = [];
+let _evtUid            = 0;
+let _evtPendingId      = null;
+let _evtInvCart        = [];
+let _evtInvEventId     = null;
 let mensajeroMode = false;
 let _pendingDeliveryId = null;
 let inventarioData = {}; // {pid: {almacen:N, agora:N, min:N}}
@@ -2744,6 +2910,10 @@ function initApp(){
   if(tb9)tb9.style.display=adminMode?'block':'none';
   const mobtb9=document.getElementById('mob-tb9');
   if(mobtb9)mobtb9.style.display=adminMode?'flex':'none';
+  const tb10=document.getElementById('tb10');
+  if(tb10)tb10.style.display=adminMode?'block':'none';
+  const mobtb10=document.getElementById('mob-tb10');
+  if(mobtb10)mobtb10.style.display=adminMode?'flex':'none';
   buildProds();updHdr();updateShiftStatus();renderPendingApprovals();
   if(adminMode)checkScheduledPrices();
   // Restore break timer if this employee was on break before reload
@@ -11544,7 +11714,7 @@ function addManualRestockItem(){
 /* ═══════════════════════════════════════
    TABS
 ═══════════════════════════════════════ */
-const TAB_TITLES=['Nueva Orden','Transacciones','Turnos','Horario','Producción','Inventario','Reportes','Configuración','Ruta','Auditoría'];
+const TAB_TITLES=['Nueva Orden','Transacciones','Turnos','Horario','Producción','Inventario','Reportes','Configuración','Ruta','Auditoría','Eventos'];
 function showTab(n){
   if(n===0&&currentUser){
     const key=`cv5_entry_${todayStr()}_${currentUser.name}`;
@@ -11554,12 +11724,12 @@ function showTab(n){
       return;
     }
   }
-  [0,1,2,3,4,5,6,7,8,9].forEach(i=>{
+  [0,1,2,3,4,5,6,7,8,9,10].forEach(i=>{
     const p=document.getElementById(`pnl${i}`);if(p)p.style.display=i===n?'block':'none';
     const t=document.getElementById(`tb${i}`);if(t)t.classList.toggle('active',i===n);
   });
   // sync mobile nav
-  [0,1,2,3,4,5,6,7,8,9].forEach(i=>{
+  [0,1,2,3,4,5,6,7,8,9,10].forEach(i=>{
     const m=document.getElementById(`mob-tb${i}`);
     if(m)m.classList.toggle('active',i===n);
   });
@@ -11607,6 +11777,7 @@ function showTab(n){
     try{renderViajesAdmin();}catch(e){const c=document.getElementById('viajes-ruta-section');if(c)c.innerHTML='<span style="color:red;font-size:.8rem;">'+e.message+'</span>';}
   }
   if(n===9){try{if(!document.getElementById('dash-from').value)dashSetRange('today');else renderDashboard();}catch(e){const dc=document.getElementById('dash-content');if(dc)dc.innerHTML='<div style="color:red;padding:16px;font-size:.85rem;"><strong>Error en Dashboard:</strong><br>'+e.message+'<br><pre style="font-size:.75rem;white-space:pre-wrap;">'+e.stack+'</pre></div>';}}
+  if(n===10){try{renderEventos();}catch(e){console.error('Eventos error:',e);}}
 }
 
 /* ═══════════════════════════════════════
@@ -12170,9 +12341,702 @@ db.ref('users').on('value',snap=>{
   }
   if(!_fbInit.users){_fbInit.users=true;_fbCheckReady();}
 },err=>_fbShowError('users: '+err.message));
+
+// ── Eventos listeners ──
+db.ref('eventos').on('value',snap=>{
+  eventosData=snap.val()||{};
+  if(_curEvtId){renderEvtDetail(_curEvtId);}
+  else if(document.getElementById('pnl10')?.style.display!=='none'){renderEventos();}
+});
+db.ref('eventos_ordenes').on('value',snap=>{
+  eventosOrdenesData=snap.val()||{};
+  if(_curEvtId&&document.getElementById('pnl10')?.style.display!=='none'){
+    if(_evtTab==='ordenes') _renderEvtTab(_curEvtId);
+    else if(_evtTab==='produccion') _renderEvtTab(_curEvtId);
+    // refresh order count badges in header
+  } else if(document.getElementById('pnl10')?.style.display!=='none'){renderEventos();}
+});
+db.ref('eventos_inv').on('value',snap=>{
+  eventosInvData=snap.val()||{};
+  if(_curEvtId&&_evtTab==='inventario'&&document.getElementById('pnl10')?.style.display!=='none'){
+    _renderEvtTab(_curEvtId);
+  }
+});
 } // end _startListeners
 
 _startListeners();
+
+/* ═══════════════════════════════════════
+   EVENTOS
+═══════════════════════════════════════ */
+function renderEventos(){
+  const mv=document.getElementById('evt-main-view');
+  const dv=document.getElementById('evt-detail-view');
+  if(!mv)return;
+  mv.style.display='block';
+  dv.style.display='none';
+  _curEvtId=null;
+  const evts=Object.values(eventosData).sort((a,b)=>b.createdAt-a.createdAt);
+  mv.innerHTML=`
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:10px;">
+      <div>
+        <div style="font-size:1.05rem;font-weight:900;">🎪 Eventos</div>
+        <div style="font-size:.72rem;color:var(--g500);margin-top:2px;">${evts.length} evento${evts.length!==1?'s':''}</div>
+      </div>
+      <button onclick="openNuevoEvento()" class="submit" style="width:auto;padding:9px 20px;margin:0;">+ Nuevo Evento</button>
+    </div>
+    ${evts.length?`<div style="display:flex;flex-direction:column;gap:10px;">
+      ${evts.map(evt=>{
+        const ords=Object.values(eventosOrdenesData[evt.id]||{});
+        const pend=ords.filter(o=>(o.prodStatus||'pendiente')==='pendiente').length;
+        const proc=ords.filter(o=>o.prodStatus==='en_proceso').length;
+        const done=ords.filter(o=>o.prodStatus==='completada').length;
+        const stColor={activo:'#6366f1',completado:'#16a34a',cancelado:'#dc2626'}[evt.status||'activo']||'#374151';
+        const stBg={activo:'#ede9fe',completado:'#dcfce7',cancelado:'#fee2e2'}[evt.status||'activo']||'var(--g100)';
+        return`<div onclick="openEvento('${evt.id}')" style="background:#fff;border:1.5px solid var(--g200);border-radius:12px;padding:15px 17px;cursor:pointer;transition:border-color .15s,box-shadow .15s;" onmouseover="this.style.borderColor='#6366f1';this.style.boxShadow='0 2px 8px rgba(99,102,241,.12)'" onmouseout="this.style.borderColor='var(--g200)';this.style.boxShadow='none'">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+            <div style="min-width:0;flex:1;">
+              <div style="font-size:.95rem;font-weight:800;margin-bottom:3px;">${evt.nombre}</div>
+              <div style="font-size:.74rem;color:var(--g500);">👤 ${evt.clienteNombre}${evt.rnc?' &nbsp;·&nbsp; RNC: '+evt.rnc:''}</div>
+              <div style="font-size:.74rem;color:var(--g500);margin-top:2px;">📍 ${evt.lugar} &nbsp;·&nbsp; 📅 ${evt.fecha}</div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0;">
+              <span style="font-size:.63rem;font-weight:800;padding:3px 10px;border-radius:20px;background:${stBg};color:${stColor};text-transform:capitalize;">${evt.status||'activo'}</span>
+              <div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;">
+                ${pend?`<span style="font-size:.63rem;font-weight:700;padding:2px 8px;border-radius:10px;background:#fef9c3;color:#854d0e;">⏳ ${pend}</span>`:''}
+                ${proc?`<span style="font-size:.63rem;font-weight:700;padding:2px 8px;border-radius:10px;background:#dbeafe;color:#1e40af;">🔨 ${proc}</span>`:''}
+                ${done?`<span style="font-size:.63rem;font-weight:700;padding:2px 8px;border-radius:10px;background:#dcfce7;color:#166534;">✓ ${done}</span>`:''}
+                ${!ords.length?`<span style="font-size:.63rem;color:var(--g400);">Sin órdenes</span>`:''}
+              </div>
+            </div>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>`:`<div style="text-align:center;padding:60px 20px;color:var(--g400);">
+      <div style="font-size:2.5rem;margin-bottom:10px;">🎪</div>
+      <div style="font-size:.9rem;font-weight:600;">No hay eventos aún</div>
+      <div style="font-size:.78rem;margin-top:4px;">Crea el primero con el botón de arriba</div>
+    </div>`}`;
+}
+
+// ── PIN gate ──
+function openEvento(id){
+  const evt=eventosData[id];if(!evt)return;
+  if(evt.pin){
+    _evtPendingId=id;
+    document.getElementById('evt-pin-modal-title').textContent=evt.nombre;
+    document.getElementById('evt-pin-input').value='';
+    openMod('evt-pin-modal');
+    setTimeout(()=>document.getElementById('evt-pin-input')?.focus(),150);
+    return;
+  }
+  _openEventoDirect(id);
+}
+function _evtCheckPin(){
+  const val=document.getElementById('evt-pin-input').value;
+  const evt=eventosData[_evtPendingId];if(!evt)return;
+  if(val===String(evt.pin)){
+    closeMod('evt-pin-modal');
+    _openEventoDirect(_evtPendingId);
+    _evtPendingId=null;
+  } else {
+    toast('PIN incorrecto');
+    document.getElementById('evt-pin-input').value='';
+    document.getElementById('evt-pin-input').focus();
+  }
+}
+function _openEventoDirect(id){
+  _curEvtId=id;
+  document.getElementById('evt-main-view').style.display='none';
+  document.getElementById('evt-detail-view').style.display='block';
+  renderEvtDetail(id);
+}
+
+function evtGoBack(){
+  document.getElementById('evt-main-view').style.display='block';
+  document.getElementById('evt-detail-view').style.display='none';
+  _curEvtId=null;
+  renderEventos();
+}
+
+function openNuevoEvento(id){
+  const evt=id?eventosData[id]:null;
+  document.getElementById('evt-form-title').textContent=evt?'Editar Evento':'Nuevo Evento';
+  document.getElementById('evtf-nombre').value=evt?.nombre||'';
+  document.getElementById('evtf-cliente').value=evt?.clienteNombre||'';
+  document.getElementById('evtf-rnc').value=evt?.rnc||'';
+  document.getElementById('evtf-lugar').value=evt?.lugar||'';
+  document.getElementById('evtf-fecha').value=evt?.fecha||'';
+  document.getElementById('evtf-status').value=evt?.status||'activo';
+  document.getElementById('evtf-id').value=evt?.id||'';
+  document.getElementById('evtf-pin').value=''; // never pre-fill PIN
+  openMod('nuevo-evento-modal');
+}
+
+function saveEvento(){
+  const nombre=document.getElementById('evtf-nombre').value.trim();
+  const clienteNombre=document.getElementById('evtf-cliente').value.trim();
+  const rnc=document.getElementById('evtf-rnc').value.trim();
+  const lugar=document.getElementById('evtf-lugar').value.trim();
+  const fecha=document.getElementById('evtf-fecha').value;
+  const status=document.getElementById('evtf-status').value;
+  const pin=document.getElementById('evtf-pin').value.trim();
+  const existId=document.getElementById('evtf-id').value;
+  if(!nombre||!clienteNombre||!lugar||!fecha){toast('Completa todos los campos requeridos');return;}
+  const id=existId||Date.now().toString();
+  const rec={id,nombre,clienteNombre,rnc,lugar,fecha,status,
+    createdBy:currentUser?.name||'Admin',
+    createdAt:existId?(eventosData[existId]?.createdAt||Date.now()):Date.now()};
+  if(pin)rec.pin=pin;
+  const updates={};
+  updates['eventos/'+id]=rec;
+  // If editing and PIN was cleared, remove the old PIN
+  if(existId&&!pin&&eventosData[existId]?.pin)updates['eventos/'+existId+'/pin']=null;
+  db.ref().update(updates).then(()=>{
+    closeMod('nuevo-evento-modal');
+    toast(existId?'✓ Evento actualizado':'✓ Evento creado');
+    if(existId&&_curEvtId===existId)renderEvtDetail(existId);
+  });
+}
+
+function deleteEvento(id){
+  if(!confirm('¿Eliminar este evento y todo su contenido?'))return;
+  const upd={};upd['eventos/'+id]=null;upd['eventos_ordenes/'+id]=null;upd['eventos_inv/'+id]=null;
+  db.ref().update(upd).then(()=>{toast('Evento eliminado');evtGoBack();});
+}
+
+// ── Event Detail ──
+function renderEvtDetail(id){
+  const evt=eventosData[id];
+  const root=document.getElementById('evt-detail-view');
+  if(!evt||!root)return;
+  const tabs=[{k:'ordenes',l:'📋 Órdenes'},{k:'produccion',l:'🔨 Producción'},{k:'inventario',l:'📦 Inventario'},{k:'info',l:'ℹ️ Info'}];
+  root.innerHTML=`
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap;">
+      <button onclick="evtGoBack()" style="padding:6px 13px;border:1.5px solid var(--g200);border-radius:8px;background:#fff;font-size:.8rem;font-weight:700;cursor:pointer;">← Volver</button>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:1rem;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${evt.nombre}</div>
+        <div style="font-size:.71rem;color:var(--g500);">👤 ${evt.clienteNombre} &nbsp;·&nbsp; 📍 ${evt.lugar} &nbsp;·&nbsp; 📅 ${evt.fecha}${evt.pin?' &nbsp;·&nbsp; 🔐':''}</div>
+      </div>
+      <button onclick="openNuevoEvento('${id}')" style="padding:6px 12px;border:1.5px solid var(--g200);border-radius:8px;background:#fff;font-size:.8rem;font-weight:700;cursor:pointer;">✏️</button>
+      <button onclick="deleteEvento('${id}')" style="padding:6px 10px;border:1.5px solid #fca5a5;border-radius:8px;background:#fee2e2;color:#dc2626;font-size:.8rem;font-weight:700;cursor:pointer;">🗑</button>
+    </div>
+    <div style="display:flex;gap:0;border:1.5px solid var(--g200);border-radius:10px;overflow:hidden;margin-bottom:14px;">
+      ${tabs.map(t=>`<button onclick="evtSetSubtab('${t.k}')" id="evttab-${t.k}" style="flex:1;padding:9px 4px;font-size:.76rem;font-weight:700;cursor:pointer;border:none;transition:all .15s;background:${_evtTab===t.k?'var(--black)':'#fff'};color:${_evtTab===t.k?'#fff':'var(--g600)'};">${t.l}</button>`).join('')}
+    </div>
+    <div id="evt-tab-content"></div>`;
+  _renderEvtTab(id);
+}
+
+function evtSetSubtab(tab){
+  _evtTab=tab;
+  ['ordenes','produccion','inventario','info'].forEach(t=>{
+    const btn=document.getElementById('evttab-'+t);
+    if(btn){btn.style.background=t===tab?'var(--black)':'#fff';btn.style.color=t===tab?'#fff':'var(--g600)';}
+  });
+  _renderEvtTab(_curEvtId);
+}
+function _renderEvtTab(id){
+  const el=document.getElementById('evt-tab-content');if(!el)return;
+  if(_evtTab==='ordenes')_evtRenderOrdenes(id,el);
+  else if(_evtTab==='produccion')_evtRenderProduccion(id,el);
+  else if(_evtTab==='inventario')_evtRenderInventario(id,el);
+  else _evtRenderInfo(id,el);
+}
+
+// ── Info tab ──
+function _evtRenderInfo(id,el){
+  const evt=eventosData[id];if(!evt)return;
+  const ords=Object.values(eventosOrdenesData[id]||{});
+  const inv=Object.values(eventosInvData[id]||{});
+  const totalTaken=inv.reduce((s,r)=>s+(r.qtyTaken||0),0);
+  const totalReturned=inv.reduce((s,r)=>s+(r.qtyReturned||0),0);
+
+  // Aggregate qty sold per product (grouped by name)
+  const salesMap={};
+  ords.forEach(o=>(o.items||[]).forEach(item=>{
+    const k=item.name||item.pid||'?';
+    salesMap[k]=(salesMap[k]||0)+(item.qty||1);
+  }));
+  const salesEntries=Object.entries(salesMap).sort((a,b)=>b[1]-a[1]);
+  const totalSold=salesEntries.reduce((s,[,q])=>s+q,0);
+
+  const salesBlock=salesEntries.length?`
+    <div class="card" style="margin-top:12px;">
+      <div class="ctitle">Artículos vendidos</div>
+      <div style="margin-top:10px;display:flex;flex-direction:column;gap:6px;">
+        ${salesEntries.map(([name,qty])=>{
+          const pct=totalSold?Math.round(qty/totalSold*100):0;
+          return`<div style="display:flex;align-items:center;gap:10px;">
+            <div style="flex:1;font-size:.82rem;font-weight:700;">${name}</div>
+            <div style="width:90px;background:var(--g100);border-radius:20px;overflow:hidden;height:7px;">
+              <div style="width:${pct}%;background:var(--black);height:100%;border-radius:20px;"></div>
+            </div>
+            <div style="font-size:.88rem;font-weight:900;min-width:28px;text-align:right;">${qty}</div>
+          </div>`;
+        }).join('')}
+        <div style="border-top:1px solid var(--g100);margin-top:4px;padding-top:8px;display:flex;justify-content:space-between;align-items:center;">
+          <span style="font-size:.72rem;font-weight:700;color:var(--g500);text-transform:uppercase;letter-spacing:.5px;">Total</span>
+          <span style="font-size:.95rem;font-weight:900;">${totalSold}</span>
+        </div>
+      </div>
+    </div>`:'';
+
+  el.innerHTML=`<div class="card">
+    <div class="ctitle">Detalles del evento</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:10px;">
+      <div><div class="lbl">Nombre</div><div style="font-weight:700;margin-top:3px;">${evt.nombre}</div></div>
+      <div><div class="lbl">Cliente</div><div style="font-weight:700;margin-top:3px;">${evt.clienteNombre}</div></div>
+      <div><div class="lbl">RNC</div><div style="font-weight:700;margin-top:3px;">${evt.rnc||'—'}</div></div>
+      <div><div class="lbl">Lugar</div><div style="font-weight:700;margin-top:3px;">${evt.lugar}</div></div>
+      <div><div class="lbl">Fecha</div><div style="font-weight:700;margin-top:3px;">${evt.fecha}</div></div>
+      <div><div class="lbl">Estado</div><div style="font-weight:700;margin-top:3px;text-transform:capitalize;">${evt.status||'activo'}</div></div>
+      <div><div class="lbl">PIN</div><div style="font-weight:700;margin-top:3px;">${evt.pin?'🔐 Configurado':'Sin PIN'}</div></div>
+      <div><div class="lbl">Creado por</div><div style="font-weight:700;margin-top:3px;">${evt.createdBy||'—'}</div></div>
+    </div>
+    <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--g100);display:flex;gap:8px;flex-wrap:wrap;">
+      <div style="flex:1;min-width:70px;background:var(--g50);border-radius:8px;padding:9px 12px;text-align:center;">
+        <div style="font-size:1.3rem;font-weight:900;">${ords.length}</div>
+        <div style="font-size:.61rem;color:var(--g500);text-transform:uppercase;letter-spacing:.5px;">Órdenes</div>
+      </div>
+      <div style="flex:1;min-width:70px;background:#dcfce7;border-radius:8px;padding:9px 12px;text-align:center;">
+        <div style="font-size:1.3rem;font-weight:900;color:#166534;">${ords.filter(o=>o.prodStatus==='completada').length}</div>
+        <div style="font-size:.61rem;color:#166534;text-transform:uppercase;letter-spacing:.5px;">Listas</div>
+      </div>
+      <div style="flex:1;min-width:70px;background:#dbeafe;border-radius:8px;padding:9px 12px;text-align:center;">
+        <div style="font-size:1.3rem;font-weight:900;color:#1e40af;">${totalTaken}</div>
+        <div style="font-size:.61rem;color:#1e40af;text-transform:uppercase;letter-spacing:.5px;">Inv. tomadas</div>
+      </div>
+      <div style="flex:1;min-width:70px;background:#fef9c3;border-radius:8px;padding:9px 12px;text-align:center;">
+        <div style="font-size:1.3rem;font-weight:900;color:#854d0e;">${totalTaken-totalReturned}</div>
+        <div style="font-size:.61rem;color:#854d0e;text-transform:uppercase;letter-spacing:.5px;">En evento</div>
+      </div>
+    </div>
+  </div>${salesBlock}`;
+}
+
+// ── Órdenes tab ──
+function _evtRenderOrdenes(id,el){
+  const ords=Object.values(eventosOrdenesData[id]||{}).sort((a,b)=>b.createdAt-a.createdAt);
+  const invItems=Object.values(eventosInvData[id]||{});
+  el.innerHTML=`
+    <div style="display:flex;justify-content:flex-end;margin-bottom:10px;">
+      <button onclick="openEvtNuevaOrden('${id}')" class="submit" style="width:auto;padding:9px 18px;margin:0;">+ Nueva Orden</button>
+    </div>
+    ${!invItems.length?`<div style="background:#fef9c3;border:1.5px solid #fbbf24;border-radius:8px;padding:10px 14px;font-size:.76rem;color:#854d0e;margin-bottom:10px;">⚠️ Primero toma inventario del almacén (tab Inventario) para poder crear órdenes con ítems.</div>`:''}
+    ${ords.length?ords.map(o=>{
+      const itms=(o.items||[]).map(i=>`${i.qty||1}× ${i.name}${i.color?' ('+i.color+')':''}${i.model?' '+i.model:''}`).join(', ');
+      const stColor={pendiente:'#854d0e',en_proceso:'#1e40af',completada:'#166534'}[o.prodStatus||'pendiente']||'#374151';
+      const stBg={pendiente:'#fef9c3',en_proceso:'#dbeafe',completada:'#dcfce7'}[o.prodStatus||'pendiente']||'var(--g100)';
+      const stLbl={pendiente:'⏳ Pendiente',en_proceso:'🔨 En proceso',completada:'✓ Completada'}[o.prodStatus||'pendiente'];
+      const next={pendiente:'en_proceso',en_proceso:'completada'}[o.prodStatus||'pendiente'];
+      const nextLbl={en_proceso:'→ En proceso',completada:'→ Completar'}[next]||'';
+      return`<div class="card" style="margin-bottom:10px;">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:.85rem;font-weight:800;margin-bottom:4px;">${o.desc||'Sin descripción'}</div>
+            <div style="font-size:.74rem;color:var(--g500);line-height:1.5;">${itms||'Sin ítems'}</div>
+            ${o.notes?`<div style="font-size:.71rem;color:var(--g400);margin-top:4px;font-style:italic;">${o.notes}</div>`:''}
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
+            <span style="font-size:.63rem;font-weight:800;padding:3px 10px;border-radius:20px;background:${stBg};color:${stColor};">${stLbl}</span>
+            <div style="display:flex;gap:4px;">
+              ${next?`<button onclick="updateEvtProdStatus('${id}','${o.id}','${next}')" style="padding:3px 9px;border:1.5px solid var(--g200);border-radius:6px;background:#fff;font-size:.7rem;font-weight:700;cursor:pointer;">${nextLbl}</button>`:''}
+              <button onclick="deleteEvtOrden('${id}','${o.id}')" style="padding:3px 8px;border:1.5px solid #fca5a5;border-radius:6px;background:#fee2e2;color:#dc2626;font-size:.7rem;cursor:pointer;">🗑</button>
+            </div>
+          </div>
+        </div>
+      </div>`;
+    }).join(''):`<div style="text-align:center;padding:40px;color:var(--g400);"><div style="font-size:1.8rem;margin-bottom:6px;">📋</div>No hay órdenes en este evento</div>`}`;
+}
+
+// ── Producción tab ──
+function _evtRenderProduccion(id,el){
+  const ords=Object.values(eventosOrdenesData[id]||{}).sort((a,b)=>a.createdAt-b.createdAt);
+  const cols=[
+    {k:'pendiente',l:'⏳ Pendiente',hbg:'#fef9c3',hc:'#854d0e',brd:'#fbbf24'},
+    {k:'en_proceso',l:'🔨 En proceso',hbg:'#dbeafe',hc:'#1e40af',brd:'#93c5fd'},
+    {k:'completada',l:'✓ Completada',hbg:'#dcfce7',hc:'#166534',brd:'#86efac'}
+  ];
+  el.innerHTML=`<div style="display:flex;gap:10px;overflow-x:auto;padding-bottom:8px;">
+    ${cols.map(col=>{
+      const items=ords.filter(o=>(o.prodStatus||'pendiente')===col.k);
+      const next={pendiente:'en_proceso',en_proceso:'completada'}[col.k];
+      const nextLbl={en_proceso:'→ Iniciar',completada:'→ Completar'}[next]||'';
+      return`<div style="flex:1;min-width:200px;max-width:280px;">
+        <div style="background:${col.hbg};color:${col.hc};font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;padding:8px 12px;border-radius:8px 8px 0 0;border-left:4px solid ${col.brd};">${col.l} <span style="opacity:.65;">(${items.length})</span></div>
+        <div style="background:var(--g50);border:1.5px solid var(--g200);border-top:none;border-radius:0 0 8px 8px;padding:8px;min-height:80px;display:flex;flex-direction:column;gap:7px;">
+          ${items.map(o=>{
+            const itms=(o.items||[]).map(i=>`${i.qty||1}× ${i.name}`).join(', ');
+            return`<div style="background:#fff;border:1.5px solid var(--g200);border-radius:8px;padding:10px 12px;border-left:4px solid ${col.brd};">
+              <div style="font-size:.82rem;font-weight:800;margin-bottom:3px;">${o.desc||'Orden'}</div>
+              <div style="font-size:.71rem;color:var(--g500);line-height:1.4;margin-bottom:8px;">${itms||'—'}</div>
+              ${next?`<button onclick="updateEvtProdStatus('${id}','${o.id}','${next}')" style="width:100%;padding:5px;border:none;border-radius:6px;background:${col.hbg};color:${col.hc};font-size:.71rem;font-weight:700;cursor:pointer;">${nextLbl}</button>`:''}
+            </div>`;
+          }).join('')||`<div style="text-align:center;padding:14px;color:var(--g400);font-size:.74rem;">Vacío</div>`}
+        </div>
+      </div>`;
+    }).join('')}
+  </div>`;
+}
+function updateEvtProdStatus(eventId,ordId,status){
+  db.ref('eventos_ordenes/'+eventId+'/'+ordId+'/prodStatus').set(status).then(()=>toast('✓ Estado actualizado'));
+}
+function deleteEvtOrden(eventId,ordId){
+  if(!confirm('¿Eliminar esta orden?'))return;
+  db.ref('eventos_ordenes/'+eventId+'/'+ordId).remove().then(()=>toast('Orden eliminada'));
+}
+
+// ── Inventario tab ──
+function _evtRenderInventario(id,el){
+  const items=Object.values(eventosInvData[id]||{}).sort((a,b)=>a.createdAt-b.createdAt);
+  const totalTaken=items.reduce((s,r)=>s+(r.qtyTaken||0),0);
+  const totalReturned=items.reduce((s,r)=>s+(r.qtyReturned||0),0);
+  const inEvent=totalTaken-totalReturned;
+  el.innerHTML=`
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+      <div style="display:flex;gap:7px;flex-wrap:wrap;">
+        <div style="background:#dbeafe;border-radius:8px;padding:6px 12px;text-align:center;">
+          <div style="font-size:1.1rem;font-weight:900;color:#1e40af;">${totalTaken}</div>
+          <div style="font-size:.6rem;color:#1e40af;text-transform:uppercase;letter-spacing:.4px;">Tomadas</div>
+        </div>
+        <div style="background:#fef9c3;border-radius:8px;padding:6px 12px;text-align:center;">
+          <div style="font-size:1.1rem;font-weight:900;color:#854d0e;">${inEvent}</div>
+          <div style="font-size:.6rem;color:#854d0e;text-transform:uppercase;letter-spacing:.4px;">En evento</div>
+        </div>
+        <div style="background:#dcfce7;border-radius:8px;padding:6px 12px;text-align:center;">
+          <div style="font-size:1.1rem;font-weight:900;color:#166534;">${totalReturned}</div>
+          <div style="font-size:.6rem;color:#166534;text-transform:uppercase;letter-spacing:.4px;">Devueltas</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        ${inEvent>0?`<button onclick="openEvtReturnModal('${id}')" style="padding:7px 12px;border:1.5px solid #86efac;border-radius:8px;background:#f0fdf4;color:#16a34a;font-size:.76rem;font-weight:700;cursor:pointer;">↩ Devolver al almacén</button>`:''}
+        <button onclick="openEvtInvModal('${id}')" class="submit" style="width:auto;padding:7px 14px;margin:0;font-size:.76rem;">+ Tomar del almacén</button>
+      </div>
+    </div>
+    ${items.length?`<div class="card">
+      ${items.map(r=>{
+        const inUse=(r.qtyTaken||0)-(r.qtyReturned||0);
+        const allReturned=inUse<=0;
+        return`<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid var(--g100);flex-wrap:wrap;">
+          <div>
+            <div style="font-size:.84rem;font-weight:700;">${r.skuLabel||r.sku}</div>
+            <div style="font-size:.71rem;color:var(--g500);">Tomadas: <strong>${r.qtyTaken||0}</strong> &nbsp;·&nbsp; En evento: <strong>${inUse}</strong> &nbsp;·&nbsp; Devueltas: <strong>${r.qtyReturned||0}</strong></div>
+            <div style="font-size:.69rem;color:var(--g400);">Por: ${r.takenBy||'—'} &nbsp;·&nbsp; ${r.takenAt?new Date(r.takenAt).toLocaleDateString('es-DO'):''}</div>
+          </div>
+          <span style="font-size:.63rem;font-weight:800;padding:3px 10px;border-radius:20px;flex-shrink:0;background:${allReturned?'#dcfce7':'#fef9c3'};color:${allReturned?'#166534':'#854d0e'};">${allReturned?'✓ Devuelto':'En evento: '+inUse}</span>
+        </div>`;
+      }).join('')}
+    </div>`:`<div style="text-align:center;padding:40px;color:var(--g400);"><div style="font-size:1.8rem;margin-bottom:6px;">📦</div>Aún no se ha tomado inventario del almacén</div>`}`;
+}
+
+// ── Almacén picker ──
+function _evtSkuLabel(sku){
+  const pid=skuPid(sku);
+  if(IS_COVER.includes(pid))return'Cover '+skuModel(sku)+' '+skuColor(sku);
+  return(ACC_PID_MAP[pid]||pid)+' '+skuColor(sku);
+}
+function openEvtInvModal(eventId){
+  _evtInvEventId=eventId;
+  _evtInvCart=[];
+  document.getElementById('evtinv-search').value='';
+  document.getElementById('evtinv-summary').textContent='';
+  _renderEvtInvPicker('');
+  openMod('evt-inv-modal');
+}
+function _filterEvtInvPicker(){
+  _renderEvtInvPicker(document.getElementById('evtinv-search')?.value||'');
+}
+function _renderEvtInvPicker(filter){
+  const el=document.getElementById('evtinv-picker');if(!el)return;
+  const f=(filter||'').toLowerCase();
+  const entries=Object.entries(inventarioData)
+    .map(([sku,d])=>({sku,d,label:_evtSkuLabel(sku)}))
+    .filter(({d,label})=>(d.almacen||0)>0&&(!f||label.toLowerCase().includes(f)))
+    .sort((a,b)=>a.label.localeCompare(b.label));
+  if(!entries.length){
+    el.innerHTML=`<div style="text-align:center;padding:24px;color:var(--g400);font-size:.8rem;">${f?'Sin coincidencias':'No hay stock en almacén disponible'}</div>`;
+    return;
+  }
+  el.innerHTML=entries.map(({sku,d,label})=>{
+    const safeId='evtinv_'+sku.replace(/[^a-z0-9]/gi,'_');
+    const cartItem=_evtInvCart.find(x=>x.sku===sku);
+    const currentQty=cartItem?cartItem.qty:0;
+    return`<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--g100);">
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:.82rem;font-weight:700;">${label}</div>
+        <div style="font-size:.69rem;color:#1e40af;">🏭 Disponible en almacén: <strong>${d.almacen}</strong></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:5px;">
+        <button onclick="_evtInvAdj('${sku}',${d.almacen},-1)" style="width:26px;height:26px;border:1.5px solid var(--g200);border-radius:6px;background:#fff;font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;">−</button>
+        <input type="number" id="${safeId}" min="0" max="${d.almacen}" value="${currentQty}"
+          oninput="_evtInvSet('${sku}',${d.almacen},this.value)"
+          style="width:50px;text-align:center;border:1.5px solid var(--g200);border-radius:6px;padding:4px;font-size:.85rem;font-weight:700;"/>
+        <button onclick="_evtInvAdj('${sku}',${d.almacen},1)" style="width:26px;height:26px;border:1.5px solid var(--g200);border-radius:6px;background:#fff;font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;">+</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+function _evtInvAdj(sku,max,delta){
+  const safeId='evtinv_'+sku.replace(/[^a-z0-9]/gi,'_');
+  const input=document.getElementById(safeId);
+  if(!input)return;
+  const newVal=Math.max(0,Math.min(max,(parseInt(input.value)||0)+delta));
+  input.value=newVal;
+  _evtInvSet(sku,max,newVal);
+}
+function _evtInvSet(sku,max,rawVal){
+  let v=Math.max(0,Math.min(max,parseInt(rawVal)||0));
+  const existing=_evtInvCart.find(x=>x.sku===sku);
+  if(v===0){_evtInvCart=_evtInvCart.filter(x=>x.sku!==sku);}
+  else if(existing){existing.qty=v;}
+  else{_evtInvCart.push({sku,qty:v,label:_evtSkuLabel(sku)});}
+  const total=_evtInvCart.reduce((s,x)=>s+x.qty,0);
+  const sumEl=document.getElementById('evtinv-summary');
+  if(sumEl)sumEl.textContent=total?`${total} unidad${total!==1?'es':''} seleccionada${total!==1?'s':''}`:' ';
+}
+function takeEvtInventario(){
+  if(!_evtInvCart.length){toast('Selecciona al menos una unidad');return;}
+  const eventId=_evtInvEventId;
+  // Validate stock still available
+  for(const item of _evtInvCart){
+    const cur=inventarioData[item.sku]||{almacen:0};
+    if(item.qty>(cur.almacen||0)){toast('Stock insuficiente: '+item.label);return;}
+  }
+  const by=currentUser?.name||'Admin';
+  const now=Date.now();
+  const updates={};
+  _evtInvCart.forEach(item=>{
+    const cur={...inventarioData[item.sku]||{almacen:0,agora:0,min:3}};
+    const newAlmacen=Math.max(0,(cur.almacen||0)-item.qty);
+    const fbKey=skuToFbKey(item.sku);
+    updates['inventario/'+fbKey]={...cur,almacen:newAlmacen};
+    updates['inventario_history/'+now+'_'+Math.random().toString(36).slice(2,5)]={
+      sku:item.sku,
+      before:{almacen:cur.almacen||0,agora:cur.agora||0},
+      after:{almacen:newAlmacen,agora:cur.agora||0},
+      by,reason:'Salida a evento: '+(eventosData[eventId]?.nombre||eventId),ts:now
+    };
+    const recId=now+'_'+Math.random().toString(36).slice(2,6);
+    updates['eventos_inv/'+eventId+'/'+recId]={
+      id:recId,sku:item.sku,skuLabel:item.label,
+      qtyTaken:item.qty,qtyReturned:0,
+      takenBy:by,takenAt:now,createdAt:now
+    };
+  });
+  db.ref().update(updates).then(()=>{
+    closeMod('evt-inv-modal');
+    const total=_evtInvCart.reduce((s,x)=>s+x.qty,0);
+    toast('📦 '+total+' unidad'+(total!==1?'es':'')+' retirada'+(total!==1?'s':'')+' del almacén');
+    _evtInvCart=[];
+  });
+}
+
+// ── Return to almacén ──
+function openEvtReturnModal(eventId){
+  document.getElementById('evtret-event-id').value=eventId;
+  const items=Object.values(eventosInvData[eventId]||{}).filter(r=>(r.qtyTaken||0)-(r.qtyReturned||0)>0);
+  const el=document.getElementById('evtret-items');
+  if(!el)return;
+  el.innerHTML=items.map(r=>{
+    const inUse=(r.qtyTaken||0)-(r.qtyReturned||0);
+    return`<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--g100);">
+      <div style="flex:1;">
+        <div style="font-size:.84rem;font-weight:700;">${r.skuLabel||r.sku}</div>
+        <div style="font-size:.71rem;color:var(--g500);">En evento: <strong>${inUse}</strong></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:5px;">
+        <button onclick="_evtRetAdj('${r.id}',${inUse},-1)" style="width:26px;height:26px;border:1.5px solid var(--g200);border-radius:6px;background:#fff;font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;">−</button>
+        <input type="number" id="evtret_${r.id}" min="0" max="${inUse}" value="0"
+          style="width:50px;text-align:center;border:1.5px solid var(--g200);border-radius:6px;padding:4px;font-size:.85rem;font-weight:700;"/>
+        <button onclick="_evtRetAdj('${r.id}',${inUse},1)" style="width:26px;height:26px;border:1.5px solid var(--g200);border-radius:6px;background:#fff;font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;">+</button>
+        <button onclick="document.getElementById('evtret_${r.id}').value=${inUse};void(0)" style="padding:4px 8px;border:1.5px solid #86efac;border-radius:6px;background:#f0fdf4;color:#16a34a;font-size:.7rem;font-weight:700;cursor:pointer;">Todo</button>
+      </div>
+    </div>`;
+  }).join('')||'<div style="padding:20px;text-align:center;color:var(--g400);">No hay ítems en el evento</div>';
+  openMod('evt-return-modal');
+}
+function _evtRetAdj(itemId,max,delta){
+  const inp=document.getElementById('evtret_'+itemId);if(!inp)return;
+  inp.value=Math.max(0,Math.min(max,(parseInt(inp.value)||0)+delta));
+}
+function saveEvtReturn(){
+  const eventId=document.getElementById('evtret-event-id').value;
+  const items=Object.values(eventosInvData[eventId]||{}).filter(r=>(r.qtyTaken||0)-(r.qtyReturned||0)>0);
+  const toReturn=items.map(r=>({r,qty:parseInt(document.getElementById('evtret_'+r.id)?.value)||0})).filter(x=>x.qty>0);
+  if(!toReturn.length){toast('Indica al menos una unidad a devolver');return;}
+  const by=currentUser?.name||'Admin';
+  const now=Date.now();
+  const updates={};
+  toReturn.forEach(({r,qty})=>{
+    const inUse=(r.qtyTaken||0)-(r.qtyReturned||0);
+    const actualQty=Math.min(qty,inUse);
+    const newReturned=(r.qtyReturned||0)+actualQty;
+    updates['eventos_inv/'+eventId+'/'+r.id+'/qtyReturned']=newReturned;
+    // Add back to almacén
+    const cur={...inventarioData[r.sku]||{almacen:0,agora:0,min:3}};
+    const newAlmacen=(cur.almacen||0)+actualQty;
+    updates['inventario/'+skuToFbKey(r.sku)]={...cur,almacen:newAlmacen};
+    updates['inventario_history/'+now+'_'+Math.random().toString(36).slice(2,5)]={
+      sku:r.sku,
+      before:{almacen:cur.almacen||0,agora:cur.agora||0},
+      after:{almacen:newAlmacen,agora:cur.agora||0},
+      by,reason:'Devolución de evento: '+(eventosData[eventId]?.nombre||eventId),ts:now
+    };
+  });
+  db.ref().update(updates).then(()=>{
+    closeMod('evt-return-modal');
+    const total=toReturn.reduce((s,x)=>s+x.qty,0);
+    toast('↩ '+total+' unidad'+(total!==1?'es':'')+' devuelta'+(total!==1?'s':'')+' al almacén');
+  });
+}
+
+// ── Event order creation (from inventory items) ──
+function openEvtNuevaOrden(eventId){
+  document.getElementById('evtord-event-id').value=eventId;
+  document.getElementById('evtord-desc').value='';
+  document.getElementById('evtord-notes').value='';
+  _evtCart=[];_evtUid=0;
+  _renderEvtOrdPicker(eventId);
+  _renderEvtCart();
+  openMod('evt-orden-modal');
+}
+function _renderEvtOrdPicker(eventId){
+  const el=document.getElementById('evtord-prod-grid');if(!el)return;
+  const invItems=Object.values(eventosInvData[eventId]||{})
+    .filter(r=>(r.qtyTaken||0)-(r.qtyReturned||0)>0);
+  if(!invItems.length){
+    el.innerHTML='<div style="grid-column:1/-1;padding:20px;text-align:center;color:var(--g400);font-size:.78rem;">Primero toma inventario del almacén para agregar ítems.</div>';
+    return;
+  }
+  el.innerHTML=invItems.map(r=>{
+    const pid=skuPid(r.sku);
+    const prod=PRODS.find(p=>p.id===pid);
+    const color=skuColor(r.sku);
+    const model=skuModel(r.sku);
+    const sub=[color,model].filter(Boolean).join(' · ');
+    return`<div class="pcard">
+      <div class="pname">${prod?prod.name:pid}</div>
+      ${sub?`<div style="font-size:.7rem;color:var(--g500);">${sub}</div>`:''}
+      <div class="pprice">${(prod&&prod.price)?'$'+prod.price.toLocaleString():'—'}</div>
+      <button class="padd" onclick="_evtAddItem('${r.id}','${r.sku}')">+</button>
+    </div>`;
+  }).join('');
+}
+function _evtAddItem(invItemId,sku){
+  const pid=skuPid(sku);
+  const p=PRODS.find(x=>x.id===pid);if(!p)return;
+  const uid=++_evtUid;
+  _evtCart.push({
+    uid,invItemId,pid,name:p.name,price:p.price,qty:1,
+    color:skuColor(sku)||COLORS[0],model:skuModel(sku)||'',
+    isCustomPrice:!!p.custom,
+    notes:'',iniciales:'',emoji:'',
+    tamano:SIZES[0],colorIni:INI_COLORS[0]
+  });
+  _renderEvtCart();
+}
+function _evtChQty(uid,delta){
+  const item=_evtCart.find(x=>x.uid===uid);
+  if(item){item.qty=Math.max(1,item.qty+delta);_renderEvtCart();}
+}
+function _evtChF(uid,field,val){
+  const item=_evtCart.find(x=>x.uid===uid);
+  if(item)item[field]=val;
+}
+function _evtCustomPrice(uid,val){
+  const item=_evtCart.find(x=>x.uid===uid);if(!item)return;
+  item.price=parseFloat(val)||0;
+  const subEl=document.querySelector(`#evtord-cart-items [data-uid="${uid}"] .ci-sub`);
+  if(subEl)subEl.textContent='$'+(item.price*item.qty).toLocaleString();
+}
+function _evtRemoveItem(uid){
+  _evtCart=_evtCart.filter(x=>x.uid!==uid);
+  _renderEvtCart();
+}
+function _renderEvtCart(){
+  const section=document.getElementById('evtord-cart-section');
+  const el=document.getElementById('evtord-cart-items');
+  if(!el||!section)return;
+  if(!_evtCart.length){section.style.display='none';return;}
+  section.style.display='block';
+  el.innerHTML=_evtCart.map(item=>{
+    const sub=item.price*item.qty;
+    const isCover=IS_COVER.includes(item.pid);
+    const hasIni=HAS_INI.includes(item.pid);
+    let body='';
+    if(isCover){
+      body=`<div class="g2">
+        <div class="field"><label class="lbl">Color del Cover</label>
+          <select onchange="_evtChF(${item.uid},'color',this.value)">${selOpts(COLORS,item.color)}</select></div>
+        <div class="field"><label class="lbl">Modelo del Celular</label>
+          <select onchange="_evtChF(${item.uid},'model',this.value)">
+            <option value="">— Seleccionar —</option>${selOpts(MODEL_LIST,item.model)}</select></div>
+      </div>
+      <div class="ci-section"><div class="ci-section-lbl">Personalización</div>
+        <div class="g4">
+          <div class="field"><label class="lbl">Iniciales</label>
+            <input type="text" maxlength="6" placeholder="AB" value="${item.iniciales}" oninput="_evtChF(${item.uid},'iniciales',this.value)"/></div>
+          <div class="field"><label class="lbl">Emoji</label>
+            <input type="text" placeholder="🌸🌺" value="${item.emoji}" oninput="_evtChF(${item.uid},'emoji',this.value)"/></div>
+          <div class="field"><label class="lbl">Tamaño letra</label>
+            <select onchange="_evtChF(${item.uid},'tamano',this.value)">${selOpts(SIZES,item.tamano)}</select></div>
+          <div class="field"><label class="lbl">Color iniciales</label>
+            <select onchange="_evtChF(${item.uid},'colorIni',this.value)">${selOpts(INI_COLORS,item.colorIni)}</select></div>
+        </div></div>`;
+    } else if(hasIni){
+      body=`<div class="g3">
+        <div class="field"><label class="lbl">Color</label>
+          <select onchange="_evtChF(${item.uid},'color',this.value)">${selOpts(COLORS,item.color)}</select></div>
+        <div class="field"><label class="lbl">Iniciales</label>
+          <input type="text" maxlength="6" placeholder="AB" value="${item.iniciales}" oninput="_evtChF(${item.uid},'iniciales',this.value)"/></div>
+        <div class="field"><label class="lbl">Color iniciales</label>
+          <select onchange="_evtChF(${item.uid},'colorIni',this.value)">${selOpts(INI_COLORS,item.colorIni)}</select></div>
+      </div>
+      <div style="margin-top:10px;"><div class="field"><label class="lbl">Tamaño</label>
+        <select style="max-width:120px;" onchange="_evtChF(${item.uid},'tamano',this.value)">${selOpts(SIZES,item.tamano)}</select></div></div>`;
+    } else if(item.isCustomPrice){
+      body=`<div class="field">
+        <label class="lbl">Precio del producto ($)</label>
+        <input type="number" min="0" step="1" placeholder="0"
+          value="${item.price||''}" style="font-size:1rem;max-width:160px;"
+          oninput="_evtCustomPrice(${item.uid},this.value)"/>
+      </div>`;
+    } else {
+      body=`<div class="field"><label class="lbl">Color</label>
+        <select onchange="_evtChF(${item.uid},'color',this.value)">${selOpts(COLORS,item.color)}</select></div>`;
+    }
+    const notesBlock=`<div class="field" style="margin-top:10px;">
+      <label class="lbl">📝 Notas <span style="font-size:.7rem;color:var(--g400);">(opcional)</span></label>
+      <textarea rows="2" placeholder="Instrucciones adicionales…" style="width:100%;resize:vertical;font-size:.85rem;padding:8px 10px;border:1.5px solid var(--g200);border-radius:6px;font-family:inherit;" oninput="_evtChF(${item.uid},'notes',this.value)">${item.notes||''}</textarea>
+    </div>`;
+    return`<div class="ci" data-uid="${item.uid}">
+      <div class="ci-head">
+        <span class="ci-name">${item.name}</span>
+        <div class="qty">
+          <button class="qbtn" onclick="_evtChQty(${item.uid},-1)">−</button>
+          <span class="qval">${item.qty}</span>
+          <button class="qbtn" onclick="_evtChQty(${item.uid},1)">+</button>
+        </div>
+        <span class="ci-sub">${item.price?'$'+sub.toLocaleString():'—'}</span>
+        <button class="xbtn" onclick="_evtRemoveItem(${item.uid})">✕</button>
+      </div>
+      <div class="ci-body">${body}${notesBlock}</div>
+    </div>`;
+  }).join('');
+}
+function saveEvtOrden(){
+  const eventId=document.getElementById('evtord-event-id').value;
+  const desc=document.getElementById('evtord-desc').value.trim();
+  const notes=document.getElementById('evtord-notes').value.trim();
+  if(!desc&&!_evtCart.length){toast('Agrega una descripción o al menos un ítem');return;}
+  const id=Date.now().toString();
+  const items=_evtCart.map(({uid,...rest})=>rest);
+  db.ref('eventos_ordenes/'+eventId+'/'+id).set({
+    id,eventId,desc,notes,items,prodStatus:'pendiente',
+    createdBy:currentUser?.name||'Admin',createdAt:Date.now()
+  }).then(()=>{closeMod('evt-orden-modal');toast('✓ Orden creada');});
+}
 
 /* ═══════════════════════════════════════
    INIT
@@ -12312,6 +13176,7 @@ function checkSession(){
     <div class="mob-nav-item" id="mob-tb7" onclick="showTab(7)" style="display:none;"><span class="mni">⚙️</span><span>Config.</span></div>
     <div class="mob-nav-item" id="mob-tb8" onclick="showTab(8)" style="display:none;"><span class="mni">🛵</span><span>Ruta</span></div>
     <div class="mob-nav-item" id="mob-tb9" onclick="showTab(9)" style="display:none;"><span class="mni">📋</span><span>Auditoría</span></div>
+    <div class="mob-nav-item" id="mob-tb10" onclick="showTab(10)" style="display:none;"><span class="mni">🎪</span><span>Eventos</span></div>
   </div>
 </nav>
 </body>
