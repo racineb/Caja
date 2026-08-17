@@ -2688,7 +2688,7 @@ const HAS_INI   =['cover','ch','ph','bt','kt','cc'];
 const IS_COVER  =['cover'];
 const COLORS    =['Black','Dark Blue','Shiraz','Forest','Nude','Cocoa','Golden','Orchid','Caramel','Merlot','Flamingo','Ginger','Emerald','Metal','Blush','Mustard','Ocean','Magenta','Lilac','Sky','Croc'];
 const INI_COLORS=['Gold','Gold Matte','Silver','Silver Matte','Negro','Sin Color'];
-const SIZES     =['6mm','10mm'];
+const SIZES     =['10mm','6mm'];
 const MODEL_LIST=['11','12/12 Pro','12 Pro Max','13','13 Pro','13 Pro Max','14','14 Pro','14/15 Plus','14 Pro Max','15','15 Pro','15 Pro Max','16','16 Plus','16 Pro','16 Pro Max','17','17 Air','17 Pro','17 Pro Max','Samsung S25 Ultra'];
 const SPECIAL_TYPES=['Cortesia','Error','Garantia'];
 const ALL_PANELS=['p-card','p-cash','p-txfr','p-split','p-courtesy','p-error','p-warranty'];
@@ -3013,7 +3013,8 @@ function updateShiftStatus(){
     bar.className='shift-status sin';
     text.textContent='Caja sin apertura hoy — registra el monto inicial para comenzar';
     btn.textContent='Abrir Caja';btn.className='ss-action primary';
-    banner.style.display='block';
+    const isOnlineCanal=currentCanal==='web'||currentCanal==='whatsapp';
+    banner.style.display=(adminMode&&isOnlineCanal)?'none':'block';
     corteBtn.style.display='none';
     document.getElementById('ss-ponchar-btn').style.display='none';
     if(delBtn)delBtn.style.display='none';
@@ -6904,6 +6905,15 @@ function setCanal(canal){
   if(addrRow)addrRow.style.display=(canal==='web'||canal==='whatsapp')?'block':'none';
   const almChk=document.getElementById('descuento-almacen');
   if(almChk)almChk.checked=false;
+  // Admin: hide block-banner when online canal (no apertura required)
+  if(adminMode){
+    const banner=document.getElementById('block-banner');
+    const rec=getDayRec();
+    if(banner&&(!rec||rec.closedAt)){
+      const isOnline=canal==='web'||canal==='whatsapp';
+      banner.style.display=isOnline?'none':'block';
+    }
+  }
 }
 function setProdToday(){
   const el=document.getElementById('prod-date');
@@ -12630,11 +12640,13 @@ function _evtRenderOrdenes(id,el){
         const pers=[i.iniciales?'Ini: '+i.iniciales:'',i.emoji||'',i.tamano||'',i.colorIni||'',i.notes?'📝 '+i.notes:''].filter(Boolean).join(' · ');
         return pers?`${base}<br><span style="color:#7c3aed;font-size:.7rem;">${pers}</span>`:base;
       }).join('<br>');
-      const stColor={pendiente:'#854d0e',en_proceso:'#1e40af',completada:'#166534'}[o.prodStatus||'pendiente']||'#374151';
-      const stBg={pendiente:'#fef9c3',en_proceso:'#dbeafe',completada:'#dcfce7'}[o.prodStatus||'pendiente']||'var(--g100)';
-      const stLbl={pendiente:'⏳ Pendiente',en_proceso:'🔨 En proceso',completada:'✓ Completada'}[o.prodStatus||'pendiente'];
+      const stColor={pendiente:'#854d0e',en_proceso:'#1e40af',completada:'#166534',error:'#dc2626'}[o.prodStatus||'pendiente']||'#374151';
+      const stBg={pendiente:'#fef9c3',en_proceso:'#dbeafe',completada:'#dcfce7',error:'#fee2e2'}[o.prodStatus||'pendiente']||'var(--g100)';
+      const stLbl={pendiente:'⏳ Pendiente',en_proceso:'🔨 En proceso',completada:'✓ Completada',error:'❌ Error'}[o.prodStatus||'pendiente'];
       const next={pendiente:'en_proceso',en_proceso:'completada'}[o.prodStatus||'pendiente'];
       const nextLbl={en_proceso:'→ En proceso',completada:'→ Completar'}[next]||'';
+      const canErr=o.prodStatus!=='completada'&&o.prodStatus!=='error';
+      const canRetry=o.prodStatus==='error';
       return`<div class="card" style="margin-bottom:10px;">
         <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap;">
           <div style="flex:1;min-width:0;">
@@ -12644,8 +12656,10 @@ function _evtRenderOrdenes(id,el){
           </div>
           <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
             <span style="font-size:.63rem;font-weight:800;padding:3px 10px;border-radius:20px;background:${stBg};color:${stColor};">${stLbl}</span>
-            <div style="display:flex;gap:4px;">
+            <div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;">
               ${next?`<button onclick="updateEvtProdStatus('${id}','${o.id}','${next}')" style="padding:3px 9px;border:1.5px solid var(--g200);border-radius:6px;background:#fff;font-size:.7rem;font-weight:700;cursor:pointer;">${nextLbl}</button>`:''}
+              ${canErr?`<button onclick="updateEvtProdStatus('${id}','${o.id}','error')" style="padding:3px 9px;border:1.5px solid #fca5a5;border-radius:6px;background:#fee2e2;color:#dc2626;font-size:.7rem;font-weight:700;cursor:pointer;">🚫 Error</button>`:''}
+              ${canRetry?`<button onclick="updateEvtProdStatus('${id}','${o.id}','pendiente')" style="padding:3px 9px;border:1.5px solid #fbbf24;border-radius:6px;background:#fef9c3;color:#854d0e;font-size:.7rem;font-weight:700;cursor:pointer;">↩ Reintentar</button>`:''}
               <button onclick="deleteEvtOrden('${id}','${o.id}')" style="padding:3px 8px;border:1.5px solid #fca5a5;border-radius:6px;background:#fee2e2;color:#dc2626;font-size:.7rem;cursor:pointer;">🗑</button>
             </div>
           </div>
@@ -12658,15 +12672,20 @@ function _evtRenderOrdenes(id,el){
 function _evtRenderProduccion(id,el){
   const ords=Object.values(eventosOrdenesData[id]||{}).sort((a,b)=>a.createdAt-b.createdAt);
   const cols=[
-    {k:'pendiente',l:'⏳ Pendiente',hbg:'#fef9c3',hc:'#854d0e',brd:'#fbbf24'},
+    {k:'pendiente', l:'⏳ Pendiente', hbg:'#fef9c3',hc:'#854d0e',brd:'#fbbf24'},
     {k:'en_proceso',l:'🔨 En proceso',hbg:'#dbeafe',hc:'#1e40af',brd:'#93c5fd'},
-    {k:'completada',l:'✓ Completada',hbg:'#dcfce7',hc:'#166534',brd:'#86efac'}
+    {k:'completada', l:'✓ Completada',hbg:'#dcfce7',hc:'#166534',brd:'#86efac'},
+    {k:'error',      l:'❌ Error',     hbg:'#fee2e2',hc:'#dc2626',brd:'#fca5a5'}
   ];
+  const canProgress={pendiente:'en_proceso',en_proceso:'completada'};
+  const progressLbl={en_proceso:'→ Iniciar',completada:'→ Completar'};
   el.innerHTML=`<div style="display:flex;gap:10px;overflow-x:auto;padding-bottom:8px;">
     ${cols.map(col=>{
       const items=ords.filter(o=>(o.prodStatus||'pendiente')===col.k);
-      const next={pendiente:'en_proceso',en_proceso:'completada'}[col.k];
-      const nextLbl={en_proceso:'→ Iniciar',completada:'→ Completar'}[next]||'';
+      const next=canProgress[col.k];
+      const nextLbl=progressLbl[next]||'';
+      const canErr=col.k!=='completada'&&col.k!=='error';
+      const canRetry=col.k==='error';
       return`<div style="flex:1;min-width:200px;max-width:280px;">
         <div style="background:${col.hbg};color:${col.hc};font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;padding:8px 12px;border-radius:8px 8px 0 0;border-left:4px solid ${col.brd};">${col.l} <span style="opacity:.65;">(${items.length})</span></div>
         <div style="background:var(--g50);border:1.5px solid var(--g200);border-top:none;border-radius:0 0 8px 8px;padding:8px;min-height:80px;display:flex;flex-direction:column;gap:7px;">
@@ -12675,7 +12694,7 @@ function _evtRenderProduccion(id,el){
               const base=`<span style="font-weight:800;">${i.qty||1}× ${i.name}</span>${i.color?' — '+i.color:''}${i.model?' '+i.model:''}`;
               const pers=[i.iniciales?'Ini: '+i.iniciales:'',i.emoji||'',i.tamano||'',i.colorIni||''].filter(Boolean).join(' · ');
               const note=i.notes?`<div style="color:#9ca3af;font-size:.67rem;font-style:italic;">📝 ${i.notes}</div>`:'';
-              return`<div style="padding:4px 0;border-bottom:1px dashed var(--g100);last-child:border:none;">
+              return`<div style="padding:4px 0;border-bottom:1px dashed var(--g100);">
                 <div style="font-size:.72rem;line-height:1.4;">${base}</div>
                 ${pers?`<div style="font-size:.68rem;color:#7c3aed;margin-top:1px;">${pers}</div>`:''}
                 ${note}
@@ -12685,7 +12704,11 @@ function _evtRenderProduccion(id,el){
               <div style="font-size:.82rem;font-weight:800;margin-bottom:6px;">${o.desc||'Orden'}</div>
               <div style="margin-bottom:8px;">${itms||'<span style="font-size:.71rem;color:var(--g400);">Sin ítems</span>'}</div>
               ${o.notes?`<div style="font-size:.68rem;color:var(--g400);font-style:italic;margin-bottom:6px;">📝 ${o.notes}</div>`:''}
-              ${next?`<button onclick="updateEvtProdStatus('${id}','${o.id}','${next}')" style="width:100%;padding:5px;border:none;border-radius:6px;background:${col.hbg};color:${col.hc};font-size:.71rem;font-weight:700;cursor:pointer;">${nextLbl}</button>`:''}
+              <div style="display:flex;gap:5px;flex-direction:column;">
+                ${next?`<button onclick="updateEvtProdStatus('${id}','${o.id}','${next}')" style="width:100%;padding:5px;border:none;border-radius:6px;background:${col.hbg};color:${col.hc};font-size:.71rem;font-weight:700;cursor:pointer;">${nextLbl}</button>`:''}
+                ${canErr?`<button onclick="updateEvtProdStatus('${id}','${o.id}','error')" style="width:100%;padding:5px;border:none;border-radius:6px;background:#fee2e2;color:#dc2626;font-size:.71rem;font-weight:700;cursor:pointer;">🚫 Marcar error</button>`:''}
+                ${canRetry?`<button onclick="updateEvtProdStatus('${id}','${o.id}','pendiente')" style="width:100%;padding:5px;border:none;border-radius:6px;background:#fef9c3;color:#854d0e;font-size:.71rem;font-weight:700;cursor:pointer;">↩ Reintentar</button>`:''}
+              </div>
             </div>`;
           }).join('')||`<div style="text-align:center;padding:14px;color:var(--g400);font-size:.74rem;">Vacío</div>`}
         </div>
