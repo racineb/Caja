@@ -8026,7 +8026,7 @@ function confirmDelivery(){
   setTimeout(renderInventario,800);
 }
 
-// ── Actualizar Preorden (Otro → Cover) ──
+// ── Actualizar Preorden / Personalización ──
 let _upmOrderId=null;
 let _upmSelections=[];
 
@@ -8035,30 +8035,67 @@ function openUpdatePreorderModal(orderId){
   const ord=orders.find(o=>o.id===parseInt(orderId));
   if(!ord){toast('Orden no encontrada');return;}
   _upmOrderId=ord.id;
-  const customItems=ord.items.map((item,idx)=>({item,idx})).filter(({item})=>item.pid==='custom');
-  if(!customItems.length){toast('Esta orden no tiene ítems "Otro"');return;}
-  _upmSelections=customItems.map(({item,idx})=>({
-    itemIdx:idx, model:MODEL_LIST[MODEL_LIST.length>21?20:MODEL_LIST.length-1],
-    color:'Black', source:'agora', origItem:item
+  // Include ALL cover items (pid='cover' or pid='custom') and HAS_INI accessories
+  const editableItems=ord.items.map((item,idx)=>({item,idx}))
+    .filter(({item})=>item.pid==='custom'||IS_COVER.includes(item.pid)||HAS_INI.includes(item.pid));
+  if(!editableItems.length){toast('Esta orden no tiene covers ni accesorios para editar');return;}
+  _upmSelections=editableItems.map(({item,idx})=>({
+    itemIdx:idx,
+    isCustom:item.pid==='custom',
+    isCover:item.pid==='custom'||IS_COVER.includes(item.pid),
+    model:item.model||(IS_COVER.includes(item.pid)||item.pid==='custom'?MODEL_LIST[MODEL_LIST.indexOf('17 Pro Max')>-1?MODEL_LIST.indexOf('17 Pro Max'):0]:''),
+    color:item.color||'Black',
+    source:'agora',
+    iniciales:(item.custom||{}).iniciales||'',
+    emoji:(item.custom||{}).emoji||'',
+    tamano:(item.custom||{}).tamano||SIZES[0],
+    colorIni:(item.custom||{}).colorIni||INI_COLORS[0],
+    notes:item.notes||'',
+    origItem:item
   }));
-  document.getElementById('upm-meta').textContent=`Orden #${ord.id} · ${ord.name||''} · ${customItems.length} ítem(s) por actualizar`;
+  document.getElementById('upm-meta').textContent=`Orden #${ord.id} · ${ord.name||''} · ${editableItems.length} ítem(s)`;
 
   function buildRow(sel,selIdx){
+    const isCover=sel.isCover;
     const modelOpts=MODEL_LIST.map(m=>`<option value="${m}" ${sel.model===m?'selected':''}>${m}</option>`).join('');
     const colorOpts=coverColorsForModel(sel.model).map(c=>`<option value="${c}" ${sel.color===c?'selected':''}>${c}</option>`).join('');
-    return `<div style="background:#f9fafb;border:1.5px solid #e5e7eb;border-radius:8px;padding:12px;">
-      <div style="font-size:.75rem;font-weight:800;color:var(--g500);margin-bottom:8px;">ÍTEM ${selIdx+1} — era: ${sel.origItem.name}${sel.origItem.notes?' · '+sel.origItem.notes:''}</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
-        <div>
-          <div style="font-size:.7rem;font-weight:700;color:var(--g500);margin-bottom:3px;">MODELO</div>
-          <select onchange="_upmSelections[${selIdx}].model=this.value;_upmSelections[${selIdx}].color='Black';renderUpmRows()" style="width:100%;padding:7px;border:1.5px solid #e5e7eb;border-radius:6px;font-size:.82rem;">${modelOpts}</select>
+    const sizeOpts=SIZES.map(s=>`<option value="${s}" ${sel.tamano===s?'selected':''}>${s}</option>`).join('');
+    const colorIniOpts=INI_COLORS.map(c=>`<option value="${c}" ${sel.colorIni===c?'selected':''}>${c}</option>`).join('');
+    const iniSection=`
+      <div style="margin-top:10px;border-top:1px solid #e5e7eb;padding-top:10px;">
+        <div style="font-size:.7rem;font-weight:800;color:#6d28d9;margin-bottom:7px;">PERSONALIZACIÓN</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+          <div>
+            <div style="font-size:.68rem;font-weight:700;color:var(--g500);margin-bottom:3px;">INICIALES</div>
+            <input type="text" maxlength="6" placeholder="AB" value="${sel.iniciales}"
+              oninput="_upmSelections[${selIdx}].iniciales=this.value"
+              style="width:100%;padding:7px;border:1.5px solid #e5e7eb;border-radius:6px;font-size:.85rem;font-weight:700;text-transform:uppercase;"/>
+          </div>
+          <div>
+            <div style="font-size:.68rem;font-weight:700;color:var(--g500);margin-bottom:3px;">EMOJI</div>
+            <input type="text" maxlength="4" placeholder="🌸" value="${sel.emoji}"
+              oninput="_upmSelections[${selIdx}].emoji=this.value"
+              style="width:100%;padding:7px;border:1.5px solid #e5e7eb;border-radius:6px;font-size:.9rem;"/>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+          <div>
+            <div style="font-size:.68rem;font-weight:700;color:var(--g500);margin-bottom:3px;">TAMAÑO</div>
+            <select onchange="_upmSelections[${selIdx}].tamano=this.value" style="width:100%;padding:7px;border:1.5px solid #e5e7eb;border-radius:6px;font-size:.82rem;">${sizeOpts}</select>
+          </div>
+          <div>
+            <div style="font-size:.68rem;font-weight:700;color:var(--g500);margin-bottom:3px;">COLOR INI.</div>
+            <select onchange="_upmSelections[${selIdx}].colorIni=this.value" style="width:100%;padding:7px;border:1.5px solid #e5e7eb;border-radius:6px;font-size:.82rem;">${colorIniOpts}</select>
+          </div>
         </div>
         <div>
-          <div style="font-size:.7rem;font-weight:700;color:var(--g500);margin-bottom:3px;">COLOR</div>
-          <select onchange="_upmSelections[${selIdx}].color=this.value" style="width:100%;padding:7px;border:1.5px solid #e5e7eb;border-radius:6px;font-size:.82rem;">${colorOpts}</select>
+          <div style="font-size:.68rem;font-weight:700;color:var(--g500);margin-bottom:3px;">NOTAS</div>
+          <textarea placeholder="Instrucciones especiales…" oninput="_upmSelections[${selIdx}].notes=this.value"
+            style="width:100%;padding:7px;border:1.5px solid #e5e7eb;border-radius:6px;font-size:.82rem;resize:vertical;height:52px;font-family:inherit;">${sel.notes}</textarea>
         </div>
-      </div>
-      <div>
+      </div>`;
+    const srcSection=sel.isCustom?`
+      <div style="margin-top:10px;">
         <div style="font-size:.7rem;font-weight:700;color:var(--g500);margin-bottom:5px;">DESCONTAR DE</div>
         <div style="display:flex;gap:8px;">
           <label style="flex:1;display:flex;align-items:center;gap:6px;padding:7px 10px;border:1.5px solid ${sel.source==='agora'?'#6d28d9':'#e5e7eb'};border-radius:6px;cursor:pointer;background:${sel.source==='agora'?'#f5f3ff':'#fff'};">
@@ -8068,7 +8105,24 @@ function openUpdatePreorderModal(orderId){
             <input type="radio" name="upm-src-${selIdx}" value="almacen" ${sel.source==='almacen'?'checked':''} onchange="_upmSelections[${selIdx}].source='almacen';renderUpmRows()"> <span style="font-size:.8rem;font-weight:700;">🏭 Almacén</span>
           </label>
         </div>
-      </div>
+      </div>`:'';
+    const label=sel.isCustom
+      ?`<span style="background:#fef9c3;color:#92400e;font-size:.65rem;font-weight:800;padding:1px 7px;border-radius:8px;margin-left:5px;">OTRO → COVER</span>`
+      :`<span style="background:#ede9fe;color:#6d28d9;font-size:.65rem;font-weight:800;padding:1px 7px;border-radius:8px;margin-left:5px;">COVER</span>`;
+    return `<div style="background:#f9fafb;border:1.5px solid #e5e7eb;border-radius:8px;padding:12px;">
+      <div style="font-size:.75rem;font-weight:800;color:#374151;margin-bottom:8px;">ÍTEM ${selIdx+1}${label}</div>
+      ${isCover?`<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <div>
+          <div style="font-size:.68rem;font-weight:700;color:var(--g500);margin-bottom:3px;">MODELO</div>
+          <select onchange="_upmSelections[${selIdx}].model=this.value;_upmSelections[${selIdx}].color=coverColorsForModel(this.value)[0]||'Black';renderUpmRows()" style="width:100%;padding:7px;border:1.5px solid #e5e7eb;border-radius:6px;font-size:.82rem;">${modelOpts}</select>
+        </div>
+        <div>
+          <div style="font-size:.68rem;font-weight:700;color:var(--g500);margin-bottom:3px;">COLOR</div>
+          <select onchange="_upmSelections[${selIdx}].color=this.value" style="width:100%;padding:7px;border:1.5px solid #e5e7eb;border-radius:6px;font-size:.82rem;">${colorOpts}</select>
+        </div>
+      </div>`:''}
+      ${iniSection}
+      ${srcSection}
     </div>`;
   }
 
@@ -8089,35 +8143,40 @@ function confirmUpdatePreorder(){
     const orig=newItems[sel.itemIdx];
     newItems[sel.itemIdx]={
       ...orig,
-      pid:'cover',
-      name:'Cover',
-      model:sel.model,
-      color:sel.color,
+      pid:sel.isCover?'cover':orig.pid,
+      name:sel.isCover?'Cover':orig.name,
+      model:sel.model||orig.model,
+      color:sel.color||orig.color,
+      notes:sel.notes||'',
+      custom:{
+        ...(orig.custom||{}),
+        iniciales:sel.iniciales||'',
+        emoji:sel.emoji||'',
+        tamano:sel.tamano||SIZES[0],
+        colorIni:sel.colorIni||INI_COLORS[0],
+      }
     };
   });
 
-  // Save updated items to Firebase
   db.ref('orders/'+_upmOrderId+'/items').set(newItems).catch(e=>console.error(e));
-  // Update local cache
   ord.items=newItems;
 
-  // Deduct inventory for each updated item
-  _upmSelections.forEach(sel=>{
+  // Deduct inventory only for items that were 'custom' (otro) — already-set covers were deducted at creation
+  _upmSelections.filter(sel=>sel.isCustom).forEach(sel=>{
     const updItem=newItems[sel.itemIdx];
     const sku=makeCoverSku(sel.model,sel.color);
     const s=getStock(sku);
     const qty=updItem.qty||1;
     if(sel.source==='agora'){
-      const newAgora=Math.max(0,(s.agora||0)-qty);
-      saveInvRec(sku,{...s,agora:newAgora},'Preorden actualizada · #'+_upmOrderId);
+      saveInvRec(sku,{...s,agora:Math.max(0,(s.agora||0)-qty)},'Preorden actualizada · #'+_upmOrderId);
     } else {
-      const newAlmacen=Math.max(0,(s.almacen||0)-qty);
-      saveInvRec(sku,{...s,almacen:newAlmacen},'Preorden actualizada (Almacén) · #'+_upmOrderId);
+      saveInvRec(sku,{...s,almacen:Math.max(0,(s.almacen||0)-qty)},'Preorden actualizada (Almacén) · #'+_upmOrderId);
     }
   });
 
   closeMod('update-preorder-modal');
-  toast(`✓ Orden #${_upmOrderId} actualizada · inventario descontado`);
+  const customCount=_upmSelections.filter(s=>s.isCustom).length;
+  toast(`✓ Orden #${_upmOrderId} actualizada${customCount?' · inventario descontado':''}`);
   setTimeout(()=>{renderProd();renderInventario();},500);
 }
 
@@ -8638,7 +8697,8 @@ function renderProd(){
       :'';
     const fichaBtn=`<button onclick="downloadFicha(${o.id})" style="margin-top:7px;padding:4px 10px;font-size:.7rem;background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;cursor:pointer;color:#6b7280;font-weight:600;">📄 Ficha</button>`;
     const hasCustom=o.items.some(i=>i.pid==='custom');
-    const updateBtn=hasCustom&&adminMode?`<button onclick="openUpdatePreorderModal(${o.id})" style="margin-top:7px;margin-left:5px;padding:4px 10px;font-size:.7rem;background:#fef9c3;border:1px solid #fde68a;border-radius:6px;cursor:pointer;color:#92400e;font-weight:700;">🔄 Actualizar preorden</button>`:'';
+    const hasCoverItem=o.items.some(i=>i.pid==='custom'||IS_COVER.includes(i.pid)||HAS_INI.includes(i.pid));
+    const updateBtn=hasCoverItem&&adminMode?`<button onclick="openUpdatePreorderModal(${o.id})" style="margin-top:7px;margin-left:5px;padding:4px 10px;font-size:.7rem;background:${hasCustom?'#fef9c3':'#ede9fe'};border:1px solid ${hasCustom?'#fde68a':'#c4b5fd'};border-radius:6px;cursor:pointer;color:${hasCustom?'#92400e':'#6d28d9'};font-weight:700;">${hasCustom?'🔄 Actualizar preorden':'✏ Editar personalización'}</button>`:'';
     return`<div class="prod-card ${status==='pendiente_restock'?'pend':status==='ruta_mensajero'?'proc':status==='entregada'?'done':status}">
       <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;flex-wrap:wrap;">
         <span class="prod-source ${src}">${srcIcon[src]||''} ${srcLabel[src]||src}</span>
