@@ -2689,7 +2689,7 @@ const IS_COVER  =['cover'];
 const COLORS    =['Black','Dark Blue','Shiraz','Forest','Nude','Cocoa','Golden','Orchid','Caramel','Merlot','Flamingo','Ginger','Emerald','Metal','Blush','Mustard','Ocean','Magenta','Lilac','Sky','Croc'];
 const INI_COLORS=['Gold','Gold Matte','Silver','Silver Matte','Negro','Sin Color'];
 const SIZES     =['10mm','6mm'];
-const MODEL_LIST=['11','12/12 Pro','12 Pro Max','13','13 Pro','13 Pro Max','14','14 Pro','14/15 Plus','14 Pro Max','15','15 Pro','15 Pro Max','16','16 Plus','16 Pro','16 Pro Max','17','17 Air','17 Pro','17 Pro Max','Samsung S25 Ultra'];
+const MODEL_LIST=['11','12/12 Pro','12 Pro Max','13','13 Pro','13 Pro Max','14','14 Pro','14/15 Plus','14 Pro Max','15','15 Pro','15 Pro Max','16','16 Plus','16 Pro','16 Pro Max','17','17 Air','17 Pro','17 Pro Max','18 Ultra Fold','Samsung S25 Ultra'];
 const SPECIAL_TYPES=['Cortesia','Error','Garantia'];
 const ALL_PANELS=['p-card','p-cash','p-txfr','p-split','p-courtesy','p-error','p-warranty'];
 const SHIFT_TYPES=['Apertura','Entre Medio','Cierre'];
@@ -2700,7 +2700,7 @@ const ACC_PID_MAP={'ch':'Card Holder','kt':'Key Tag','bt':'Bag Tag','ph':'Passpo
 const CSV_ACC_MAP={'Card Holder':'ch','Key Tag':'kt','Bag Tag':'bt','Passport Holder':'ph','Cosmetic Bag':'cos','Cigar Case':'cc'};
 function makeCoverSku(model,color){return `cover__${model}__${color}`;}
 // Colores válidos por modelo (Samsung S25 Ultra solo Black por ahora)
-const MODEL_COLORS={'Samsung S25 Ultra':['Black']};
+const MODEL_COLORS={'Samsung S25 Ultra':['Black'],'18 Ultra Fold':['Black','Cocoa','Golden','Flamingo']};
 function coverColorsForModel(model){return MODEL_COLORS[model]||COLORS;}
 function makeAccSku(pid,color){return `${pid}__${color}`;}
 function makeSkuFromItem(item){
@@ -2724,6 +2724,7 @@ const MODEL_MIN={
   '15':3,'15 Pro':3,'15 Pro Max':3,
   '16':3,'16 Plus':3,'16 Pro':3,'16 Pro Max':3,
   '17':3,'17 Air':3,'17 Pro':3,'17 Pro Max':5,
+  '18 Ultra Fold':3,
   'Samsung S25 Ultra':3,
 };
 function getMinForSku(sku){
@@ -8798,9 +8799,10 @@ function refreshBonusCalc(){
   // Órdenes individuales (métricas por colaboradora)
   const saleOrds=periodOrders.filter(o=>byEmp(o)&&!['Cortesia','Error','Garantia'].includes((o.pay||{}).type));
   const errOrds=periodOrders.filter(o=>byEmp(o)&&(o.pay||{}).type==='Error');
+  const errOrdsCuenta=errOrds.filter(o=>o.contaBono!==false); // los que sí cuentan para el 3%
   const cortOrds=periodOrders.filter(o=>byEmp(o)&&(o.pay||{}).type==='Cortesia');
-  const totalOrdenes=saleOrds.length+errOrds.length+cortOrds.length;
-  const errorPct=totalOrdenes>0?+(errOrds.length/totalOrdenes*100).toFixed(1):0;
+  const totalOrdenes=saleOrds.length+errOrdsCuenta.length+cortOrds.length;
+  const errorPct=totalOrdenes>0?+(errOrdsCuenta.length/totalOrdenes*100).toFixed(1):0;
   const bonoBase=Math.round(ventasBrutas*0.01);
 
   // ── Attendance from clock-in data ──
@@ -8848,7 +8850,7 @@ function refreshBonusCalc(){
     return bd.breakMs>BREAK_LIMIT||bd.permisoMs>PERMISO_LIMIT;
   }).sort((a,b)=>a.date.localeCompare(b.date));
 
-  _bcStats={ventasBrutas,totalOrdenes,errores:errOrds.length,errorPct,tardanzas,ausencias,bonoBase,errOrds,tardOrds,breakOrds};
+  _bcStats={ventasBrutas,totalOrdenes,errores:errOrdsCuenta.length,errorPct,tardanzas,ausencias,bonoBase,errOrds,errOrdsCuenta,tardOrds,breakOrds};
 
   // ── Update display ──
   const ventasEl=document.getElementById('bc-ventas');
@@ -8860,7 +8862,7 @@ function refreshBonusCalc(){
   const epEl=document.getElementById('bc-errorpct');
   epEl.textContent=`${errorPct}%`;
   epEl.style.color=errorPct>=3?'#dc2626':'#16a34a';
-  document.getElementById('bc-errores').textContent=errOrds.length;
+  document.getElementById('bc-errores').textContent=errOrdsCuenta.length+(errOrds.length>errOrdsCuenta.length?` (${errOrds.length-errOrdsCuenta.length} excl.)`:'');
   const tardEl=document.getElementById('bc-tard');
   tardEl.textContent=tardanzas;
   tardEl.style.color=tardanzas>=3?'#dc2626':tardanzas>0?'#d97706':'#16a34a';
@@ -8900,20 +8902,33 @@ function refreshBonusCalc(){
       const ds=`${dt.getDate()}/${dt.getMonth()+1} ${String(dt.getHours()).padStart(2,'0')}:${String(dt.getMinutes()).padStart(2,'0')}`;
       const items=(o.items||[]).map(it=>`${it.qty}× ${it.name}${it.model?' '+it.model:''}${it.color?' / '+it.color:''}`).join(', ');
       const notes=(o.items||[]).map(it=>it.notes).filter(Boolean).join(' · ');
-      return`<label style="display:flex;align-items:flex-start;gap:10px;padding:9px 12px;background:#fff;border:1.5px solid #e5e7eb;border-radius:8px;cursor:pointer;transition:border-color .15s;"
-        onmouseover="this.style.borderColor='#fca5a5'" onmouseout="this.style.borderColor=document.getElementById('bc-errchk-${i}').checked?'#dc2626':'#e5e7eb'">
-        <input type="checkbox" id="bc-errchk-${i}" onchange="calcBonusResult();this.closest('label').style.borderColor=this.checked?'#dc2626':'#e5e7eb'"
-          style="width:16px;height:16px;accent-color:#dc2626;margin-top:2px;flex-shrink:0;cursor:pointer;"/>
-        <div style="flex:1;min-width:0;">
-          <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;flex-wrap:wrap;">
-            <span style="font-size:.78rem;font-weight:700;">${o.name}</span>
-            <span style="font-size:.69rem;color:var(--g500);">${ds}</span>
+      const cuenta=o.contaBono!==false;
+      const cardBg=cuenta?'#fff':'#f8fafc';
+      const cardOpacity=cuenta?'1':'0.65';
+      return`<div id="bc-errcard-${i}" style="background:${cardBg};border:1.5px solid #e5e7eb;border-radius:8px;overflow:hidden;opacity:${cardOpacity};transition:all .2s;">
+        <label style="display:flex;align-items:flex-start;gap:10px;padding:9px 12px;cursor:pointer;"
+          onmouseover="document.getElementById('bc-errcard-${i}').style.borderColor='#fca5a5'"
+          onmouseout="document.getElementById('bc-errcard-${i}').style.borderColor=document.getElementById('bc-errchk-${i}').checked?'#dc2626':'#e5e7eb'">
+          <input type="checkbox" id="bc-errchk-${i}" onchange="calcBonusResult();document.getElementById('bc-errcard-${i}').style.borderColor=this.checked?'#dc2626':'#e5e7eb'"
+            style="width:16px;height:16px;accent-color:#dc2626;margin-top:2px;flex-shrink:0;cursor:pointer;"/>
+          <div style="flex:1;min-width:0;">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;flex-wrap:wrap;">
+              <span style="font-size:.78rem;font-weight:700;">${o.name||'—'}</span>
+              <span style="font-size:.69rem;color:var(--g500);">${ds}</span>
+            </div>
+            <div style="font-size:.74rem;color:#374151;margin-top:2px;">${items}</div>
+            ${notes?`<div style="font-size:.69rem;color:#9333ea;margin-top:2px;">📝 ${notes}</div>`:''}
           </div>
-          <div style="font-size:.74rem;color:#374151;margin-top:2px;">${items}</div>
-          ${notes?`<div style="font-size:.69rem;color:#9333ea;margin-top:2px;">📝 ${notes}</div>`:''}
+          <span style="font-size:.72rem;font-weight:800;color:#dc2626;white-space:nowrap;flex-shrink:0;">−RD$1,000</span>
+        </label>
+        <div style="padding:4px 12px 8px 12px;display:flex;align-items:center;gap:8px;border-top:1px solid #f1f5f9;">
+          <span style="font-size:.67rem;color:#64748b;font-weight:600;">Cuenta para el 3%:</span>
+          <button onclick="toggleContaBono('${o.id}')" style="font-size:.67rem;font-weight:800;padding:2px 10px;border-radius:20px;border:1.5px solid ${cuenta?'#16a34a':'#dc2626'};background:${cuenta?'#dcfce7':'#fee2e2'};color:${cuenta?'#15803d':'#dc2626'};cursor:pointer;">
+            ${cuenta?'✓ Sí':'✗ No'}
+          </button>
+          ${!cuenta?`<span style="font-size:.65rem;color:#9ca3af;font-style:italic;">excluida del cálculo</span>`:''}
         </div>
-        <span style="font-size:.72rem;font-weight:800;color:#dc2626;white-space:nowrap;flex-shrink:0;">−RD$1,000</span>
-      </label>`;
+      </div>`;
     }).join('');
     // Restore error checkbox states
     errOrds.forEach((o,i)=>{
@@ -9129,6 +9144,18 @@ function getManualTardanzas(){
     }
     return{fecha,entrada,horario,minLate,note,counted};
   });
+}
+
+function toggleContaBono(orderId){
+  if(!adminMode){toast('Solo disponible para admin');return;}
+  const ordIdNum=parseInt(orderId);
+  const ord=orders.find(o=>o.id===ordIdNum);
+  if(!ord){toast('Orden no encontrada');return;}
+  const newVal=ord.contaBono===false; // toggle: false→true, true/undefined→false
+  ord.contaBono=newVal;
+  db.ref('orders/'+ordIdNum+'/contaBono').set(newVal).catch(e=>console.error(e));
+  refreshBonusCalc();
+  toast(newVal?'✓ Ahora cuenta para el bono':'✗ Excluida del cálculo del bono');
 }
 
 function calcBonusResult(){
