@@ -2557,6 +2557,27 @@ input.err{border-color:#c00!important;}
   </div>
 </div>
 
+<!-- ── UPDATE PREORDER MODAL ── -->
+<div class="moverlay" id="update-preorder-modal">
+  <div class="modal wide" style="max-width:520px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+      <div>
+        <h3>🔄 Actualizar Preorden</h3>
+        <p id="upm-meta" class="msub" style="margin:0;font-size:.74rem;color:var(--g500);"></p>
+      </div>
+      <button class="xbtn" onclick="closeMod('update-preorder-modal')" style="font-size:1.1rem;">✕</button>
+    </div>
+    <div style="background:#fef9c3;border:1.5px solid #fde68a;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:.78rem;color:#92400e;">
+      📦 Selecciona el cover correcto y de dónde descontar el inventario.
+    </div>
+    <div id="upm-rows" style="max-height:320px;overflow-y:auto;display:flex;flex-direction:column;gap:12px;"></div>
+    <div class="mfooter" style="margin-top:14px;">
+      <button class="obtn" onclick="closeMod('update-preorder-modal')">Cancelar</button>
+      <button class="submit" onclick="confirmUpdatePreorder()">✓ Confirmar y descontar inventario</button>
+    </div>
+  </div>
+</div>
+
 <!-- ── CONFIRM DELIVERY MODAL ── -->
 <div class="moverlay" id="confirm-delivery-modal">
   <div class="modal wide" style="max-width:560px;">
@@ -8005,6 +8026,101 @@ function confirmDelivery(){
   setTimeout(renderInventario,800);
 }
 
+// ── Actualizar Preorden (Otro → Cover) ──
+let _upmOrderId=null;
+let _upmSelections=[];
+
+function openUpdatePreorderModal(orderId){
+  if(!adminMode){toast('Solo disponible para admin');return;}
+  const ord=orders.find(o=>o.id===parseInt(orderId));
+  if(!ord){toast('Orden no encontrada');return;}
+  _upmOrderId=ord.id;
+  const customItems=ord.items.map((item,idx)=>({item,idx})).filter(({item})=>item.pid==='custom');
+  if(!customItems.length){toast('Esta orden no tiene ítems "Otro"');return;}
+  _upmSelections=customItems.map(({item,idx})=>({
+    itemIdx:idx, model:MODEL_LIST[MODEL_LIST.length>21?20:MODEL_LIST.length-1],
+    color:'Black', source:'agora', origItem:item
+  }));
+  document.getElementById('upm-meta').textContent=`Orden #${ord.id} · ${ord.name||''} · ${customItems.length} ítem(s) por actualizar`;
+
+  function buildRow(sel,selIdx){
+    const modelOpts=MODEL_LIST.map(m=>`<option value="${m}" ${sel.model===m?'selected':''}>${m}</option>`).join('');
+    const colorOpts=coverColorsForModel(sel.model).map(c=>`<option value="${c}" ${sel.color===c?'selected':''}>${c}</option>`).join('');
+    return `<div style="background:#f9fafb;border:1.5px solid #e5e7eb;border-radius:8px;padding:12px;">
+      <div style="font-size:.75rem;font-weight:800;color:var(--g500);margin-bottom:8px;">ÍTEM ${selIdx+1} — era: ${sel.origItem.name}${sel.origItem.notes?' · '+sel.origItem.notes:''}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+        <div>
+          <div style="font-size:.7rem;font-weight:700;color:var(--g500);margin-bottom:3px;">MODELO</div>
+          <select onchange="_upmSelections[${selIdx}].model=this.value;_upmSelections[${selIdx}].color='Black';renderUpmRows()" style="width:100%;padding:7px;border:1.5px solid #e5e7eb;border-radius:6px;font-size:.82rem;">${modelOpts}</select>
+        </div>
+        <div>
+          <div style="font-size:.7rem;font-weight:700;color:var(--g500);margin-bottom:3px;">COLOR</div>
+          <select onchange="_upmSelections[${selIdx}].color=this.value" style="width:100%;padding:7px;border:1.5px solid #e5e7eb;border-radius:6px;font-size:.82rem;">${colorOpts}</select>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:.7rem;font-weight:700;color:var(--g500);margin-bottom:5px;">DESCONTAR DE</div>
+        <div style="display:flex;gap:8px;">
+          <label style="flex:1;display:flex;align-items:center;gap:6px;padding:7px 10px;border:1.5px solid ${sel.source==='agora'?'#6d28d9':'#e5e7eb'};border-radius:6px;cursor:pointer;background:${sel.source==='agora'?'#f5f3ff':'#fff'};">
+            <input type="radio" name="upm-src-${selIdx}" value="agora" ${sel.source==='agora'?'checked':''} onchange="_upmSelections[${selIdx}].source='agora';renderUpmRows()"> <span style="font-size:.8rem;font-weight:700;">🏪 Agora</span>
+          </label>
+          <label style="flex:1;display:flex;align-items:center;gap:6px;padding:7px 10px;border:1.5px solid ${sel.source==='almacen'?'#6d28d9':'#e5e7eb'};border-radius:6px;cursor:pointer;background:${sel.source==='almacen'?'#f5f3ff':'#fff'};">
+            <input type="radio" name="upm-src-${selIdx}" value="almacen" ${sel.source==='almacen'?'checked':''} onchange="_upmSelections[${selIdx}].source='almacen';renderUpmRows()"> <span style="font-size:.8rem;font-weight:700;">🏭 Almacén</span>
+          </label>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  window.renderUpmRows=function(){
+    document.getElementById('upm-rows').innerHTML=_upmSelections.map((sel,i)=>buildRow(sel,i)).join('');
+  };
+  renderUpmRows();
+  openMod('update-preorder-modal');
+}
+
+function confirmUpdatePreorder(){
+  if(!_upmOrderId||!_upmSelections.length)return;
+  const ord=orders.find(o=>o.id===_upmOrderId);
+  if(!ord){toast('Orden no encontrada');return;}
+
+  const newItems=[...ord.items];
+  _upmSelections.forEach(sel=>{
+    const orig=newItems[sel.itemIdx];
+    newItems[sel.itemIdx]={
+      ...orig,
+      pid:'cover',
+      name:'Cover',
+      model:sel.model,
+      color:sel.color,
+    };
+  });
+
+  // Save updated items to Firebase
+  db.ref('orders/'+_upmOrderId+'/items').set(newItems).catch(e=>console.error(e));
+  // Update local cache
+  ord.items=newItems;
+
+  // Deduct inventory for each updated item
+  _upmSelections.forEach(sel=>{
+    const updItem=newItems[sel.itemIdx];
+    const sku=makeCoverSku(sel.model,sel.color);
+    const s=getStock(sku);
+    const qty=updItem.qty||1;
+    if(sel.source==='agora'){
+      const newAgora=Math.max(0,(s.agora||0)-qty);
+      saveInvRec(sku,{...s,agora:newAgora},'Preorden actualizada · #'+_upmOrderId);
+    } else {
+      const newAlmacen=Math.max(0,(s.almacen||0)-qty);
+      saveInvRec(sku,{...s,almacen:newAlmacen},'Preorden actualizada (Almacén) · #'+_upmOrderId);
+    }
+  });
+
+  closeMod('update-preorder-modal');
+  toast(`✓ Orden #${_upmOrderId} actualizada · inventario descontado`);
+  setTimeout(()=>{renderProd();renderInventario();},500);
+}
+
 // ── Repair almacén from confirmed restocks that never decremented it ──
 function repairAlmacenFromRestocks(){
   if(!adminMode)return;
@@ -8521,6 +8637,8 @@ function renderProd(){
       ?`<div style="font-size:.68rem;color:#166534;font-weight:700;margin-top:4px;">${_listoLabel} ${_listoName}${_listoTime?' · '+new Date(_listoTime).toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'}):''}</div>`
       :'';
     const fichaBtn=`<button onclick="downloadFicha(${o.id})" style="margin-top:7px;padding:4px 10px;font-size:.7rem;background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;cursor:pointer;color:#6b7280;font-weight:600;">📄 Ficha</button>`;
+    const hasCustom=o.items.some(i=>i.pid==='custom');
+    const updateBtn=hasCustom&&adminMode?`<button onclick="openUpdatePreorderModal(${o.id})" style="margin-top:7px;margin-left:5px;padding:4px 10px;font-size:.7rem;background:#fef9c3;border:1px solid #fde68a;border-radius:6px;cursor:pointer;color:#92400e;font-weight:700;">🔄 Actualizar preorden</button>`:'';
     return`<div class="prod-card ${status==='pendiente_restock'?'pend':status==='ruta_mensajero'?'proc':status==='entregada'?'done':status}">
       <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;flex-wrap:wrap;">
         <span class="prod-source ${src}">${srcIcon[src]||''} ${srcLabel[src]||src}</span>
@@ -8531,7 +8649,7 @@ function renderProd(){
       <div style="margin-top:5px;">${itemsHtml}</div>
       ${addrHtml}${listoHtml}
       ${advBtn}
-      ${fichaBtn}
+      ${fichaBtn}${updateBtn}
     </div>`;
   }
 
